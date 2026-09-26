@@ -1,0 +1,88 @@
+.headIcon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--separator);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.followText {
+  font-size: 15px;
+}
+
+.hint {
+  margin-top: 8px;
+}
+
+.linkedCall {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--fill-hover);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.12s ease;
+}
+
+.linkedCall:hover {
+  background: var(--fill);
+}
+
+.linkedCall > svg {
+  color: var(--text-3);
+}
+
+.linkedText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.linkedSub {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+.resolvesList .linkedCall:first-child {
+  margin-top: 0;
+}
+
+.resolvesList .linkedCall + .linkedCall {
+  margin-top: 8px;
+}
+
+.score {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.analysis h3 {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+
+.analysis p,
+.transcript {
+  font-size: 15px;
+  white-space: pre-wrap;
+}

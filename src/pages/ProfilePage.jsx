@@ -1,54 +1,169 @@
 import { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
+import styles from "./ProfilePage.module.css";
+import pageStyles from "./Pages.module.css";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Segmented from "../components/ui/Segmented";
+import { TextField } from "../components/ui/Field";
+import Icon from "../components/ui/Icon";
+import { List, ListRow } from "../components/ui/List";
+import { Avatar, KeyValue, PageHeader } from "../components/ui/Misc";
+import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { api } from "../lib/api";
-import PageHeader from "../components/PageHeader";
-
-const ROLE_LABEL = {
-  DEVELOPER: "Developer",
-  BOSS: "Boss",
-  EMPLOYEE: "Employee",
-};
+import { callBridge, hasBridge, inApp } from "../lib/appBridge";
+import { applyTheme, readPref, writePref } from "../lib/prefs";
+import { LANGUAGES, useI18n } from "../i18n";
 
 export default function ProfilePage() {
+  const { user, logout } = useAuth();
+  const { t } = useI18n();
+  const displayName = user.employee?.name || user.username;
+
+  return (
+    <div>
+      <PageHeader title={t("profile.title")} subtitle={t("profile.subtitle")} />
+
+      <div className={styles.layout}>
+        <Card>
+          <div className={styles.who}>
+            <Avatar name={displayName} size={64} />
+            <div className={styles.whoText}>
+              <div className={styles.name}>{displayName}</div>
+              <div className={styles.meta}>
+                @{user.username} · {t(`roles.${user.role}`)}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {inApp && <AppPanel />}
+        {isManagerRole(user.role) && (
+          <List>
+            <ListRow to="/settings" leading={<Icon name="settings" size={20} />} title={t("nav.settings")} subtitle={t("settings.subtitle")} />
+          </List>
+        )}
+        <PreferencesCard />
+        <PasswordCard />
+
+        <Button variant="destructive" size="large" block icon="logOut" onClick={logout}>
+          {t("profile.signOut")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Only inside the Android app: version, "sync now", and the diagnostics log
+// to send when something's wrong with syncing.
+function AppPanel() {
+  const { t } = useI18n();
+  const [started, setStarted] = useState(false);
+  const collecting = callBridge("isCollectingCalls") === true;
+  return (
+    <Card title={t("appPanel.title")}>
+      <KeyValue label={t("appPanel.version")}>{callBridge("appVersion") || "—"}</KeyValue>
+      <p className={pageStyles.note} style={{ margin: "6px 0 4px" }}>
+        {collecting ? t("appPanel.collecting") : t("appPanel.notCollecting")}
+      </p>
+      <div className={pageStyles.actionsRow}>
+        {collecting && (
+          <Button
+            icon="refresh"
+            onClick={() => {
+              callBridge("syncNow");
+              setStarted(true);
+            }}
+          >
+            {started ? t("appPanel.syncStarted") : t("appPanel.syncNow")}
+          </Button>
+        )}
+        {collecting && hasBridge("openSetup") && (
+          <Button icon="smartphone" onClick={() => callBridge("openSetup")}>
+            {t("appPanel.setup")}
+          </Button>
+        )}
+        <Button icon="copy" onClick={() => callBridge("shareDiagnostics")}>
+          {t("appPanel.diagnostics")}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function PreferencesCard() {
+  const { t, lang, setLang } = useI18n();
+  const [theme, setTheme] = useState(() => readPref("theme", "auto"));
+
+  function chooseTheme(value) {
+    setTheme(value);
+    writePref("theme", value);
+    applyTheme(value);
+  }
+
+  return (
+    <Card title={t("profile.preferences")}>
+      <div className={pageStyles.formStack}>
+        <div className={styles.pref}>
+          <span className={styles.prefLabel}>{t("profile.language")}</span>
+          <Segmented
+            full
+            value={lang}
+            onChange={setLang}
+            label={t("profile.language")}
+            options={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))}
+          />
+        </div>
+        <div className={styles.pref}>
+          <span className={styles.prefLabel}>{t("profile.theme")}</span>
+          <Segmented
+            full
+            value={theme}
+            onChange={chooseTheme}
+            label={t("profile.theme")}
+            options={[
+              { value: "auto", label: t("profile.themeAuto") },
+              { value: "light", label: t("profile.themeLight") },
+              { value: "dark", label: t("profile.themeDark") },
+            ]}
+          />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function PasswordCard() {
   const { user, refreshMe } = useAuth();
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const { t } = useI18n();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirmValue, setConfirmValue] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const justChangedTemp = user.mustChangePassword;
-
-  async function handleSubmit(e) {
+  async function submit(e) {
     e.preventDefault();
     setError("");
     setSuccess(false);
-
-    if (newPassword.length < 8) {
-      setError("New password needs to be at least 8 characters.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError("Those two passwords don't match.");
-      return;
-    }
+    if (next.length < 8) return setError(t("profile.tooShort"));
+    if (next !== confirmValue) return setError(t("profile.mismatch"));
 
     setBusy(true);
     try {
-      await api.changePassword(currentPassword, newPassword);
+      await api.changePassword(current, next);
       setSuccess(true);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      refreshMe?.();
+      setCurrent("");
+      setNext("");
+      setConfirmValue("");
+      refreshMe().catch(() => {});
     } catch (err) {
       setError(
-        err.status === 401
-          ? "That current password isn't right."
-          : err.body?.error === "password_too_short"
-          ? "New password needs to be at least 8 characters."
-          : "Couldn't update your password right now."
+        err.code === "invalid_current_password"
+          ? t("profile.wrongCurrent")
+          : err.code === "password_too_short"
+            ? t("profile.tooShort")
+            : t("profile.failed")
       );
     } finally {
       setBusy(false);
@@ -56,169 +171,44 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="profile">
-      <PageHeader title="Profile" subtitle="Your account details and login." />
-
-      <div className="card">
-        <div className="who-row">
-          <div className="who-avatar">{(user.employee?.name || user.username).charAt(0).toUpperCase()}</div>
-          <div>
-            <div className="who-name">{user.employee?.name || user.username}</div>
-            <div className="who-meta">
-              @{user.username} · <span className="role-pill">{ROLE_LABEL[user.role] || user.role}</span>
-            </div>
-          </div>
+    <Card title={t("profile.changePassword")} subtitle={user.mustChangePassword ? t("profile.tempNote") : t("profile.normalNote")}>
+      <form onSubmit={submit} className={pageStyles.formStack}>
+        {/* Lets password managers attach the new password to the right account. */}
+        <input type="text" name="username" autoComplete="username" value={user.username} readOnly hidden />
+        <TextField
+          label={t("profile.currentPassword")}
+          type="password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          autoComplete="current-password"
+          required
+        />
+        <TextField
+          label={t("profile.newPassword")}
+          type="password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          autoComplete="new-password"
+          minLength={8}
+          required
+        />
+        <TextField
+          label={t("profile.confirmPassword")}
+          type="password"
+          value={confirmValue}
+          onChange={(e) => setConfirmValue(e.target.value)}
+          autoComplete="new-password"
+          minLength={8}
+          required
+        />
+        {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
+        {success && <p className={`${pageStyles.message} ${pageStyles.messageSuccess}`}>{t("profile.updated")}</p>}
+        <div className={pageStyles.formActions}>
+          <Button type="submit" variant="primary" busy={busy}>
+            {busy ? t("profile.updating") : t("profile.update")}
+          </Button>
         </div>
-      </div>
-
-      <div className="card">
-        <h2 className="card-title">Change password</h2>
-        <p className="card-note">
-          {justChangedTemp
-            ? "You're still on a temporary password — set your own so it's something only you know."
-            : "Change your password any time. You'll need your current one first."}
-        </p>
-
-        <form onSubmit={handleSubmit} className="pw-form">
-          <label className="field">
-            <span>Current password</span>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </label>
-          <label className="field">
-            <span>New password</span>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
-          </label>
-          <label className="field">
-            <span>Confirm new password</span>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
-          </label>
-
-          {error && <p className="msg msg-error">{error}</p>}
-          {success && <p className="msg msg-success">Password updated.</p>}
-
-          <div className="form-actions">
-            <button type="submit" className="btn-primary" disabled={busy}>
-              {busy ? "Updating…" : "Update password"}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <style>{`
-        .profile {
-          max-width: 460px;
-        }
-        .card {
-          background: var(--paper-raised);
-          border: 1px solid var(--line);
-          border-radius: var(--radius-lg);
-          padding: 20px;
-          box-shadow: var(--shadow-card);
-          margin-bottom: 16px;
-        }
-        .who-row {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-        .who-avatar {
-          width: 46px;
-          height: 46px;
-          border-radius: 50%;
-          background: var(--navy-tint);
-          color: var(--navy);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 1.1rem;
-          flex-shrink: 0;
-        }
-        .who-name { font-weight: 600; font-size: 1rem; }
-        .who-meta { font-size: 0.82rem; color: var(--ink-soft); margin-top: 2px; }
-        .role-pill {
-          font-weight: 700;
-          font-size: 0.7rem;
-          letter-spacing: 0.02em;
-          color: var(--brass);
-        }
-        .card-title { font-size: 1.05rem; margin-bottom: 6px; }
-        .card-note {
-          font-size: 0.83rem;
-          color: var(--ink-soft);
-          line-height: 1.5;
-          margin-bottom: 16px;
-        }
-        .pw-form {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-        }
-        .field span {
-          font-size: 0.78rem;
-          font-weight: 600;
-          color: var(--ink-soft);
-        }
-        .field input {
-          border: 1.5px solid var(--line-strong);
-          border-radius: var(--radius-sm);
-          padding: 10px 11px;
-          font-size: 0.9rem;
-          background: var(--paper);
-        }
-        .field input:focus {
-          border-color: var(--navy);
-          outline: none;
-        }
-        .msg {
-          font-size: 0.8rem;
-          font-weight: 500;
-          padding: 8px 10px;
-          border-radius: var(--radius-sm);
-        }
-        .msg-error { background: var(--clay-tint); color: var(--clay); }
-        .msg-success { background: var(--sage-tint); color: var(--sage); }
-        .form-actions {
-          display: flex;
-          justify-content: flex-end;
-          margin-top: 2px;
-        }
-        .btn-primary {
-          background: var(--navy);
-          color: var(--paper);
-          border: none;
-          padding: 10px 18px;
-          border-radius: var(--radius-sm);
-          font-weight: 600;
-          font-size: 0.85rem;
-        }
-        .btn-primary:disabled { opacity: 0.6; }
-      `}</style>
-    </div>
+      </form>
+    </Card>
   );
 }

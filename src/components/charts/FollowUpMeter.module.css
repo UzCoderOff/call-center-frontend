@@ -1,0 +1,109 @@
+.hero {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.heroValue {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.heroText {
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.meter {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--fill);
+}
+
+.segment {
+  min-width: 4px;
+  height: 100%;
+}
+
+.good {
+  background: var(--good);
+}
+.warning {
+  background: var(--warning);
+}
+.critical {
+  background: var(--critical);
+}
+.neutral {
+  background: var(--neutral);
+}
+
+.rows {
+  list-style: none;
+  margin-top: 14px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  font-size: 14px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--separator);
+}
+
+.rowLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowValue {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.goodIcon {
+  color: var(--good-text);
+}
+.warningIcon {
+  color: var(--warning-text);
+}
+.criticalIcon {
+  color: var(--critical-text);
+}
+.neutralIcon {
+  color: var(--text-3);
+}
+
+.median {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.none {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.none svg {
+  color: var(--good-text);
+}

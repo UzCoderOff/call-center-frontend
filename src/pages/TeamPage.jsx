@@ -1,703 +1,435 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import pageStyles from "./Pages.module.css";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
+import Sheet from "../components/ui/Sheet";
+import { Switch, TextField } from "../components/ui/Field";
+import { List, ListRow, ListSectionHeader } from "../components/ui/List";
+import { AsyncBoundary, Avatar, EmptyState, KeyValue, PageHeader } from "../components/ui/Misc";
+import CredentialsView from "../components/team/CredentialsView";
+import WorkSettingsFields, { useOrgOptions, workPayload } from "../components/team/WorkSettingsFields";
+import { SyncBadge, isSyncProblem, syncLine } from "../components/SyncStatus";
 import { useAuth } from "../hooks/useAuth";
+import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
-import PageHeader from "../components/PageHeader";
-
-function CreateEmployeeModal({ onClose, onCreated }) {
-  const [name, setName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [username, setUsername] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [credentials, setCredentials] = useState(null);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-    try {
-      const res = await api.createEmployee({ name: name.trim(), phoneNumber: phoneNumber.trim(), username: username.trim() });
-      setCredentials({ ...res.credentials, employeeId: res.employee.employeeId, name: res.employee.name });
-      onCreated();
-    } catch (err) {
-      setError(err.body?.error === "username_taken" ? "That username is already taken." : "Couldn't create the employee.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        {!credentials ? (
-          <>
-            <h2 className="modal-title">Add employee</h2>
-            <form onSubmit={handleSubmit} className="modal-form">
-              <label className="field">
-                <span>Full name</span>
-                <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
-              </label>
-              <label className="field">
-                <span>Phone number</span>
-                <input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required />
-              </label>
-              <label className="field">
-                <span>Portal username</span>
-                <input value={username} onChange={(e) => setUsername(e.target.value)} required />
-              </label>
-              {error && <p className="modal-error">{error}</p>}
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={onClose}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={busy}>
-                  {busy ? "Creating…" : "Create employee"}
-                </button>
-              </div>
-            </form>
-          </>
-        ) : (
-          <>
-            <h2 className="modal-title">{credentials.name} is set up</h2>
-            <p className="modal-note">
-              Save these now — the password won't be shown again. The device ID goes into the
-              Android app; the username/password are for the web portal.
-            </p>
-            <div className="cred-list">
-              <div className="cred-row">
-                <span>Device ID</span>
-                <code>{credentials.employeeId}</code>
-              </div>
-              <div className="cred-row">
-                <span>Username</span>
-                <code>{credentials.username}</code>
-              </div>
-              <div className="cred-row">
-                <span>Temp. password</span>
-                <code>{credentials.temporaryPassword}</code>
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn-primary" onClick={onClose}>
-                Done
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      <style>{`
-        .modal-backdrop {
-          position: fixed;
-          inset: 0;
-          background: rgba(20, 33, 61, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          z-index: 50;
-        }
-        .modal {
-          background: var(--paper-raised);
-          border-radius: var(--radius-lg);
-          padding: 26px;
-          max-width: 400px;
-          width: 100%;
-          box-shadow: var(--shadow-raised);
-        }
-        .modal-title {
-          font-size: 1.2rem;
-          margin-bottom: 16px;
-        }
-        .modal-note {
-          font-size: 0.83rem;
-          color: var(--ink-soft);
-          line-height: 1.5;
-          margin-bottom: 16px;
-        }
-        .modal-form {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-        }
-        .field span {
-          font-size: 0.78rem;
-          font-weight: 600;
-          color: var(--ink-soft);
-        }
-        .field input {
-          border: 1.5px solid var(--line-strong);
-          border-radius: var(--radius-sm);
-          padding: 10px 11px;
-          font-size: 0.9rem;
-          background: var(--paper);
-        }
-        .field input:focus {
-          border-color: var(--navy);
-          outline: none;
-        }
-        .modal-error {
-          background: var(--clay-tint);
-          color: var(--clay);
-          font-size: 0.8rem;
-          padding: 8px 10px;
-          border-radius: var(--radius-sm);
-        }
-        .modal-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          margin-top: 6px;
-        }
-        .btn-primary {
-          background: var(--navy);
-          color: var(--paper);
-          border: none;
-          padding: 10px 18px;
-          border-radius: var(--radius-sm);
-          font-weight: 600;
-          font-size: 0.85rem;
-        }
-        .btn-primary:disabled { opacity: 0.6; }
-        .btn-secondary {
-          background: transparent;
-          border: 1px solid var(--line-strong);
-          padding: 10px 18px;
-          border-radius: var(--radius-sm);
-          font-weight: 600;
-          font-size: 0.85rem;
-          color: var(--ink-soft);
-        }
-        .cred-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .cred-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background: var(--paper-sunken);
-          padding: 10px 12px;
-          border-radius: var(--radius-sm);
-          font-size: 0.82rem;
-        }
-        .cred-row span {
-          color: var(--ink-soft);
-          font-weight: 600;
-        }
-        .cred-row code {
-          font-family: ui-monospace, monospace;
-          font-weight: 600;
-          color: var(--navy);
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function CreateBossAccountModal({ onClose, onCreated }) {
-  const [username, setUsername] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [credentials, setCredentials] = useState(null);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-    try {
-      const res = await api.createBossAccount({ username: username.trim() });
-      setCredentials({ ...res.credentials });
-      onCreated();
-    } catch (err) {
-      setError(err.body?.error === "username_taken" ? "That username is already taken." : "Couldn't create the account.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        {!credentials ? (
-          <>
-            <h2 className="modal-title">Add boss account</h2>
-            <p className="modal-note">
-              A boss account is a portal login only — no phone number or Android device ID, since a
-              BOSS doesn't sync call data directly. They can view the team and every call, but can't
-              add, remove, or manage anyone (only a DEVELOPER can).
-            </p>
-            <form onSubmit={handleSubmit} className="modal-form">
-              <label className="field">
-                <span>Portal username</span>
-                <input value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus />
-              </label>
-              {error && <p className="modal-error">{error}</p>}
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={onClose}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={busy}>
-                  {busy ? "Creating…" : "Create account"}
-                </button>
-              </div>
-            </form>
-          </>
-        ) : (
-          <>
-            <h2 className="modal-title">Boss account is set up</h2>
-            <p className="modal-note">
-              Save these now — the password won't be shown again.
-            </p>
-            <div className="cred-list">
-              <div className="cred-row">
-                <span>Username</span>
-                <code>{credentials.username}</code>
-              </div>
-              <div className="cred-row">
-                <span>Temp. password</span>
-                <code>{credentials.temporaryPassword}</code>
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn-primary" onClick={onClose}>
-                Done
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      <style>{`
-        .modal-backdrop {
-          position: fixed;
-          inset: 0;
-          background: rgba(20, 33, 61, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          z-index: 50;
-        }
-        .modal {
-          background: var(--paper-raised);
-          border-radius: var(--radius-lg);
-          padding: 26px;
-          max-width: 400px;
-          width: 100%;
-          box-shadow: var(--shadow-raised);
-        }
-        .modal-title { font-size: 1.2rem; margin-bottom: 16px; }
-        .modal-note { font-size: 0.83rem; color: var(--ink-soft); line-height: 1.5; margin-bottom: 16px; }
-        .modal-form { display: flex; flex-direction: column; gap: 14px; }
-        .field { display: flex; flex-direction: column; gap: 5px; }
-        .field span { font-size: 0.78rem; font-weight: 600; color: var(--ink-soft); }
-        .field input {
-          border: 1.5px solid var(--line-strong);
-          border-radius: var(--radius-sm);
-          padding: 10px 11px;
-          font-size: 0.9rem;
-          background: var(--paper);
-        }
-        .field input:focus { border-color: var(--navy); outline: none; }
-        .modal-error {
-          background: var(--clay-tint);
-          color: var(--clay);
-          font-size: 0.8rem;
-          padding: 8px 10px;
-          border-radius: var(--radius-sm);
-        }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
-        .btn-primary {
-          background: var(--navy);
-          color: var(--paper);
-          border: none;
-          padding: 10px 18px;
-          border-radius: var(--radius-sm);
-          font-weight: 600;
-          font-size: 0.85rem;
-        }
-        .btn-primary:disabled { opacity: 0.6; }
-        .btn-secondary {
-          background: transparent;
-          border: 1px solid var(--line-strong);
-          padding: 10px 18px;
-          border-radius: var(--radius-sm);
-          font-weight: 600;
-          font-size: 0.85rem;
-          color: var(--ink-soft);
-        }
-        .cred-list { display: flex; flex-direction: column; gap: 8px; }
-        .cred-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background: var(--paper-sunken);
-          padding: 10px 12px;
-          border-radius: var(--radius-sm);
-          font-size: 0.82rem;
-        }
-        .cred-row span { color: var(--ink-soft); font-weight: 600; }
-        .cred-row code { font-family: ui-monospace, monospace; font-weight: 600; color: var(--navy); }
-      `}</style>
-    </div>
-  );
-}
-
-function BossAccountsSection() {
-  const [bosses, setBosses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-  const [busyId, setBusyId] = useState(null);
-  const [resetCredsFor, setResetCredsFor] = useState(null);
-  const [rowError, setRowError] = useState("");
-
-  function load() {
-    setLoading(true);
-    api
-      .bossAccounts()
-      .then(setBosses)
-      .catch(() => setError("Couldn't load boss accounts."))
-      .finally(() => setLoading(false));
-  }
-
-  useEffect(load, []);
-
-  async function toggleActive(account) {
-    setRowError("");
-    setBusyId(account.id);
-    try {
-      const updated = await api.updateBossAccount(account.id, { active: !account.active });
-      setBosses((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
-    } catch {
-      setRowError("Couldn't update that account.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function resetPassword(account) {
-    if (!confirm(`Reset ${account.username}'s password? Their current password stops working immediately.`)) return;
-    setRowError("");
-    setBusyId(account.id);
-    try {
-      const res = await api.resetBossPassword(account.id);
-      setBosses((prev) => prev.map((b) => (b.id === res.user.id ? res.user : b)));
-      setResetCredsFor({ id: account.id, ...res.credentials });
-    } catch {
-      setRowError("Couldn't reset that account's password.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function removeAccount(account) {
-    if (!confirm(`Remove the boss account "${account.username}" entirely? This can't be undone.`)) return;
-    setRowError("");
-    setBusyId(account.id);
-    try {
-      await api.deleteBossAccount(account.id);
-      setBosses((prev) => prev.filter((b) => b.id !== account.id));
-    } catch {
-      setRowError("Couldn't remove that account.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  return (
-    <div className="boss-section">
-      <PageHeader
-        title="Boss accounts"
-        subtitle={`${bosses.length} account${bosses.length === 1 ? "" : "s"} · portal login only, no device sync`}
-        action={
-          <button className="btn-primary" onClick={() => setShowCreate(true)}>
-            + Add boss account
-          </button>
-        }
-      />
-
-      {loading && <div className="empty-state">Loading…</div>}
-      {error && <div className="empty-state">{error}</div>}
-      {rowError && <p className="row-error">{rowError}</p>}
-
-      {!loading && !error && (
-        bosses.length === 0 ? (
-          <div className="empty-state">No boss accounts yet.</div>
-        ) : (
-          <div className="boss-list">
-            {bosses.map((b) => (
-              <div className="boss-row" key={b.id}>
-                <div className="avatar">{b.username.charAt(0).toUpperCase()}</div>
-                <div className="team-main">
-                  <div className="team-name">{b.username}</div>
-                  <div className="team-sub">Boss</div>
-                </div>
-                <span className={`pw-pill ${b.passwordStatus.mustChangePassword ? "pw-temp" : "pw-set"}`}>
-                  {b.passwordStatus.mustChangePassword ? "Temp password" : "Password set"}
-                </span>
-                <span className={`status-pill ${b.active ? "active" : "inactive"}`}>
-                  {b.active ? "Active" : "Inactive"}
-                </span>
-                <div className="boss-actions">
-                  <button className="btn-tiny" onClick={() => resetPassword(b)} disabled={busyId === b.id}>
-                    Reset password
-                  </button>
-                  <button className="btn-tiny" onClick={() => toggleActive(b)} disabled={busyId === b.id}>
-                    {b.active ? "Deactivate" : "Reactivate"}
-                  </button>
-                  <button className="btn-tiny btn-tiny-danger" onClick={() => removeAccount(b)} disabled={busyId === b.id}>
-                    Remove
-                  </button>
-                </div>
-                {resetCredsFor?.id === b.id && (
-                  <div className="reset-cred-box">
-                    <p className="hint-note">New temporary password — save it now, it won't be shown again.</p>
-                    <div className="cred-row">
-                      <span>Temp. password</span>
-                      <code>{resetCredsFor.temporaryPassword}</code>
-                    </div>
-                    <button className="btn-tiny" onClick={() => setResetCredsFor(null)}>
-                      Dismiss
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )
-      )}
-
-      {showCreate && (
-        <CreateBossAccountModal
-          onClose={() => {
-            setShowCreate(false);
-            load();
-          }}
-          onCreated={load}
-        />
-      )}
-
-      <style>{`
-        .boss-section { margin-top: 34px; }
-        .boss-list {
-          display: flex;
-          flex-direction: column;
-          background: var(--paper-raised);
-          border: 1px solid var(--line);
-          border-radius: var(--radius-md);
-          overflow: hidden;
-          box-shadow: var(--shadow-card);
-        }
-        .boss-row {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 13px;
-          padding: 13px 15px;
-          border-bottom: 1px solid var(--line);
-        }
-        .boss-row:last-child { border-bottom: none; }
-        .boss-actions { display: flex; gap: 8px; flex-shrink: 0; margin-left: auto; }
-        .btn-tiny {
-          background: transparent;
-          border: 1px solid var(--line-strong);
-          padding: 6px 10px;
-          border-radius: var(--radius-sm);
-          font-weight: 600;
-          font-size: 0.74rem;
-          color: var(--ink-soft);
-          white-space: nowrap;
-        }
-        .btn-tiny:disabled { opacity: 0.5; }
-        .btn-tiny-danger { color: var(--clay); border-color: var(--clay); }
-        .row-error {
-          color: var(--clay);
-          font-size: 0.82rem;
-          font-weight: 600;
-          margin-bottom: 10px;
-        }
-        .reset-cred-box {
-          width: 100%;
-          margin-top: 4px;
-          padding: 10px 12px;
-          background: var(--paper-sunken);
-          border-radius: var(--radius-sm);
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .hint-note { font-size: 0.78rem; color: var(--ink-soft); }
-        .cred-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 0.82rem;
-        }
-        .cred-row span { color: var(--ink-soft); font-weight: 600; }
-        .cred-row code { font-family: ui-monospace, monospace; font-weight: 600; color: var(--navy); }
-      `}</style>
-    </div>
-  );
-}
+import { useI18n } from "../i18n";
 
 export default function TeamPage() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const canManage = user.role === "DEVELOPER";
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-
-  function load() {
-    setLoading(true);
-    api
-      .employees()
-      .then(setEmployees)
-      .catch(() => setError("Couldn't load the team."))
-      .finally(() => setLoading(false));
-  }
-
-  useEffect(load, []);
+  const state = useAsync(() => api.employees(), []);
+  const [creating, setCreating] = useState(false);
 
   return (
     <div>
       <PageHeader
-        title="Team"
+        title={t("team.title")}
         subtitle={
-          canManage
-            ? `${employees.length} employee${employees.length === 1 ? "" : "s"}`
-            : `${employees.length} employee${employees.length === 1 ? "" : "s"} · view only`
+          state.data
+            ? `${t("team.count", { count: state.data.length })}${canManage ? "" : ` · ${t("team.viewOnly")}`}`
+            : undefined
         }
-        action={
-          canManage && (
-            <button className="btn-primary" onClick={() => setShowCreate(true)}>
-              + Add employee
-            </button>
-          )
+        actions={
+          <>
+            <Button icon="settings" to="/settings">
+              {t("nav.settings")}
+            </Button>
+            {canManage && (
+              <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
+                {t("team.add")}
+              </Button>
+            )}
+          </>
         }
       />
 
-      {loading && <div className="empty-state">Loading…</div>}
-      {error && <div className="empty-state">{error}</div>}
+      <AsyncBoundary state={state}>
+        {(employees) => (employees.length === 0 ? <EmptyState icon="users" text={t("team.empty")} /> : <StaffByOffice employees={employees} />)}
+      </AsyncBoundary>
 
-      {!loading && !error && (
-        <div className="team-list">
-          {employees.map((e) => (
-            <Link to={`/team/${e.id}`} key={e.id} className="team-row">
-              <div className="avatar">{e.name.charAt(0).toUpperCase()}</div>
-              <div className="team-main">
-                <div className="team-name">{e.name}</div>
-                <div className="team-sub">{e.phoneNumber}</div>
-              </div>
-              {e.passwordStatus && (
-                <span className={`pw-pill ${e.passwordStatus.mustChangePassword ? "pw-temp" : "pw-set"}`}>
-                  {e.passwordStatus.mustChangePassword ? "Temp password" : "Password set"}
-                </span>
-              )}
-              <span className={`status-pill ${e.active ? "active" : "inactive"}`}>
-                {e.active ? "Active" : "Inactive"}
-              </span>
-            </Link>
-          ))}
+      {canManage && <BossAccounts />}
+
+      {creating && <CreateEmployeeSheet onClose={() => setCreating(false)} onCreated={state.reload} />}
+    </div>
+  );
+}
+
+// Staff grouped under their office, offices alphabetically, "no office" last.
+function StaffByOffice({ employees }) {
+  const { t, fmt } = useI18n();
+  const groups = new Map();
+  for (const e of employees) {
+    const key = e.office?.name || "";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(e);
+  }
+  const ordered = [...groups.entries()].sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b)));
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+      {ordered.map(([office, people]) => (
+        <section key={office || "none"}>
+          <ListSectionHeader>{office || t("reports.noOffice")}</ListSectionHeader>
+          <List inset={68}>
+            {people.map((e) => (
+              <ListRow
+                key={e.id}
+                to={`/team/${e.id}`}
+                leading={<Avatar name={e.name} size={40} />}
+                title={e.name}
+                subtitle={[e.position?.name, e.phoneNumber && fmt.phone(e.phoneNumber), e.collectCalls && syncLine(e.sync, t, fmt)]
+                  .filter(Boolean)
+                  .join(" · ")}
+                trailing={
+                  <>
+                    {!e.active && <Badge tone="neutral">{t("team.inactive")}</Badge>}
+                    {e.active && e.collectCalls && isSyncProblem(e.sync) && <SyncBadge sync={e.sync} />}
+                    {e.passwordStatus?.mustChangePassword && (
+                      <Badge tone="warning" icon="key">
+                        {t("team.tempPassword")}
+                      </Badge>
+                    )}
+                  </>
+                }
+              />
+            ))}
+          </List>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function CreateEmployeeSheet({ onClose, onCreated }) {
+  const { t } = useI18n();
+  const options = useOrgOptions();
+  const [form, setForm] = useState({ name: "", phoneNumber: "", username: "" });
+  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, calendarAccess: "none" });
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState(null);
+
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      const res = await api.createEmployee({
+        name: form.name.trim(),
+        phoneNumber: form.phoneNumber.trim() || null,
+        username: form.username.trim(),
+        ...workPayload(work),
+      });
+      setCreated(res);
+      onCreated();
+    } catch (err) {
+      setError(err.code === "username_taken" ? t("team.usernameTaken") : t("team.createFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (created) {
+    return (
+      <Sheet
+        title={t("team.createdTitle", { name: created.employee.name })}
+        onClose={onClose}
+        footer={
+          <Button variant="primary" onClick={onClose}>
+            {t("common.done")}
+          </Button>
+        }
+      >
+        <CredentialsView
+          note={t("team.createdNote")}
+          items={[
+            { label: t("team.username"), value: created.credentials.username },
+            { label: t("team.tempPasswordLabel"), value: created.credentials.temporaryPassword },
+          ]}
+        />
+      </Sheet>
+    );
+  }
+
+  return (
+    <Sheet title={t("team.newTitle")} onClose={onClose}>
+      <form onSubmit={submit} className={pageStyles.formStack}>
+        <TextField label={t("team.fullName")} value={form.name} onChange={set("name")} required autoComplete="off" />
+        <TextField
+          label={t("team.username")}
+          value={form.username}
+          onChange={set("username")}
+          required
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <TextField
+          label={t("team.phoneOptional")}
+          value={form.phoneNumber}
+          onChange={set("phoneNumber")}
+          type="tel"
+          inputMode="tel"
+          placeholder="+998 90 123 45 67"
+        />
+        <WorkSettingsFields value={work} onChange={setWork} options={options} />
+        {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
+        <div className={pageStyles.formActions}>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <Button type="submit" variant="primary" busy={busy}>
+            {busy ? t("team.creating") : t("team.create")}
+          </Button>
         </div>
-      )}
+      </form>
+    </Sheet>
+  );
+}
 
-      {showCreate && (
-        <CreateEmployeeModal
-          onClose={() => {
-            setShowCreate(false);
-            load();
+function BossAccounts() {
+  const { t } = useI18n();
+  const state = useAsync(() => api.bossAccounts(), []);
+  const [creating, setCreating] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+  const selected = state.data?.find((b) => b.id === selectedId);
+
+  return (
+    <section style={{ marginTop: 36 }}>
+      <ListSectionHeader
+        action={
+          <Button variant="plain" size="small" icon="plus" onClick={() => setCreating(true)}>
+            {t("team.bossAdd")}
+          </Button>
+        }
+      >
+        {t("team.bossTitle")}
+      </ListSectionHeader>
+
+      <AsyncBoundary state={state}>
+        {(bosses) =>
+          bosses.length === 0 ? (
+            <List>
+              <EmptyState icon="user" text={t("team.bossEmpty")} />
+            </List>
+          ) : (
+            <List inset={68}>
+              {bosses.map((b) => (
+                <ListRow
+                  key={b.id}
+                  onClick={() => setSelectedId(b.id)}
+                  leading={<Avatar name={b.username} size={40} />}
+                  title={b.username}
+                  subtitle={b.calendar ? `${t("roles.BOSS")} · ${b.calendar.name}` : t("roles.BOSS")}
+                  chevron
+                  trailing={
+                    <>
+                      {b.calendar && (
+                        <Badge tone="accent" icon="calendar">
+                          {t("nav.calendar")}
+                        </Badge>
+                      )}
+                      {!b.active && <Badge tone="neutral">{t("team.inactive")}</Badge>}
+                      {b.passwordStatus.mustChangePassword && (
+                        <Badge tone="warning" icon="key">
+                          {t("team.tempPassword")}
+                        </Badge>
+                      )}
+                    </>
+                  }
+                />
+              ))}
+            </List>
+          )
+        }
+      </AsyncBoundary>
+
+      {creating && <CreateBossSheet onClose={() => setCreating(false)} onCreated={state.reload} />}
+      {selected && (
+        <BossSheet
+          account={selected}
+          onClose={() => setSelectedId(null)}
+          onUpdated={(updated) => state.setData((list) => list.map((b) => (b.id === updated.id ? updated : b)))}
+          onRemoved={() => {
+            setSelectedId(null);
+            state.setData((list) => list.filter((b) => b.id !== selected.id));
           }}
-          onCreated={load}
+        />
+      )}
+    </section>
+  );
+}
+
+function CreateBossSheet({ onClose, onCreated }) {
+  const { t } = useI18n();
+  const [username, setUsername] = useState("");
+  const [hasCalendar, setHasCalendar] = useState(true);
+  const [calendarName, setCalendarName] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [credentials, setCredentials] = useState(null);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      const res = await api.createBossAccount({
+        username: username.trim(),
+        hasCalendar,
+        calendarName: calendarName.trim() || undefined,
+      });
+      setCredentials(res.credentials);
+      onCreated();
+    } catch (err) {
+      setError(err.code === "username_taken" ? t("team.usernameTaken") : t("team.createFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (credentials) {
+    return (
+      <Sheet
+        title={t("team.bossCreatedTitle")}
+        onClose={onClose}
+        footer={
+          <Button variant="primary" onClick={onClose}>
+            {t("common.done")}
+          </Button>
+        }
+      >
+        <CredentialsView
+          note={t("team.bossCreatedNote")}
+          items={[
+            { label: t("team.username"), value: credentials.username },
+            { label: t("team.tempPasswordLabel"), value: credentials.temporaryPassword },
+          ]}
+        />
+      </Sheet>
+    );
+  }
+
+  return (
+    <Sheet title={t("team.bossNewTitle")} onClose={onClose}>
+      <form onSubmit={submit} className={pageStyles.formStack}>
+        <p className={pageStyles.note}>{t("team.bossNote")}</p>
+        <TextField
+          label={t("team.username")}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <Switch label={t("team.hasCalendar")} hint={t("team.hasCalendarHint")} checked={hasCalendar} onChange={setHasCalendar} />
+        {hasCalendar && (
+          <TextField
+            label={t("team.calendarName")}
+            placeholder={t("team.calendarNamePlaceholder")}
+            value={calendarName}
+            onChange={(e) => setCalendarName(e.target.value)}
+          />
+        )}
+        {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
+        <div className={pageStyles.formActions}>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <Button type="submit" variant="primary" busy={busy}>
+            {busy ? t("team.creating") : t("team.create")}
+          </Button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+function BossSheet({ account, onClose, onUpdated, onRemoved }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState("");
+  const [tempPassword, setTempPassword] = useState(null);
+
+  async function run(kind, action) {
+    setBusy(kind);
+    setError("");
+    try {
+      await action();
+    } catch {
+      setError(t("team.actionFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Sheet title={account.username} onClose={onClose}>
+      <div>
+        <KeyValue label={t("employee.status")}>{account.active ? t("team.active") : t("team.inactive")}</KeyValue>
+        <KeyValue label={t("employee.password")}>
+          {account.passwordStatus.mustChangePassword ? t("team.tempPassword") : t("team.passwordSet")}
+        </KeyValue>
+      </div>
+
+      <Switch
+        label={t("team.hasCalendar")}
+        hint={account.calendar ? account.calendar.name : t("team.hasCalendarHint")}
+        checked={Boolean(account.calendar)}
+        disabled={busy === "calendar"}
+        onChange={(on) => run("calendar", async () => onUpdated(await api.updateBossAccount(account.id, { hasCalendar: on })))}
+      />
+
+      {tempPassword && (
+        <CredentialsView
+          note={t("team.newTempPassword")}
+          items={[{ label: t("team.tempPasswordLabel"), value: tempPassword }]}
         />
       )}
 
-      {canManage && <BossAccountsSection />}
-
-      <style>{`
-        .btn-primary {
-          background: var(--navy);
-          color: var(--paper);
-          border: none;
-          padding: 10px 16px;
-          border-radius: var(--radius-sm);
-          font-weight: 600;
-          font-size: 0.85rem;
-          white-space: nowrap;
-        }
-        .empty-state {
-          padding: 40px 20px;
-          text-align: center;
-          color: var(--ink-soft);
-          background: var(--paper-raised);
-          border: 1px dashed var(--line-strong);
-          border-radius: var(--radius-md);
-        }
-        .team-list {
-          display: flex;
-          flex-direction: column;
-          background: var(--paper-raised);
-          border: 1px solid var(--line);
-          border-radius: var(--radius-md);
-          overflow: hidden;
-          box-shadow: var(--shadow-card);
-        }
-        .team-row {
-          display: flex;
-          align-items: center;
-          gap: 13px;
-          padding: 13px 15px;
-          text-decoration: none;
-          color: var(--ink);
-          border-bottom: 1px solid var(--line);
-        }
-        .team-row:last-child { border-bottom: none; }
-        .team-row:hover { background: var(--paper-sunken); }
-        .avatar {
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          background: var(--navy-tint);
-          color: var(--navy);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 0.95rem;
-          flex-shrink: 0;
-        }
-        .team-main { flex: 1; min-width: 0; }
-        .team-name { font-weight: 600; font-size: 0.92rem; }
-        .team-sub { font-size: 0.78rem; color: var(--ink-soft); margin-top: 1px; }
-        .status-pill {
-          font-size: 0.72rem;
-          font-weight: 700;
-          padding: 3px 9px;
-          border-radius: 999px;
-          flex-shrink: 0;
-        }
-        .status-pill.active { background: var(--sage-tint); color: var(--sage); }
-        .status-pill.inactive { background: var(--paper-sunken); color: var(--ink-soft); }
-        .pw-pill {
-          font-size: 0.7rem;
-          font-weight: 700;
-          padding: 3px 9px;
-          border-radius: 999px;
-          flex-shrink: 0;
-          white-space: nowrap;
-        }
-        .pw-pill.pw-temp { background: var(--brass-tint); color: var(--brass); }
-        .pw-pill.pw-set { background: var(--sage-tint); color: var(--sage); }
-      `}</style>
-    </div>
+      <div className={pageStyles.formStack}>
+        <Button
+          block
+          icon="key"
+          busy={busy === "reset"}
+          onClick={() => {
+            if (!confirm(t("team.confirmReset", { name: account.username }))) return;
+            run("reset", async () => {
+              const res = await api.resetBossPassword(account.id);
+              onUpdated(res.user);
+              setTempPassword(res.credentials.temporaryPassword);
+            });
+          }}
+        >
+          {t("team.resetPassword")}
+        </Button>
+        <Button
+          block
+          busy={busy === "active"}
+          onClick={() =>
+            run("active", async () => onUpdated(await api.updateBossAccount(account.id, { active: !account.active })))
+          }
+        >
+          {account.active ? t("team.deactivate") : t("team.reactivate")}
+        </Button>
+        <Button
+          block
+          variant="destructive"
+          busy={busy === "remove"}
+          onClick={() => {
+            if (!confirm(t("team.confirmRemoveBoss", { name: account.username }))) return;
+            run("remove", async () => {
+              await api.deleteBossAccount(account.id);
+              onRemoved();
+            });
+          }}
+        >
+          {t("team.remove")}
+        </Button>
+        {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
+      </div>
+    </Sheet>
   );
 }

@@ -1,0 +1,118 @@
+/* ---------- Form ---------- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.required {
+  color: var(--critical-text);
+}
+
+.hint {
+  margin-top: -4px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--critical-text);
+}
+
+.hasError input,
+.hasError textarea {
+  box-shadow: 0 0 0 2px var(--critical-soft), inset 0 0 0 1px var(--critical);
+}
+
+.formError {
+  font-size: 14px;
+  color: var(--critical-text);
+}
+
+.money {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.money > :first-child {
+  flex: 1;
+}
+
+.currency {
+  flex-shrink: 0;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+/* ---------- Answers ---------- */
+.answers {
+  display: flex;
+  flex-direction: column;
+}
+
+.answerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.answerRow + .answerRow {
+  border-top: 1px solid var(--separator);
+}
+
+@media (min-width: 700px) {
+  .answerRow {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: baseline;
+  }
+}
+
+.answerRow dt {
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.answerRow dd {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.empty {
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.longText {
+  white-space: pre-wrap;
+  font-weight: 400;
+}
+
+.answerChips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.answerChip {
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--fill);
+  font-size: 13px;
+  font-weight: 500;
+}

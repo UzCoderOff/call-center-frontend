@@ -1,0 +1,58 @@
+.scroller {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background: var(--fill);
+  border-radius: 10px;
+}
+
+.full,
+.full .segmented {
+  display: flex;
+  width: 100%;
+}
+.full .item {
+  flex: 1;
+}
+
+.item {
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.small .item {
+  min-height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 899px) {
+  .medium .item {
+    min-height: 34px;
+  }
+}
+
+.item:hover:not(.selected) {
+  background: var(--fill-hover);
+}
+
+.selected {
+  background: var(--segment-selected);
+  box-shadow: var(--shadow-segment);
+  font-weight: 600;
+}

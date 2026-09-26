@@ -1,0 +1,130 @@
+.list {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* Inside a Card that already provides the surface. */
+.plain {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px 8px;
+  margin-top: 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.sectionHeader:first-child {
+  margin-top: 0;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Hairline separator, inset past the leading icon like iOS. */
+.row + .row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--list-inset, 64px);
+  height: 1px;
+  background: var(--separator);
+  transform: scaleY(0.6);
+  transform-origin: top;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
+}
+
+.interactive {
+  transition: background-color 0.12s ease;
+}
+.interactive:hover {
+  background: var(--fill-hover);
+}
+.interactive:active {
+  background: var(--fill);
+}
+
+.leading {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  margin-top: 1px;
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.trailing {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--text-3);
+  margin-left: -4px;
+}
+
+.actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 14px;
+}

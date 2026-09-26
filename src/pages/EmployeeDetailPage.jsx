@@ -1,431 +1,416 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import styles from "./EmployeeDetailPage.module.css";
+import pageStyles from "./Pages.module.css";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
+import Icon from "../components/ui/Icon";
+import Sheet from "../components/ui/Sheet";
+import { TextField } from "../components/ui/Field";
+import { AsyncBoundary, Avatar, CopyButton, KeyValue, PageHeader } from "../components/ui/Misc";
+import CredentialsView from "../components/team/CredentialsView";
+import WorkSettingsFields, { useOrgOptions, workPayload } from "../components/team/WorkSettingsFields";
+import StatsOverview from "../components/stats/StatsOverview";
+import RangePicker from "../components/stats/RangePicker";
+import { SyncBadge } from "../components/SyncStatus";
+import { ReportHistory } from "./ReportsPage";
 import { useAuth } from "../hooks/useAuth";
+import { useAsync } from "../hooks/useAsync";
+import { useBack } from "../hooks/useBack";
 import { api } from "../lib/api";
-import { formatDuration, formatDateTime, rangePreset } from "../lib/format";
-import StatCard from "../components/StatCard";
-
-function SliceTooltip({ active, payload }) {
-  if (!active || !payload?.length) return null;
-  const row = payload[0];
-  return (
-    <div className="slice-tooltip">
-      <span className="dot" style={{ background: row.payload.fill }} />
-      {row.name}: {row.value}
-    </div>
-  );
-}
-
-function AnsweredMissedPie({ answered, missed }) {
-  const data = [
-    { name: "Answered", value: answered, fill: "var(--sage)" },
-    { name: "Missed", value: missed, fill: "var(--clay)" },
-  ].filter((d) => d.value > 0);
-
-  if (data.length === 0) {
-    return <div className="pie-empty">No calls in this period yet.</div>;
-  }
-
-  return (
-    <ResponsiveContainer width="100%" height={200}>
-      <PieChart>
-        <Pie data={data} dataKey="value" nameKey="name" innerRadius={48} outerRadius={78} paddingAngle={2}>
-          {data.map((entry) => (
-            <Cell key={entry.name} fill={entry.fill} />
-          ))}
-        </Pie>
-        <Tooltip content={<SliceTooltip />} />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-}
+import { rangeFor } from "../lib/format";
+import { useI18n } from "../i18n";
 
 export default function EmployeeDetailPage() {
   const { id } = useParams();
-  const { user } = useAuth();
-  const canManage = user.role === "DEVELOPER";
+  const { t, fmt } = useI18n();
+  const goBack = useBack("/team");
+  const employee = useAsync(() => api.employee(id), [id]);
 
-  const [employee, setEmployee] = useState(null);
-  const [stats, setStats] = useState(null);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [newDeviceId, setNewDeviceId] = useState(null);
-  const [resetCreds, setResetCreds] = useState(null);
-  const [deleteError, setDeleteError] = useState("");
-
-  function load() {
-    api
-      .employee(id)
-      .then(setEmployee)
-      .catch(() => setError("Couldn't load this employee."));
-    const { from, to } = rangePreset("30d");
-    api
-      .dashboard({ from, to })
-      .then((d) => {
-        const row = d.employees?.find((e) => String(e.employeeId) === String(id));
-        setStats(row || null);
-      })
-      .catch(() => {});
+  if (employee.error?.status === 404) {
+    return <PageHeader back={{ label: t("employee.back"), onClick: goBack }} title={t("employee.notFound")} />;
   }
-
-  useEffect(load, [id]);
-
-  async function toggleActive() {
-    setBusy(true);
-    try {
-      const updated = await api.updateEmployee(id, { active: !employee.active });
-      setEmployee(updated);
-    } catch {
-      setError("Couldn't update this employee.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function regenerateId() {
-    if (!confirm("This invalidates the current device ID immediately. The employee's Android app will stop syncing until it's reconfigured. Continue?")) return;
-    setBusy(true);
-    try {
-      const updated = await api.regenerateDeviceId(id);
-      setEmployee(updated);
-      setNewDeviceId(updated.employeeId);
-    } catch {
-      setError("Couldn't regenerate the device ID.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function resetPassword() {
-    if (!confirm(`Reset ${employee.name}'s portal password? Their current password stops working immediately.`)) return;
-    setBusy(true);
-    try {
-      const res = await api.resetEmployeePassword(id);
-      setEmployee(res.employee);
-      setResetCreds(res.credentials);
-    } catch {
-      setError("Couldn't reset this employee's password.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function deleteEmployee() {
-    if (!confirm(`Remove ${employee.name} entirely? This can't be undone.`)) return;
-    setDeleteError("");
-    setBusy(true);
-    try {
-      await api.deleteEmployee(id);
-      window.location.href = "/team";
-    } catch (err) {
-      setDeleteError(
-        err.body?.error === "has_call_history"
-          ? "This employee has call history on record — deactivate them instead of deleting."
-          : "Couldn't remove this employee."
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (error) return <div className="empty-state">{error}</div>;
-  if (!employee) return <div className="empty-state">Loading…</div>;
-
-  const missRate = stats && stats.totalCalls ? Math.round((stats.missedCalls / stats.totalCalls) * 100) : 0;
 
   return (
-    <div className="detail">
-      <Link to="/team" className="back-link">
-        ← Team
-      </Link>
-
-      <div className="head-card">
-        <div className="avatar-lg">{employee.name.charAt(0).toUpperCase()}</div>
+    <AsyncBoundary state={employee}>
+      {(e) => (
         <div>
-          <h1 className="emp-name">{employee.name}</h1>
-          <p className="emp-sub">{employee.phoneNumber} · @{employee.username || "no login"}</p>
-        </div>
-        <span className={`status-pill ${employee.active ? "active" : "inactive"}`}>
-          {employee.active ? "Active" : "Inactive"}
-        </span>
-      </div>
+          <PageHeader
+            back={{ label: t("employee.back"), onClick: goBack }}
+            title={
+              <span className={styles.titleRow}>
+                <Avatar name={e.name} size={48} />
+                <span>{e.name}</span>
+              </span>
+            }
+            subtitle={[e.position?.name, e.office?.name, e.phoneNumber && fmt.phone(e.phoneNumber), e.username && `@${e.username}`]
+              .filter(Boolean)
+              .join(" · ")}
+            actions={
+              <div className={styles.headerBadges}>
+                <Badge tone={e.active ? "good" : "neutral"} icon={e.active ? "checkCircle" : "minusCircle"}>
+                  {e.active ? t("team.active") : t("team.inactive")}
+                </Badge>
+                {e.collectCalls && <SyncBadge sync={e.sync} />}
+              </div>
+            }
+          />
 
-      {stats && (
-        <>
-          <div className="stat-grid">
-            <StatCard label="Calls (30d)" value={stats.totalCalls} tone="navy" />
-            <StatCard label="Answered" value={stats.answeredCalls} tone="sage" />
-            <StatCard label="Missed" value={stats.missedCalls} tone="clay" sub={`${missRate}% miss rate`} />
-            <StatCard label="Talk time" value={formatDuration(stats.totalTalkTimeSeconds)} tone="brass" />
-          </div>
+          <div className={pageStyles.stack}>
+            {e.collectCalls && <CallsSection employee={e} />}
 
-          <div className="pie-card">
-            <h2 className="actions-title">Answered vs. missed (30 days)</h2>
-            <AnsweredMissedPie answered={stats.answeredCalls} missed={stats.missedCalls} />
-            <div className="legend">
-              <span><i className="sw sage" />Answered</span>
-              <span><i className="sw clay" />Missed</span>
+            <div className={styles.cards}>
+              <WorkCard employee={e} onChange={employee.setData} />
+              {e.collectCalls && <SyncCard employee={e} />}
+              <DevicesCard employee={e} onChange={employee.setData} />
+              <AccountCard employee={e} onChange={employee.setData} />
             </div>
+
+            {e.reportTemplate && <EmployeeReports employeeId={e.id} />}
           </div>
+        </div>
+      )}
+    </AsyncBoundary>
+  );
+}
+
+function CallsSection({ employee }) {
+  const { t } = useI18n();
+  const [range, setRange] = useState("30d");
+  const stats = useAsync(() => api.dashboard({ ...rangeFor(range), employeeId: employee.id }), [employee.id, range]);
+  return (
+    <>
+      <div className={pageStyles.rangePicker}>
+        <RangePicker value={range} onChange={setRange} />
+      </div>
+      <AsyncBoundary state={stats}>
+        {(data) => <StatsOverview data={data} range={range} callsLink={`employeeId=${employee.id}`} />}
+      </AsyncBoundary>
+      <div className={styles.linkRow}>
+        <Button to={`/calls?employeeId=${employee.id}`} icon="phone">
+          {t("employee.viewCalls")}
+        </Button>
+      </div>
+    </>
+  );
+}
+
+function EmployeeReports({ employeeId }) {
+  const { t } = useI18n();
+  const state = useAsync(() => api.reports({ employeeId, pageSize: 10 }), [employeeId]);
+  return <AsyncBoundary state={state}>{(data) => <ReportHistory reports={data.reports} title={t("work.reports")} />}</AsyncBoundary>;
+}
+
+// Office, position, "collect calls" and report form — what this person's
+// job looks like in the system.
+function WorkCard({ employee, onChange }) {
+  const { user } = useAuth();
+  const { t } = useI18n();
+  const [editing, setEditing] = useState(false);
+  const canEdit = user.role === "DEVELOPER";
+
+  return (
+    <Card
+      title={t("work.title")}
+      action={
+        canEdit && (
+          <Button size="small" variant="plain" onClick={() => setEditing(true)}>
+            {t("work.edit")}
+          </Button>
+        )
+      }
+    >
+      <KeyValue label={t("work.office")}>{employee.office?.name || t("work.none")}</KeyValue>
+      <KeyValue label={t("work.position")}>{employee.position?.name || t("work.none")}</KeyValue>
+      <KeyValue label={t("settings.reportForm")}>{employee.reportTemplate?.name || t("settings.noReportForm")}</KeyValue>
+      <KeyValue label={t("settings.calendarAccess")}>{t(`settings.access.${employee.calendarAccess || "none"}`)}</KeyValue>
+      <KeyValue label={t("settings.collectCalls")}>
+        {employee.collectCalls ? (
+          <Badge tone="accent" icon="phone">
+            {t("common.yes")}
+          </Badge>
+        ) : (
+          t("common.no")
+        )}
+      </KeyValue>
+      {editing && <EditWorkSheet employee={employee} onClose={() => setEditing(false)} onSaved={onChange} />}
+    </Card>
+  );
+}
+
+function EditWorkSheet({ employee, onClose, onSaved }) {
+  const { t } = useI18n();
+  const options = useOrgOptions();
+  const [name, setName] = useState(employee.name);
+  const [phone, setPhone] = useState(employee.phoneNumber || "");
+  const [work, setWork] = useState({
+    officeId: employee.office?.id ?? "",
+    positionId: employee.position?.id ?? "",
+    reportTemplateId: employee.reportTemplate?.id ?? "",
+    collectCalls: employee.collectCalls,
+    calendarAccess: employee.calendarAccess,
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const updated = await api.updateEmployee(employee.id, { name, phoneNumber: phone || null, ...workPayload(work) });
+      onSaved((prev) => ({ ...prev, ...updated }));
+      onClose();
+    } catch {
+      setError(t("settings.saveFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet title={t("work.title")} onClose={onClose}>
+      <form onSubmit={save} className={pageStyles.formStack}>
+        <TextField label={t("team.fullName")} value={name} onChange={(e) => setName(e.target.value)} required />
+        <TextField label={t("team.phoneOptional")} value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" />
+        <WorkSettingsFields value={work} onChange={setWork} options={options} />
+        {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
+        <div className={pageStyles.formActions}>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <Button type="submit" variant="primary" busy={busy}>
+            {t("work.save")}
+          </Button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+function SyncCard({ employee }) {
+  const { t, fmt } = useI18n();
+  const sync = employee.sync;
+  return (
+    <Card title={t("sync.title")} action={<SyncBadge sync={sync} />}>
+      <KeyValue label={t("sync.lastSuccess")}>{sync?.lastSyncAt ? fmt.dateTime(new Date(sync.lastSyncAt).getTime()) : "—"}</KeyValue>
+      {sync?.lastError && (
+        <KeyValue label={t("sync.lastError")}>
+          <span className={styles.errorText}>
+            {sync.lastError.code} · {fmt.relative(sync.lastError.at)}
+          </span>
+        </KeyValue>
+      )}
+      {sync?.missingEntries7d > 0 && (
+        <p className={styles.warn}>
+          <Icon name="alertTriangle" size={16} />
+          {t("sync.missingEntries", { count: sync.missingEntries7d })}
+        </p>
+      )}
+
+      {employee.recentSyncs && (
+        <>
+          <h3 className={styles.subhead}>{t("sync.recent")}</h3>
+          {employee.recentSyncs.length === 0 ? (
+            <p className={pageStyles.note}>{t("sync.none")}</p>
+          ) : (
+            <ul className={styles.syncList}>
+              {employee.recentSyncs.map((s) => (
+                <li key={s.id} className={styles.syncItem}>
+                  <Icon
+                    name={s.ok ? "checkCircle" : "alertCircle"}
+                    size={16}
+                    className={s.ok ? styles.okIcon : styles.failIcon}
+                    title={s.ok ? t("sync.success") : t("sync.failed")}
+                  />
+                  <span className={styles.syncWhen}>{fmt.dateTime(new Date(s.createdAt).getTime())}</span>
+                  <span className={styles.syncDetail}>
+                    {s.ok
+                      ? t("sync.batch", { calls: s.callCount ?? 0, recordings: s.recordingCount ?? 0 })
+                      : `HTTP ${s.httpStatus} · ${s.errorCode || "?"}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
+    </Card>
+  );
+}
 
-      <div className="actions-card">
-        <h2 className="actions-title">Device</h2>
-        <div className="device-row">
-          <span>Device ID</span>
-          <code>{newDeviceId || employee.employeeId}</code>
-        </div>
-        {newDeviceId && (
-          <p className="hint-note">New ID generated — update the Android app on this employee's phone.</p>
-        )}
-        {canManage ? (
-          <div className="actions-row">
-            <button className="btn-secondary" onClick={regenerateId} disabled={busy}>
-              Regenerate device ID
-            </button>
-            <button className={employee.active ? "btn-danger" : "btn-primary"} onClick={toggleActive} disabled={busy}>
-              {employee.active ? "Deactivate" : "Reactivate"}
-            </button>
+// Phones signed in to the app with this account — and the legacy device ID
+// for the old manually-configured agent, for DEVELOPER accounts.
+function DevicesCard({ employee, onChange }) {
+  const { user } = useAuth();
+  const { t, fmt } = useI18n();
+  const canManage = user.role === "DEVELOPER";
+  const [error, setError] = useState("");
+  const [rotated, setRotated] = useState(false);
+  const devices = employee.devices || [];
+
+  async function signOut(device) {
+    if (!confirm(t("work.confirmSignOut"))) return;
+    setError("");
+    try {
+      await api.revokeDevice(employee.id, device.id);
+      onChange((prev) => ({ ...prev, devices: prev.devices.filter((d) => d.id !== device.id) }));
+    } catch {
+      setError(t("team.actionFailed"));
+    }
+  }
+
+  async function rotate() {
+    if (!confirm(t("employee.confirmRegenerate"))) return;
+    try {
+      const updated = await api.regenerateDeviceId(employee.id);
+      onChange((prev) => ({ ...prev, ...updated }));
+      setRotated(true);
+    } catch {
+      setError(t("team.actionFailed"));
+    }
+  }
+
+  return (
+    <Card title={t("work.devices")} subtitle={t("work.devicesHint")}>
+      {devices.length === 0 ? (
+        <p className={pageStyles.note}>{t("work.noDevices")}</p>
+      ) : (
+        <ul className={styles.deviceList}>
+          {devices.map((d) => (
+            <li key={d.id} className={styles.device}>
+              <Icon name="smartphone" size={20} className={styles.deviceIcon} />
+              <div className={styles.deviceText}>
+                <div className={styles.deviceName}>
+                  {d.label || "Android"}
+                  {d.appVersion && <span className={styles.deviceVersion}> · v{d.appVersion}</span>}
+                </div>
+                <div className={styles.deviceMeta}>{t("work.lastSeen", { time: fmt.relative(d.lastSeenAt) })}</div>
+              </div>
+              {canManage && (
+                <Button size="small" variant="destructive" onClick={() => signOut(d)}>
+                  {t("work.signOutDevice")}
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {canManage && employee.collectCalls && (
+        <details className={styles.legacy}>
+          <summary>{t("work.legacyTitle")}</summary>
+          <p className={pageStyles.note}>{t("work.legacyHint")}</p>
+          <div className={styles.token}>
+            <code className={styles.tokenValue}>{employee.deviceToken}</code>
+            <CopyButton value={employee.deviceToken} />
           </div>
-        ) : (
-          <p className="hint-note view-only-note">Only a developer account can change device or active status.</p>
-        )}
-      </div>
+          {rotated && <p className={styles.info}>{t("employee.newIdNote")}</p>}
+          <Button size="small" icon="refresh" onClick={rotate}>
+            {t("employee.regenerate")}
+          </Button>
+        </details>
+      )}
+      {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
+    </Card>
+  );
+}
 
-      {canManage && (
-        <div className="actions-card">
-          <h2 className="actions-title">Account</h2>
-          {employee.passwordStatus ? (
-            <div className="device-row">
-              <span>Password</span>
-              <span className={`pw-pill ${employee.passwordStatus.mustChangePassword ? "pw-temp" : "pw-set"}`}>
-                {employee.passwordStatus.mustChangePassword
-                  ? "Still on temporary password"
-                  : `Changed ${formatDateTime(new Date(employee.passwordStatus.passwordChangedAt).getTime())}`}
-              </span>
-            </div>
+function AccountCard({ employee, onChange }) {
+  const { user } = useAuth();
+  const { t, fmt } = useI18n();
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState("");
+  const [tempPassword, setTempPassword] = useState(null);
+
+  if (user.role !== "DEVELOPER") return null;
+
+  async function run(kind, action) {
+    setBusy(kind);
+    setError("");
+    try {
+      await action();
+    } catch (err) {
+      setError(err.code === "has_call_history" ? t("employee.hasHistory") : t("team.actionFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const ps = employee.passwordStatus;
+  return (
+    <Card title={t("employee.account")}>
+      {ps ? (
+        <KeyValue label={t("employee.password")}>
+          {ps.mustChangePassword ? (
+            <Badge tone="warning" icon="key">
+              {t("employee.stillTemp")}
+            </Badge>
           ) : (
-            <p className="hint-note">This employee has no portal login.</p>
+            t("employee.changedAt", { date: fmt.dateTime(new Date(ps.passwordChangedAt).getTime()) })
           )}
+        </KeyValue>
+      ) : (
+        <p className={pageStyles.note}>{t("employee.noLogin")}</p>
+      )}
 
-          {resetCreds && (
-            <div className="cred-box">
-              <p className="hint-note">
-                New temporary password — save it now, it won't be shown again.
-              </p>
-              <div className="device-row">
-                <span>Username</span>
-                <code>{resetCreds.username}</code>
-              </div>
-              <div className="device-row">
-                <span>Temp. password</span>
-                <code>{resetCreds.temporaryPassword}</code>
-              </div>
-            </div>
-          )}
-
-          {employee.username && (
-            <div className="actions-row">
-              <button className="btn-secondary" onClick={resetPassword} disabled={busy}>
-                Reset password
-              </button>
-            </div>
-          )}
-
-          <div className="danger-zone">
-            <p className="hint-note">
-              Removing an employee is permanent and only works if they have no call history yet — deactivate them instead once they've taken calls.
-            </p>
-            {deleteError && <p className="hint-note error-note">{deleteError}</p>}
-            <button className="btn-danger" onClick={deleteEmployee} disabled={busy}>
-              Remove employee
-            </button>
-          </div>
+      {tempPassword && (
+        <div className={styles.creds}>
+          <CredentialsView note={t("team.newTempPassword")} items={[{ label: t("team.tempPasswordLabel"), value: tempPassword }]} />
         </div>
       )}
 
-      <Link to={`/calls?employeeId=${employee.id}`} className="view-calls-link">
-        View all calls →
-      </Link>
+      <div className={pageStyles.actionsRow}>
+        {employee.username && (
+          <Button
+            icon="key"
+            busy={busy === "reset"}
+            onClick={() => {
+              if (!confirm(t("team.confirmReset", { name: employee.name }))) return;
+              run("reset", async () => {
+                const res = await api.resetEmployeePassword(employee.id);
+                onChange((prev) => ({ ...prev, ...res.employee }));
+                setTempPassword(res.credentials.temporaryPassword);
+              });
+            }}
+          >
+            {t("team.resetPassword")}
+          </Button>
+        )}
+        <Button
+          variant={employee.active ? "destructive" : "primary"}
+          busy={busy === "active"}
+          onClick={() =>
+            run("active", async () => {
+              const updated = await api.updateEmployee(employee.id, { active: !employee.active });
+              onChange((prev) => ({ ...prev, ...updated }));
+            })
+          }
+        >
+          {employee.active ? t("team.deactivate") : t("team.reactivate")}
+        </Button>
+      </div>
 
-      <style>{`
-        .back-link {
-          display: inline-block;
-          margin-bottom: 14px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--navy);
-          text-decoration: none;
-        }
-        .back-link:hover { text-decoration: underline; }
-        .head-card {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          background: var(--paper-raised);
-          border: 1px solid var(--line);
-          border-radius: var(--radius-lg);
-          padding: 20px;
-          box-shadow: var(--shadow-card);
-          margin-bottom: 18px;
-          max-width: 640px;
-        }
-        .avatar-lg {
-          width: 52px;
-          height: 52px;
-          border-radius: 50%;
-          background: var(--navy-tint);
-          color: var(--navy);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 1.3rem;
-          flex-shrink: 0;
-        }
-        .emp-name { font-size: 1.25rem; }
-        .emp-sub { font-size: 0.82rem; color: var(--ink-soft); margin-top: 2px; }
-        .status-pill {
-          margin-left: auto;
-          font-size: 0.72rem;
-          font-weight: 700;
-          padding: 4px 10px;
-          border-radius: 999px;
-          flex-shrink: 0;
-        }
-        .status-pill.active { background: var(--sage-tint); color: var(--sage); }
-        .status-pill.inactive { background: var(--paper-sunken); color: var(--ink-soft); }
-        .pw-pill {
-          font-size: 0.76rem;
-          font-weight: 700;
-          padding: 3px 9px;
-          border-radius: 999px;
-        }
-        .pw-pill.pw-temp { background: var(--brass-tint); color: var(--brass); }
-        .pw-pill.pw-set { background: var(--sage-tint); color: var(--sage); }
-        .stat-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin-bottom: 18px;
-          max-width: 640px;
-        }
-        .pie-card {
-          background: var(--paper-raised);
-          border: 1px solid var(--line);
-          border-radius: var(--radius-lg);
-          padding: 20px;
-          box-shadow: var(--shadow-card);
-          max-width: 640px;
-          margin-bottom: 18px;
-        }
-        .pie-empty {
-          padding: 40px 10px;
-          text-align: center;
-          color: var(--ink-soft);
-          font-size: 0.85rem;
-        }
-        .legend {
-          display: flex;
-          justify-content: center;
-          gap: 18px;
-          margin-top: 6px;
-          font-size: 0.78rem;
-          color: var(--ink-soft);
-          font-weight: 500;
-        }
-        .legend span { display: flex; align-items: center; gap: 6px; }
-        .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-        .sw.sage { background: var(--sage); }
-        .sw.clay { background: var(--clay); }
-        .slice-tooltip {
-          background: var(--navy);
-          color: var(--paper);
-          padding: 8px 11px;
-          border-radius: var(--radius-sm);
-          font-size: 0.78rem;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          box-shadow: var(--shadow-raised);
-        }
-        .slice-tooltip .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .actions-card {
-          background: var(--paper-raised);
-          border: 1px solid var(--line);
-          border-radius: var(--radius-lg);
-          padding: 20px;
-          box-shadow: var(--shadow-card);
-          max-width: 640px;
-          margin-bottom: 18px;
-        }
-        .actions-title { font-size: 1rem; margin-bottom: 12px; }
-        .device-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background: var(--paper-sunken);
-          padding: 10px 12px;
-          border-radius: var(--radius-sm);
-          font-size: 0.85rem;
-        }
-        .device-row + .device-row { margin-top: 8px; }
-        .device-row span:first-child { color: var(--ink-soft); font-weight: 600; }
-        .device-row code { font-family: ui-monospace, monospace; font-weight: 600; color: var(--navy); }
-        .hint-note {
-          font-size: 0.78rem;
-          color: var(--clay);
-          margin-top: 8px;
-          font-weight: 500;
-        }
-        .hint-note.view-only-note { color: var(--ink-soft); }
-        .hint-note.error-note { color: var(--clay); }
-        .cred-box {
-          margin-top: 12px;
-          padding-top: 12px;
-          border-top: 1px dashed var(--line-strong);
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .actions-row {
-          display: flex;
-          gap: 10px;
-          margin-top: 14px;
-          flex-wrap: wrap;
-        }
-        .danger-zone {
-          margin-top: 18px;
-          padding-top: 16px;
-          border-top: 1px solid var(--line);
-        }
-        .btn-primary, .btn-secondary, .btn-danger {
-          padding: 9px 15px;
-          border-radius: var(--radius-sm);
-          font-weight: 600;
-          font-size: 0.82rem;
-          border: 1px solid transparent;
-        }
-        .btn-primary { background: var(--navy); color: var(--paper); }
-        .btn-secondary { background: transparent; border-color: var(--line-strong); color: var(--ink-soft); }
-        .btn-danger { background: var(--clay-tint); color: var(--clay); margin-top: 10px; }
-        button:disabled { opacity: 0.55; }
-        .view-calls-link {
-          display: inline-block;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--navy);
-          text-decoration: none;
-        }
-        .view-calls-link:hover { text-decoration: underline; }
-        .empty-state {
-          padding: 40px 20px;
-          text-align: center;
-          color: var(--ink-soft);
-        }
-      `}</style>
-    </div>
+      <div className={styles.danger}>
+        <h3 className={styles.subhead}>{t("employee.dangerTitle")}</h3>
+        <p className={pageStyles.note}>{t("employee.dangerNote")}</p>
+        <div className={pageStyles.actionsRow}>
+          <Button
+            variant="destructive"
+            busy={busy === "remove"}
+            onClick={() => {
+              if (!confirm(t("employee.confirmDelete", { name: employee.name }))) return;
+              run("remove", async () => {
+                await api.deleteEmployee(employee.id);
+                navigate("/team", { replace: true });
+              });
+            }}
+          >
+            {t("employee.remove")}
+          </Button>
+        </div>
+      </div>
+      {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
+    </Card>
   );
 }

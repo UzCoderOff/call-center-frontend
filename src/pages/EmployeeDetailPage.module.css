@@ -1,0 +1,201 @@
+.titleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.headerBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.linkRow {
+  display: flex;
+}
+
+.cards {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1000px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 899px) {
+  .cards {
+    gap: 12px;
+  }
+}
+
+.subhead {
+  margin: 18px 0 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+
+.syncList {
+  list-style: none;
+}
+
+.syncItem {
+  display: grid;
+  grid-template-columns: 16px auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  font-size: 13px;
+}
+
+.syncItem + .syncItem {
+  border-top: 1px solid var(--separator);
+}
+
+.syncWhen {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.syncDetail {
+  text-align: right;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.okIcon {
+  color: var(--good-text);
+}
+
+.failIcon {
+  color: var(--critical-text);
+}
+
+.errorText {
+  color: var(--critical-text);
+  font-size: 14px;
+}
+
+.warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--warning-soft);
+  font-size: 13px;
+}
+
+.warn svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--warning-text);
+}
+
+.token {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.tokenLabel {
+  width: 100%;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.tokenValue {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  word-break: break-all;
+  user-select: all;
+}
+
+.info {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.creds {
+  margin-top: 12px;
+}
+
+.deviceList {
+  list-style: none;
+}
+
+.device {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 0;
+}
+
+.device + .device {
+  border-top: 1px solid var(--separator);
+}
+
+.deviceIcon {
+  flex-shrink: 0;
+  color: var(--text-2);
+}
+
+.deviceText {
+  flex: 1;
+  min-width: 0;
+}
+
+.deviceName {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.deviceVersion {
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+.deviceMeta {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.legacy {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--separator);
+}
+
+.legacy summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.legacy[open] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.danger {
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--separator);
+}

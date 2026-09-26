@@ -1,0 +1,262 @@
+/* ---------- Page header ---------- */
+.pageHeader {
+  margin-bottom: 22px;
+}
+
+.back {
+  margin: 0 0 6px -10px;
+  font-size: 15px;
+}
+
+.pageHeaderRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 20px;
+}
+
+.pageHeading {
+  min-width: 0;
+}
+
+.pageTitle {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  word-break: break-word;
+}
+
+.pageSubtitle {
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.pageActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
+@media (min-width: 900px) {
+  .pageTitle {
+    font-size: 34px;
+  }
+}
+
+@media (max-width: 899px) {
+  .pageActions {
+    width: 100%;
+  }
+}
+
+/* ---------- Stat tile ---------- */
+.tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 16px 18px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.tileLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.tileValue {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.tileSub {
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+@media (max-width: 899px) {
+  .tile {
+    padding: 14px 16px;
+  }
+  .tileValue {
+    font-size: 24px;
+  }
+}
+
+.duration {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+
+.duration small {
+  margin-left: 2px;
+  font-size: 0.6em;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+
+/* ---------- Empty / loading ---------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--text-2);
+}
+
+.emptyTitle {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.emptyText {
+  max-width: 340px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.empty > :last-child:not(p):not(span) {
+  margin-top: 8px;
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 40vh;
+  color: var(--text-2);
+}
+
+.refetching {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+/* ---------- Avatar ---------- */
+.avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--avatar-bg);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0;
+  user-select: none;
+}
+
+/* ---------- Key / value ---------- */
+.kv {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 0;
+}
+
+.kv + .kv {
+  border-top: 1px solid var(--separator);
+}
+
+.kvLabel {
+  flex-shrink: 0;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.kvValue {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+  font-size: 15px;
+  text-align: right;
+  word-break: break-word;
+}
+
+.mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+/* ---------- Banner ---------- */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+}
+
+.bannerIcon {
+  flex-shrink: 0;
+}
+
+.bannerText {
+  flex: 1;
+  min-width: 0;
+}
+
+.banner_accent {
+  background: var(--accent-soft);
+}
+.banner_accent .bannerIcon {
+  color: var(--accent);
+}
+.banner_warning {
+  background: var(--warning-soft);
+}
+.banner_warning .bannerIcon {
+  color: var(--warning-text);
+}
+
+@media (max-width: 599px) {
+  .banner {
+    flex-wrap: wrap;
+  }
+  .banner > :last-child:not(.bannerText) {
+    width: 100%;
+  }
+}

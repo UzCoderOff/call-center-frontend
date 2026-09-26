@@ -1,0 +1,139 @@
+/* Layout pieces shared across pages. */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 899px) {
+  .stack {
+    gap: 12px;
+  }
+}
+
+.rangePicker {
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .rangePicker {
+    width: 340px;
+  }
+}
+
+.bannerSpace {
+  margin-bottom: 16px;
+}
+
+.bannerDetail {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.selfSync {
+  font-size: 13px;
+  color: var(--text-2);
+  padding: 0 4px;
+}
+
+/* Two columns on wide screens: main + side. */
+.split {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1000px) {
+  .split {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 899px) {
+  .split {
+    gap: 12px;
+  }
+}
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+@media (max-width: 899px) {
+  .formActions > * {
+    flex: 1;
+  }
+}
+
+.message {
+  font-size: 14px;
+}
+
+.messageError {
+  color: var(--critical-text);
+}
+
+.messageSuccess {
+  color: var(--good-text);
+}
+
+.note {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.linkRow {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.progressTrack {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--fill);
+  overflow: hidden;
+}
+
+.progressFill,
+.progressDone {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.progressFill {
+  background: var(--accent);
+}
+
+.progressDone {
+  background: var(--good);
+}
+
+.progressNote {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.reportStatusText {
+  font-size: 15px;
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}

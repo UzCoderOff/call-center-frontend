@@ -1,0 +1,32 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.good {
+  background: var(--good-soft);
+  color: var(--good-text);
+}
+.warning {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+.critical {
+  background: var(--critical-soft);
+  color: var(--critical-text);
+}
+.neutral {
+  background: var(--neutral-soft);
+  color: var(--text-2);
+}
+.accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}

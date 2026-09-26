@@ -1,65 +1,63 @@
-# Ledger — Call Center Portal
+# Ledger — Staff Portal
 
-Frontend for `call-center-backend`. Three roles:
+The web portal for the firm's staff system (`call-center-backend`). Uzbek by
+default (English available in Profile), light/dark, built for phones first —
+a tab bar on phones, a sidebar on wider screens. The Android app
+(`call-center-agent`) shows this same portal inside it, so every change here
+reaches the app without an app update.
 
-- **EMPLOYEE** — sees their own call stats and call history.
-- **BOSS** / **DEVELOPER** — see company-wide stats, a per-employee
-  breakdown with charts, the full call log, and can add/deactivate
-  employees and rotate an employee's device ID.
+## What people see
 
-Mobile-first and responsive: a bottom tab bar on phones, a top bar on
-wider screens, so employees can check their stats without opening a laptop.
+Sections appear only when they apply to the person:
 
-## Stack
-
-React + Vite, `react-router-dom` for routing, `recharts` for the charts.
-No UI kit — hand-built components styled to match the rest of the app.
+- **Home** — managers: company call stats, missed-call follow-up, today's
+  reports at a glance, per-employee table. Call-center staff: their call
+  numbers and "needs a callback" list. Other staff: today's report.
+- **Calls** (managers, and staff whose calls are collected) — filterable log,
+  "needs a callback" view with one-tap call buttons, call detail with the
+  recording player and the number's history.
+- **Calendar** (managers, and staff with calendar access) — the lawyer's
+  week, one day at a time, read like an appointment book: free times to
+  book (staff), change a day / confirm the week / settings (the lawyer).
+  Staff whose bookings the lawyer cancelled get a "tell the client" card on
+  their home page.
+- **Reports** (managers, and staff with a report form) — staff fill in
+  today's report; managers see each day by office, totals, and review.
+- **Team** and **Settings** (managers; editing is DEVELOPER-only) — staff,
+  offices, positions, the report-form builder, phones signed in to the app.
+- **Profile** — language, theme, password, sign out; inside the app also
+  version, "sync now" and diagnostics.
 
 ## Setup
 
 ```bash
 npm install
-cp .env.example .env.local
-# edit .env.local: point VITE_API_URL at your backend
-npm run dev
+cp .env.example .env.local   # VITE_API_URL = your local backend (default http://localhost:4000)
+npm run dev                  # http://localhost:5173
 ```
 
-`VITE_API_URL` must point at a running `call-center-backend` instance. The
-backend's own `.env` needs two things set for this to work once the
-frontend is deployed on its own domain (see that repo's `.env.example`):
+The browser only ever calls this app's own `/api` — in development Vite
+proxies it to `VITE_API_URL`; in production `vercel.json` forwards it to the
+VPS. That keeps the login cookie first-party, which phone browsers require.
+If the backend's address changes, update `vercel.json`.
 
-- `CORS_ORIGIN` — this app's deployed URL (e.g. `https://portal.vercel.app`)
-- `COOKIE_SAME_SITE=none` and `COOKIE_SECURE=true` — required for the
-  login cookie to survive a cross-site request once frontend and backend
-  are on different domains. Both must be HTTPS for this to work at all;
-  browsers refuse `SameSite=None` cookies over plain HTTP.
-
-Without both of those set correctly on the backend, login will appear to
-succeed (the API call returns 200) but every subsequent request will look
-logged-out, because the browser silently drops the session cookie.
-
-## Deploying (Vercel / Netlify / similar)
-
-1. Push this repo, connect it to Vercel/Netlify.
-2. Set the `VITE_API_URL` environment variable in the host's dashboard to
-   your backend's public URL.
-3. Set `CORS_ORIGIN` on the backend to the exact URL the host gives you
-   (including `https://`, no trailing slash). If you get a preview URL
-   per branch/PR, add it as a second comma-separated origin.
-4. Redeploy the backend after changing its env vars.
+`npm run lint` / `npm run build` before pushing; Vercel deploys on push.
 
 ## Project layout
 
 ```
 src/
-  lib/api.js        — all backend calls; the only place that knows API routes
-  lib/format.js      — date/duration formatting helpers
-  hooks/useAuth.jsx  — session state (who's logged in)
-  components/        — shared UI: AppShell (nav), StatCard, PageHeader
-  pages/             — one file per route
+  i18n/            uz.js (default), en.js, provider + formatters
+  lib/             api.js (every backend call), format.js, access.js (who sees what),
+                   appBridge.js (talking to the Android app), prefs.js
+  hooks/           useAuth, useAsync, useBack
+  styles/          tokens.css (all colours, light + dark), base.css
+  components/ui/   the design system: Button, Card, List, Segmented, Sheet, fields, badges…
+  components/…     charts, calls, reports, stats, team
+  pages/           one file per route
 ```
 
-There is no local mock data or fake API — every page calls the real
-backend. If a page looks empty, check the Network tab: a 401 means the
-cookie isn't attaching (see CORS/cookie notes above), a CORS error means
-`CORS_ORIGIN` doesn't match this app's origin exactly.
+Text lives only in `src/i18n/*.js` — to change a wording, edit it there; to
+add a language, copy `en.js` and register it in `src/i18n/index.jsx`.
+Colours live only in `src/styles/tokens.css`; the chart colours were checked
+for colour-blind safety and contrast — re-check if you change them.
