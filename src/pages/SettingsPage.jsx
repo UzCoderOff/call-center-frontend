@@ -32,8 +32,57 @@ export default function SettingsPage() {
         <Offices canEdit={canEdit} />
         <Positions canEdit={canEdit} />
         <Templates canEdit={canEdit} />
+        <AuditLog />
       </div>
     </div>
+  );
+}
+
+// ------------------------------------------------------------ change log
+// The latest changes that removed or reshaped data — archived, restored or
+// merged clients, deleted cases and payments, imports — with who and when.
+const AUDIT_ICON = {
+  "client.archive": "minusCircle",
+  "client.restore": "refresh",
+  "client.merge": "link",
+  "case.delete": "trash",
+  "payment.delete": "trash",
+  "clients.import": "upload",
+};
+
+function AuditLog() {
+  const { t, fmt } = useI18n();
+  const state = useAsync(() => api.auditLog(), []);
+  return (
+    <section>
+      <ListSectionHeader>{t("settings.audit")}</ListSectionHeader>
+      <AsyncBoundary state={state}>
+        {(rows) =>
+          rows.length === 0 ? (
+            <List>
+              <EmptyState icon="clipboard" text={t("settings.auditEmpty")} />
+            </List>
+          ) : (
+            <List inset={64}>
+              {rows.slice(0, 30).map((r) => (
+                <ListRow
+                  key={r.id}
+                  to={r.clientId ? `/clients/${r.clientId}` : undefined}
+                  leading={<IconTile icon={AUDIT_ICON[r.action] || "clipboard"} />}
+                  title={t(`settings.auditActions.${r.action}`, {
+                    ...r.summary,
+                    name: r.clientName || "—",
+                    merged: r.summary.merged || "—",
+                    amount: r.summary.amount == null ? "—" : fmt.money(r.summary.amount),
+                  })}
+                  subtitle={[r.user?.employee?.name || r.user?.username, fmt.dateTime(new Date(r.createdAt).getTime())].filter(Boolean).join(" · ")}
+                />
+              ))}
+            </List>
+          )
+        }
+      </AsyncBoundary>
+    </section>
   );
 }
 
@@ -201,7 +250,7 @@ function Positions({ canEdit }) {
                   chevron={canEdit}
                   leading={<IconTile icon="user" />}
                   title={p.name}
-                  subtitle={[p.reportTemplate?.name || t("settings.noReportForm"), p.calendarAccess !== "none" && `${t("settings.calendarAccess")}: ${t(`settings.access.${p.calendarAccess}`)}`].filter(Boolean).join(" · ")}
+                  subtitle={[p.autoReport ? t("autoReport.name") : p.reportTemplate?.name || t("settings.noReportForm"), p.calendarAccess !== "none" && `${t("settings.calendarAccess")}: ${t(`settings.access.${p.calendarAccess}`)}`].filter(Boolean).join(" · ")}
                   trailing={
                     p.collectCalls && (
                       <Badge tone="accent" icon="phone">
@@ -231,8 +280,11 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
   const { t } = useI18n();
   const [name, setName] = useState(position?.name || "");
   const [collectCalls, setCollectCalls] = useState(position?.collectCalls ?? false);
+  const [autoReport, setAutoReport] = useState(position?.autoReport ?? false);
   const [calendarAccess, setCalendarAccess] = useState(position?.calendarAccess ?? "none");
   const [templateId, setTemplateId] = useState(position?.reportTemplate?.id ?? "");
+  const [targetConsultations, setTargetConsultations] = useState(position?.targetConsultations ?? "");
+  const [targetContracts, setTargetContracts] = useState(position?.targetContracts ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -240,7 +292,16 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
     e.preventDefault();
     setBusy(true);
     setError("");
-    const payload = { name, collectCalls, calendarAccess, reportTemplateId: templateId || null };
+    const target = (v) => (String(v).trim() === "" ? null : Number(v));
+    const payload = {
+      name,
+      collectCalls,
+      autoReport,
+      calendarAccess,
+      reportTemplateId: templateId || null,
+      targetConsultations: target(targetConsultations),
+      targetContracts: target(targetContracts),
+    };
     try {
       if (position) await api.updatePosition(position.id, payload);
       else await api.createPosition(payload);
@@ -286,7 +347,13 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
           checked={collectCalls}
           onChange={setCollectCalls}
         />
-        <SelectField label={t("settings.reportForm")} value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+        <Switch label={t("autoReport.switch")} hint={t("autoReport.switchHint")} checked={autoReport} onChange={setAutoReport} />
+        <SelectField
+          label={t("settings.reportForm")}
+          hint={autoReport ? t("autoReport.formKeptHint") : undefined}
+          value={templateId}
+          onChange={(e) => setTemplateId(e.target.value)}
+        >
           <option value="">{t("settings.noReportForm")}</option>
           {templates.map((tpl) => (
             <option key={tpl.id} value={tpl.id}>
@@ -294,6 +361,13 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
             </option>
           ))}
         </SelectField>
+        <div className={pageStyles.formStack} style={{ gap: 6 }}>
+          <span className={pageStyles.note}>{t("settings.targetsHint")}</span>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+            <TextField label={t("settings.targetConsultations")} type="number" min="0" inputMode="numeric" value={targetConsultations} onChange={(e) => setTargetConsultations(e.target.value)} />
+            <TextField label={t("settings.targetContracts")} type="number" min="0" inputMode="numeric" value={targetContracts} onChange={(e) => setTargetContracts(e.target.value)} />
+          </div>
+        </div>
         {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
         <div className={pageStyles.formActions}>
           {position && (

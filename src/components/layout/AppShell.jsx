@@ -4,7 +4,7 @@ import styles from "./AppShell.module.css";
 import Icon from "../ui/Icon";
 import { Avatar } from "../ui/Misc";
 import { useAuth, isManagerRole } from "../../hooks/useAuth";
-import { canSeeCalendar, canSeeCalls, canSeeReports } from "../../lib/access";
+import { canSeeCalendar, canSeeCalls, canSeeClients, canSeeReports } from "../../lib/access";
 import { useI18n } from "../../i18n";
 
 // Navigation is one list, rendered twice: a sidebar on wide screens and an
@@ -15,6 +15,7 @@ export function navItems(user) {
   return [
     { to: "/", end: true, icon: "home", label: "nav.home" },
     ...(canSeeCalls(user) ? [{ to: "/calls", icon: "phone", label: "nav.calls" }] : []),
+    ...(canSeeClients(user) ? [{ to: "/clients", icon: "contact", label: "nav.clients" }] : []),
     ...(canSeeCalendar(user) ? [{ to: "/calendar", icon: "calendar", label: "nav.calendar" }] : []),
     ...(canSeeReports(user) ? [{ to: "/reports", icon: "clipboard", label: "nav.reports" }] : []),
     ...(manager ? [{ to: "/team", icon: "users", label: "nav.team" }] : []),

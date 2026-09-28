@@ -21,8 +21,18 @@ Sections appear only when they apply to the person:
   book (staff), change a day / confirm the week / settings (the lawyer).
   Staff whose bookings the lawyer cancelled get a "tell the client" card on
   their home page.
-- **Reports** (managers, and staff with a report form) — staff fill in
-  today's report; managers see each day by office, totals, and review.
+- **Mijozlar / Clients** (managers, and staff who take calls or book) — the
+  client base: search in either script, filters (call today, owe money, open
+  cases; archive for managers), monthly targets per operator, a client page
+  with cases, court stage, payments, history, calls, appointments and
+  connections. Managers also import from Excel / Google Sheets, export to
+  Excel, archive/restore and merge duplicates; Settings has the change log.
+- **Reports** (managers, and staff with a report form or an automatic
+  report) — staff fill in today's report, or for call-center staff it makes
+  itself from their calls, bookings and clients; managers see each day by
+  office, totals, and review.
+- **Lawyers** (LAWYER accounts): home with today's appointments and their
+  open cases, their own calendar, their own clients — nothing else.
 - **Team** and **Settings** (managers; editing is DEVELOPER-only) — staff,
   offices, positions, the report-form builder, phones signed in to the app.
 - **Profile** — language, theme, password, sign out; inside the app also
@@ -41,7 +51,8 @@ proxies it to `VITE_API_URL`; in production `vercel.json` forwards it to the
 VPS. That keeps the login cookie first-party, which phone browsers require.
 If the backend's address changes, update `vercel.json`.
 
-`npm run lint` / `npm run build` before pushing; Vercel deploys on push.
+`npm test` (the spreadsheet reader — `src/lib/*.test.js`), `npm run lint` and
+`npm run build` before pushing; Vercel deploys on push.
 
 ## Project layout
 
@@ -49,11 +60,12 @@ If the backend's address changes, update `vercel.json`.
 src/
   i18n/            uz.js (default), en.js, provider + formatters
   lib/             api.js (every backend call), format.js, access.js (who sees what),
-                   appBridge.js (talking to the Android app), prefs.js
+                   appBridge.js (talking to the Android app), prefs.js,
+                   sheets.js + clientImport.js (reading client spreadsheets)
   hooks/           useAuth, useAsync, useBack
   styles/          tokens.css (all colours, light + dark), base.css
   components/ui/   the design system: Button, Card, List, Segmented, Sheet, fields, badges…
-  components/…     charts, calls, reports, stats, team
+  components/…     charts, calls, clients, reports, stats, team
   pages/           one file per route
 ```
 

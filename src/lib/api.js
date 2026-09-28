@@ -88,7 +88,7 @@ export const api = {
   resetEmployeePassword: (id) => request(`/employees/${id}/reset-password`, { method: "POST" }),
 
   // --- boss accounts (standalone portal logins, no Employee record) ---
-  bossAccounts: () => request("/users?role=BOSS"),
+  bossAccounts: () => request("/users"),
   createBossAccount: (payload) => request("/users", { method: "POST", body: payload }),
   updateBossAccount: (id, payload) => request(`/users/${id}`, { method: "PATCH", body: payload }),
   resetBossPassword: (id) => request(`/users/${id}/reset-password`, { method: "POST" }),
@@ -106,6 +106,7 @@ export const api = {
   todayReport: () => request("/reports/today"),
   submitTodayReport: (answers) => request("/reports/today", { method: "PUT", body: { answers } }),
   reportsDay: (params) => request(`/reports/day${qs(params)}`),
+  autoReport: (params) => request(`/reports/auto${qs(params)}`),
   reports: (params) => request(`/reports${qs(params)}`),
   report: (id) => request(`/reports/${id}`),
   reviewReport: (id, comment) => request(`/reports/${id}/review`, { method: "POST", body: { comment } }),
@@ -136,4 +137,44 @@ export const api = {
   createReportTemplate: (payload) => request("/report-templates", { method: "POST", body: payload }),
   updateReportTemplate: (id, payload) => request(`/report-templates/${id}`, { method: "PATCH", body: payload }),
   deleteReportTemplate: (id) => request(`/report-templates/${id}`, { method: "DELETE" }),
+
+  // --- clients database ---
+  clients: (params) => request(`/clients${qs(params)}`),
+  client: (id) => request(`/clients/${id}`),
+  createClient: (payload) => request("/clients", { method: "POST", body: payload }),
+  updateClient: (id, payload) => request(`/clients/${id}`, { method: "PATCH", body: payload }),
+  // "Delete" archives; restore brings the client back.
+  archiveClient: (id) => request(`/clients/${id}`, { method: "DELETE" }),
+  restoreClient: (id) => request(`/clients/${id}/restore`, { method: "POST" }),
+  mergeClient: (id, otherId) => request(`/clients/${id}/merge`, { method: "POST", body: { otherId } }),
+  // A plain link (the browser downloads the file with the session cookie).
+  clientsExportUrl: (params) => `${BASE}/clients/export${qs(params)}`,
+  auditLog: () => request("/audit"),
+  clientLookup: (phone) => request(`/clients/lookup${qs({ phone })}`),
+  clientLawyers: () => request("/clients/lawyers"),
+  clientTargets: (month) => request(`/clients/targets${qs({ month })}`),
+  addCase: (clientId, payload) => request(`/clients/${clientId}/cases`, { method: "POST", body: payload }),
+  updateCase: (id, payload) => request(`/client-cases/${id}`, { method: "PATCH", body: payload }),
+  deleteCase: (id) => request(`/client-cases/${id}`, { method: "DELETE" }),
+  addPayment: (clientId, payload) => request(`/clients/${clientId}/payments`, { method: "POST", body: payload }),
+  deletePayment: (id) => request(`/client-payments/${id}`, { method: "DELETE" }),
+  addNote: (clientId, text) => request(`/clients/${clientId}/notes`, { method: "POST", body: { text } }),
+  deleteNote: (id) => request(`/client-notes/${id}`, { method: "DELETE" }),
+  addLink: (clientId, payload) => request(`/clients/${clientId}/links`, { method: "POST", body: payload }),
+  deleteLink: (id) => request(`/client-links/${id}`, { method: "DELETE" }),
+  importClients: (rows) => request("/clients/import", { method: "POST", body: { rows } }),
+  // A Google Sheets link -> the file's bytes (the server downloads it).
+  googleSheet: async (url) => {
+    const res = await fetch(`${BASE}/clients/import/google${qs({ url })}`, { credentials: "same-origin" });
+    if (!res.ok) {
+      let code = `http_${res.status}`;
+      try {
+        code = (await res.json()).error || code;
+      } catch {
+        // not JSON
+      }
+      throw new ApiError(code, res.status, null);
+    }
+    return res.arrayBuffer();
+  },
 };

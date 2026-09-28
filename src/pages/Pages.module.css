@@ -12,6 +12,28 @@
   }
 }
 
+/* A titled block of a page ("Calls" + its period picker). */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.sectionTitle {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
 .rangePicker {
   width: 100%;
 }

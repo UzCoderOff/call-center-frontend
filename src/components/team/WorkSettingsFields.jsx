@@ -17,9 +17,9 @@ export function useOrgOptions() {
   return state.data || { offices: [], positions: [], templates: [] };
 }
 
-// The job settings of one person: office, position, "collect calls" and
-// report form. Picking a position fills in the other two from its preset
-// (they can still be changed for this one person).
+// The job settings of one person: office, position, "collect calls",
+// automatic report and report form. Picking a position fills in the rest
+// from its preset (it can still be changed for this one person).
 export default function WorkSettingsFields({ value, onChange, options }) {
   const { t } = useI18n();
   const set = (patch) => onChange({ ...value, ...patch });
@@ -31,6 +31,7 @@ export default function WorkSettingsFields({ value, onChange, options }) {
         ? {
             positionId: position.id,
             collectCalls: position.collectCalls,
+            autoReport: position.autoReport,
             calendarAccess: position.calendarAccess,
             reportTemplateId: position.reportTemplate?.id ?? "",
           }
@@ -56,8 +57,15 @@ export default function WorkSettingsFields({ value, onChange, options }) {
           </option>
         ))}
       </SelectField>
+      <Switch
+        label={t("autoReport.switch")}
+        hint={t("autoReport.switchHint")}
+        checked={Boolean(value.autoReport)}
+        onChange={(v) => set({ autoReport: v })}
+      />
       <SelectField
         label={t("settings.reportForm")}
+        hint={value.autoReport ? t("autoReport.formKeptHint") : undefined}
         value={value.reportTemplateId ?? ""}
         onChange={(e) => set({ reportTemplateId: e.target.value })}
       >
@@ -98,6 +106,7 @@ export function workPayload(value) {
     positionId: id(value.positionId),
     reportTemplateId: id(value.reportTemplateId),
     collectCalls: Boolean(value.collectCalls),
+    autoReport: Boolean(value.autoReport),
     calendarAccess: value.calendarAccess || "none",
   };
 }

@@ -7,6 +7,7 @@ import CallsPage from "./pages/CallsPage";
 import CallDetailPage from "./pages/CallDetailPage";
 import ReportsPage from "./pages/ReportsPage";
 import ReportDetailPage from "./pages/ReportDetailPage";
+import AutoReportPage from "./pages/AutoReportPage";
 import TeamPage from "./pages/TeamPage";
 import EmployeeDetailPage from "./pages/EmployeeDetailPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -14,7 +15,10 @@ import TemplateEditorPage from "./pages/TemplateEditorPage";
 import ProfilePage from "./pages/ProfilePage";
 import CalendarPage, { PlannerRedirect } from "./pages/CalendarPage";
 import MorePage from "./pages/MorePage";
-import { canSeeCalendar, canSeeCalls, canSeeReports, canSeeTeam } from "./lib/access";
+import { canManageClients, canSeeCalendar, canSeeCalls, canSeeClients, canSeeReports, canSeeTeam } from "./lib/access";
+import ClientsPage from "./pages/ClientsPage";
+import ClientPage from "./pages/ClientPage";
+import ClientImportPage from "./pages/ClientImportPage";
 
 export function Splash() {
   return (
@@ -55,9 +59,13 @@ function Routed() {
         <Route index element={<DashboardPage />} />
         <Route path="calls" element={guarded(canSeeCalls, <CallsPage />)} />
         <Route path="calls/:id" element={guarded(canSeeCalls, <CallDetailPage />)} />
+        <Route path="clients" element={guarded(canSeeClients, <ClientsPage />)} />
+        <Route path="clients/import" element={guarded(canManageClients, <ClientImportPage />)} />
+        <Route path="clients/:id" element={guarded(canSeeClients, <ClientPage />)} />
         <Route path="calendar" element={guarded(canSeeCalendar, <CalendarPage />)} />
         <Route path="calendar/:calendarId/plan/:weekStart" element={<PlannerRedirect />} />
         <Route path="reports" element={guarded(canSeeReports, <ReportsPage />)} />
+        <Route path="reports/auto/:employeeId/:date" element={guarded(canSeeReports, <AutoReportPage />)} />
         <Route path="reports/:id" element={guarded(canSeeReports, <ReportDetailPage />)} />
         <Route path="team" element={guarded(canSeeTeam, <TeamPage />)} />
         <Route path="team/:id" element={guarded(canSeeTeam, <EmployeeDetailPage />)} />

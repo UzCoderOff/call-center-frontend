@@ -105,7 +105,7 @@ function CreateEmployeeSheet({ onClose, onCreated }) {
   const { t } = useI18n();
   const options = useOrgOptions();
   const [form, setForm] = useState({ name: "", phoneNumber: "", username: "" });
-  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, calendarAccess: "none" });
+  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, autoReport: false, calendarAccess: "none" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(null);
@@ -220,9 +220,9 @@ function BossAccounts() {
                 <ListRow
                   key={b.id}
                   onClick={() => setSelectedId(b.id)}
-                  leading={<Avatar name={b.username} size={40} />}
-                  title={b.username}
-                  subtitle={b.calendar ? `${t("roles.BOSS")} · ${b.calendar.name}` : t("roles.BOSS")}
+                  leading={<Avatar name={b.name || b.username} size={40} />}
+                  title={b.name || b.username}
+                  subtitle={[b.role === "BOSS" ? t("accounts.seesAll") : t("accounts.ownOnly"), b.calendar?.name, b.name && b.username].filter(Boolean).join(" · ")}
                   chevron
                   trailing={
                     <>
@@ -265,6 +265,10 @@ function BossAccounts() {
 function CreateBossSheet({ onClose, onCreated }) {
   const { t } = useI18n();
   const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
+  // New accounts are lawyers unless switched on: seeing everything is the
+  // exception (the head of the firm).
+  const [seesAll, setSeesAll] = useState(false);
   const [hasCalendar, setHasCalendar] = useState(true);
   const [calendarName, setCalendarName] = useState("");
   const [error, setError] = useState("");
@@ -278,6 +282,8 @@ function CreateBossSheet({ onClose, onCreated }) {
     try {
       const res = await api.createBossAccount({
         username: username.trim(),
+        name: name.trim() || undefined,
+        role: seesAll ? "BOSS" : "LAWYER",
         hasCalendar,
         calendarName: calendarName.trim() || undefined,
       });
@@ -326,6 +332,8 @@ function CreateBossSheet({ onClose, onCreated }) {
           spellCheck={false}
           autoComplete="off"
         />
+        <TextField label={t("accounts.name")} placeholder={t("accounts.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
+        <Switch label={t("accounts.seesAllSwitch")} hint={seesAll ? t("accounts.seesAllHint") : t("accounts.ownOnlyHint")} checked={seesAll} onChange={setSeesAll} />
         <Switch label={t("team.hasCalendar")} hint={t("team.hasCalendarHint")} checked={hasCalendar} onChange={setHasCalendar} />
         {hasCalendar && (
           <TextField
@@ -352,6 +360,15 @@ function BossSheet({ account, onClose, onUpdated, onRemoved }) {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
   const [tempPassword, setTempPassword] = useState(null);
+  const [name, setName] = useState(account.name || "");
+  const label = account.name || account.username;
+
+  // Seeing everything opens calls, staff, reports and every client — asked
+  // first. Switching it off takes effect at once.
+  function setSeesAll(on) {
+    if (on && !confirm(t("accounts.confirmSeesAll", { name: label }))) return;
+    run("role", async () => onUpdated(await api.updateBossAccount(account.id, { role: on ? "BOSS" : "LAWYER" })));
+  }
 
   async function run(kind, action) {
     setBusy(kind);
@@ -366,13 +383,36 @@ function BossSheet({ account, onClose, onUpdated, onRemoved }) {
   }
 
   return (
-    <Sheet title={account.username} onClose={onClose}>
+    <Sheet title={label} onClose={onClose}>
       <div>
+        <KeyValue label={t("team.username")}>{account.username}</KeyValue>
         <KeyValue label={t("employee.status")}>{account.active ? t("team.active") : t("team.inactive")}</KeyValue>
         <KeyValue label={t("employee.password")}>
           {account.passwordStatus.mustChangePassword ? t("team.tempPassword") : t("team.passwordSet")}
         </KeyValue>
       </div>
+
+      <form
+        className={pageStyles.formStack}
+        style={{ margin: "12px 0" }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          run("name", async () => onUpdated(await api.updateBossAccount(account.id, { name })));
+        }}
+      >
+        <TextField label={t("accounts.name")} placeholder={t("accounts.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
+        <Button type="submit" busy={busy === "name"} disabled={name === (account.name || "")}>
+          {t("common.save")}
+        </Button>
+      </form>
+
+      <Switch
+        label={t("accounts.seesAllSwitch")}
+        hint={account.role === "BOSS" ? t("accounts.seesAllHint") : t("accounts.ownOnlyHint")}
+        checked={account.role === "BOSS"}
+        disabled={busy === "role"}
+        onChange={setSeesAll}
+      />
 
       <Switch
         label={t("team.hasCalendar")}
@@ -395,7 +435,7 @@ function BossSheet({ account, onClose, onUpdated, onRemoved }) {
           icon="key"
           busy={busy === "reset"}
           onClick={() => {
-            if (!confirm(t("team.confirmReset", { name: account.username }))) return;
+            if (!confirm(t("team.confirmReset", { name: label }))) return;
             run("reset", async () => {
               const res = await api.resetBossPassword(account.id);
               onUpdated(res.user);
@@ -419,7 +459,7 @@ function BossSheet({ account, onClose, onUpdated, onRemoved }) {
           variant="destructive"
           busy={busy === "remove"}
           onClick={() => {
-            if (!confirm(t("team.confirmRemoveBoss", { name: account.username }))) return;
+            if (!confirm(t("team.confirmRemoveBoss", { name: label }))) return;
             run("remove", async () => {
               await api.deleteBossAccount(account.id);
               onRemoved();

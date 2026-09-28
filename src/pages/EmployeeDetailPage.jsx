@@ -15,6 +15,7 @@ import StatsOverview from "../components/stats/StatsOverview";
 import RangePicker from "../components/stats/RangePicker";
 import { SyncBadge } from "../components/SyncStatus";
 import { ReportHistory } from "./ReportsPage";
+import { AutoReportHistory } from "../components/reports/AutoReport";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { useBack } from "../hooks/useBack";
@@ -67,7 +68,8 @@ export default function EmployeeDetailPage() {
               <AccountCard employee={e} onChange={employee.setData} />
             </div>
 
-            {e.reportTemplate && <EmployeeReports employeeId={e.id} />}
+            {e.autoReport && <AutoReportHistory employeeId={e.id} title={t("work.reports")} />}
+            {e.reportTemplate && <EmployeeReports employeeId={e.id} onlyIfAny={e.autoReport} />}
           </div>
         </div>
       )}
@@ -96,10 +98,20 @@ function CallsSection({ employee }) {
   );
 }
 
-function EmployeeReports({ employeeId }) {
+// Reports filled in by hand. For someone now on automatic reports: their
+// old ones, only if there are any.
+function EmployeeReports({ employeeId, onlyIfAny = false }) {
   const { t } = useI18n();
   const state = useAsync(() => api.reports({ employeeId, pageSize: 10 }), [employeeId]);
-  return <AsyncBoundary state={state}>{(data) => <ReportHistory reports={data.reports} title={t("work.reports")} />}</AsyncBoundary>;
+  return (
+    <AsyncBoundary state={state}>
+      {(data) =>
+        (!onlyIfAny || data.reports.length > 0) && (
+          <ReportHistory reports={data.reports} title={onlyIfAny ? t("autoReport.formHistory") : t("work.reports")} />
+        )
+      }
+    </AsyncBoundary>
+  );
 }
 
 // Office, position, "collect calls" and report form — what this person's
@@ -123,7 +135,11 @@ function WorkCard({ employee, onChange }) {
     >
       <KeyValue label={t("work.office")}>{employee.office?.name || t("work.none")}</KeyValue>
       <KeyValue label={t("work.position")}>{employee.position?.name || t("work.none")}</KeyValue>
-      <KeyValue label={t("settings.reportForm")}>{employee.reportTemplate?.name || t("settings.noReportForm")}</KeyValue>
+      <KeyValue label={t("settings.reportForm")}>
+        {employee.autoReport
+          ? [t("autoReport.name"), employee.reportTemplate && t("autoReport.formKept", { name: employee.reportTemplate.name })].filter(Boolean).join(" · ")
+          : employee.reportTemplate?.name || t("settings.noReportForm")}
+      </KeyValue>
       <KeyValue label={t("settings.calendarAccess")}>{t(`settings.access.${employee.calendarAccess || "none"}`)}</KeyValue>
       <KeyValue label={t("settings.collectCalls")}>
         {employee.collectCalls ? (
@@ -149,6 +165,7 @@ function EditWorkSheet({ employee, onClose, onSaved }) {
     positionId: employee.position?.id ?? "",
     reportTemplateId: employee.reportTemplate?.id ?? "",
     collectCalls: employee.collectCalls,
+    autoReport: employee.autoReport,
     calendarAccess: employee.calendarAccess,
   });
   const [busy, setBusy] = useState(false);

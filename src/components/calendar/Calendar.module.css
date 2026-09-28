@@ -464,6 +464,19 @@
   border-top: none;
 }
 
+.attentionName {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Wraps on phones — the reason can be long ("Samarqand sudi"). */
+.attentionSub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
 .attentionActions {
   display: flex;
   flex-wrap: wrap;

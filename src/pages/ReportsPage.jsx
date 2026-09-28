@@ -10,6 +10,7 @@ import { List, ListRow, ListSectionHeader } from "../components/ui/List";
 import { AsyncBoundary, Avatar, EmptyState, PageHeader } from "../components/ui/Misc";
 import ReportForm from "../components/reports/ReportForm";
 import ReportAnswers, { ReportStatusBadge } from "../components/reports/ReportAnswers";
+import AutoReportNumbers, { AutoBadge, AutoReportHistory, autoLine } from "../components/reports/AutoReport";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -117,6 +118,7 @@ function DayView({ data }) {
   return (
     <div className={pageStyles.stack}>
       <div className={styles.forms}>
+        {data.auto && <AutoSummary auto={data.auto} />}
         {data.forms.map((f) => (
           <FormSummary key={f.template.id} form={f} />
         ))}
@@ -126,20 +128,63 @@ function DayView({ data }) {
         <section key={office || "none"}>
           <ListSectionHeader>{office || t("reports.noOffice")}</ListSectionHeader>
           <List inset={68}>
-            {rows.map((row) => (
-              <ListRow
-                key={row.employee.id}
-                to={row.report ? `/reports/${row.report.id}` : undefined}
-                leading={<Avatar name={row.employee.name} size={40} />}
-                title={row.employee.name}
-                subtitle={row.template.name}
-                trailing={<ReportStatusBadge report={row.report} />}
-              />
-            ))}
+            {rows.map((row) =>
+              row.auto ? (
+                <ListRow
+                  key={`auto-${row.employee.id}`}
+                  to={`/reports/auto/${row.employee.id}/${data.date}`}
+                  leading={<Avatar name={row.employee.name} size={40} />}
+                  title={row.employee.name}
+                  subtitle={autoLine(row.auto, t)}
+                  trailing={<AutoBadge />}
+                />
+              ) : (
+                <ListRow
+                  key={row.report ? `report-${row.report.id}` : `form-${row.employee.id}`}
+                  to={row.report ? `/reports/${row.report.id}` : undefined}
+                  leading={<Avatar name={row.employee.name} size={40} />}
+                  title={row.employee.name}
+                  subtitle={row.template.name}
+                  trailing={<ReportStatusBadge report={row.report} />}
+                />
+              )
+            )}
           </List>
         </section>
       ))}
     </div>
+  );
+}
+
+// The automatic reports of the day added up: the call center at a glance.
+function AutoSummary({ auto }) {
+  const { t, fmt } = useI18n();
+  const s = auto.totals;
+  const items = [
+    ...(s.calls
+      ? [
+          [t("autoReport.total"), fmt.number(s.calls.total)],
+          [t("autoReport.answered"), fmt.number(s.calls.answered)],
+          [t("autoReport.missed"), fmt.number(s.calls.missed)],
+          [t("autoReport.needsCallback"), fmt.number(s.calls.needsCallback)],
+          [t("autoReport.talk"), s.calls.talkSeconds > 0 ? fmt.duration(s.calls.talkSeconds) : "—"],
+        ]
+      : []),
+    [t("autoReport.booked"), fmt.number(s.booked)],
+    [t("autoReport.consultations"), fmt.number(s.consultations)],
+    [t("autoReport.contracts"), fmt.number(s.contracts)],
+  ];
+  return (
+    <Card title={t("autoReport.teamTitle")} subtitle={t("autoReport.teamSubtitle", { n: auto.people })}>
+      <ul className={styles.totals}>
+        {items.map(([label, value]) => (
+          <li key={label}>
+            <span className={styles.totalLabel}>{label}</span>
+            <span className={styles.totalValue}>{value}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
 
@@ -195,6 +240,8 @@ function FormSummary({ form }) {
 // ----------------------------------------------------------- employees
 function MyReports() {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const auto = Boolean(user.employee?.autoReport);
   const today = useAsync(() => api.todayReport(), []);
   const history = useAsync(() => api.reports({ pageSize: 30 }), []);
 
@@ -204,7 +251,9 @@ function MyReports() {
       <div className={pageStyles.stack}>
         <AsyncBoundary state={today}>
           {(data) =>
-            data.template ? (
+            data.auto ? (
+              <AutoTodayCard data={data} employeeId={user.employee.id} />
+            ) : data.template ? (
               <TodayReportCard
                 data={data}
                 onSaved={(report) => {
@@ -218,11 +267,30 @@ function MyReports() {
           }
         </AsyncBoundary>
 
+        {auto && <AutoReportHistory employeeId={user.employee.id} />}
+
+        {/* Reports filled in by hand (for someone now on automatic: the old ones, if any). */}
         <AsyncBoundary state={history}>
-          {(data) => <ReportHistory reports={data.reports} />}
+          {(data) => (!auto || data.reports.length > 0) && <ReportHistory reports={data.reports} title={auto ? t("autoReport.formHistory") : undefined} />}
         </AsyncBoundary>
       </div>
     </div>
+  );
+}
+
+// Today's automatic report: nothing to fill in, the numbers so far.
+function AutoTodayCard({ data, employeeId }) {
+  const { t, fmt } = useI18n();
+  return (
+    <Card title={`${t("reports.todayForm")} · ${fmt.isoDateLong(data.date)}`} subtitle={t("autoReport.name")} action={<AutoBadge />}>
+      <p className={pageStyles.note}>{t("autoReport.selfNote")}</p>
+      <AutoReportNumbers day={data.auto} />
+      <div className={pageStyles.actionsRow}>
+        <Button to={`/reports/auto/${employeeId}/${data.date}`} variant="plain">
+          {t("autoReport.open")}
+        </Button>
+      </div>
+    </Card>
   );
 }
 

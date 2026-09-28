@@ -12,7 +12,7 @@ import CallRow, { CallTypeIcon } from "../components/calls/CallRow";
 import AudioPlayer from "../components/calls/AudioPlayer";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { CallerAppointmentsCard } from "../components/calendar/CalendarCards";
-import { canBookAppointments, canSeeCalendar } from "../lib/access";
+import { canBookAppointments, canSeeCalendar, canSeeClients } from "../lib/access";
 import { useAsync } from "../hooks/useAsync";
 import { useBack } from "../hooks/useBack";
 import { api } from "../lib/api";
@@ -75,7 +75,31 @@ export default function CallDetailPage() {
                     <CallTypeIcon call={call} size={44} />
                     <span>{t(`callType.${call.callType}`)}</span>
                   </div>
-                  <KeyValue label={t("callDetail.employee")}>{call.employee?.name || "—"}</KeyValue>
+                  <KeyValue label={t("callDetail.employee")}>
+                    {call.employee && isManagerRole(user.role) ? (
+                      <Link to={`/team/${call.employee.id}`} className={styles.employeeLink}>
+                        {call.employee.name}
+                        <Icon name="chevronRight" size={15} />
+                      </Link>
+                    ) : (
+                      call.employee?.name || "—"
+                    )}
+                  </KeyValue>
+                  {canSeeClients(user) && (
+                    <KeyValue label={t("callDetail.client")}>
+                      {call.client ? (
+                        <Link to={`/clients/${call.client.id}`} className={styles.employeeLink}>
+                          {call.client.name}
+                          <Icon name="chevronRight" size={15} />
+                        </Link>
+                      ) : (
+                        <Link to={`/clients?new=1&phone=${encodeURIComponent(call.phoneNumber)}`} className={styles.employeeLink}>
+                          <Icon name="plus" size={15} />
+                          {t("callDetail.addClient")}
+                        </Link>
+                      )}
+                    </KeyValue>
+                  )}
                   <KeyValue label={t("callDetail.when")}>{fmt.dateTime(call.callTimestampMs)}</KeyValue>
                   <KeyValue label={t("callDetail.duration")}>
                     {call.missed ? "—" : fmt.duration(call.durationSeconds)}

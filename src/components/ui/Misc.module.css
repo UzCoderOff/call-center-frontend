@@ -35,6 +35,7 @@
 
 .pageActions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   max-width: 100%;
@@ -61,6 +62,41 @@
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.tileLink {
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.tileLink:hover {
+  background: var(--surface-sunken);
+}
+
+.tileLink:active {
+  transform: scale(0.98);
+}
+
+.tileLink:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.tileLabelText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tileChevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--text-3);
+}
+
+.tileLink:hover .tileChevron {
+  color: var(--accent);
 }
 
 .tileLabel {
@@ -106,10 +142,12 @@
   }
 }
 
+/* One line: "14 soat 21 daq" — the tile grid gives it room (2 columns
+   until there's space for 4). */
 .duration {
   display: inline-flex;
-  flex-wrap: wrap;
   gap: 0 6px;
+  white-space: nowrap;
 }
 
 .duration small {

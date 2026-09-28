@@ -10,30 +10,47 @@ import FollowUpMeter from "../charts/FollowUpMeter";
 import { formatPercent } from "../../lib/format";
 import { useI18n } from "../../i18n";
 
+// A link to the Calls page showing the calls behind a number: same period,
+// same person (`callsLink`, e.g. "employeeId=3"), plus `extra` filters.
+function callsUrl(range, callsLink, extra = {}) {
+  const params = new URLSearchParams(callsLink || "");
+  for (const [key, value] of Object.entries({ ...extra, period: range })) if (value) params.set(key, value);
+  return `/calls?${params}`;
+}
+
 // The stat block shared by the dashboard (company or self) and an
-// employee's page: headline tiles, missed-call follow-up, the "call these
-// people back" list, and calls per day.
+// employee's page: headline tiles (each opens its calls), missed-call
+// follow-up, the "call these people back" list, and calls per day (each day
+// opens its calls).
 export default function StatsOverview({ data, range, showEmployee, callsLink }) {
   const { t, fmt } = useI18n();
   const s = data.totals;
+  const link = (extra) => callsUrl(range, callsLink, extra);
 
   return (
     <div className={styles.stack}>
       <div className={styles.tiles}>
-        <StatTile label={t("dashboard.totalCalls")} value={fmt.number(s.totalCalls)} />
+        <StatTile label={t("dashboard.totalCalls")} value={fmt.number(s.totalCalls)} to={link()} />
         <StatTile
           label={t("dashboard.answered")}
           dot="var(--series-answered)"
           value={fmt.number(s.answeredCalls)}
           sub={t("dashboard.answerRate", { pct: formatPercent(s.answeredCalls, s.totalCalls) })}
+          to={link({ view: "answered" })}
         />
         <StatTile
           label={t("dashboard.missed")}
           dot="var(--series-missed)"
           value={fmt.number(s.missedCalls)}
           sub={t("dashboard.missRate", { pct: formatPercent(s.missedCalls, s.totalCalls) })}
+          to={link({ view: "missed" })}
         />
-        <StatTile label={t("dashboard.talkTime")} value={<DurationValue seconds={s.talkSeconds} />} />
+        <StatTile
+          label={t("dashboard.talkTime")}
+          value={<DurationValue seconds={s.talkSeconds} />}
+          sub={s.answeredCalls > 0 ? t("dashboard.avgCall", { time: fmt.duration(Math.round(s.talkSeconds / s.answeredCalls)) }) : undefined}
+          to={link({ view: "answered", sort: "longest" })}
+        />
       </div>
 
       <div className={styles.twoCol}>
@@ -45,7 +62,7 @@ export default function StatsOverview({ data, range, showEmployee, callsLink }) 
 
       {range !== "today" && data.daily.length > 1 && (
         <Card title={t("dashboard.perDay")}>
-          <DailyChart data={data.daily} />
+          <DailyChart data={data.daily} dayLink={(date) => callsUrl("", callsLink, { date })} />
         </Card>
       )}
     </div>

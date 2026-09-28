@@ -90,6 +90,11 @@ export function useAuth() {
   return ctx;
 }
 
+// A lawyer (not the boss): their own calendar and their own cases only.
+export function isLawyerRole(role) {
+  return role === "LAWYER";
+}
+
 export function isManagerRole(role) {
   return role === "BOSS" || role === "DEVELOPER";
 }

@@ -33,8 +33,13 @@ export default function CallRow({ call, showEmployee = false, showCallButton = f
   const { t, fmt } = useI18n();
   const when = dateStyle === "time" ? fmt.time(call.callTimestampMs) : fmt.dateTime(call.callTimestampMs);
   const typeLabel = t(`callType.${call.callType}`);
-  const title = compact ? typeLabel : fmt.phone(call.phoneNumber);
-  const parts = [showEmployee && call.employee?.name, !compact && typeLabel, when].filter(Boolean);
+  // A number that belongs to a client shows the client's name (the call-type
+  // icon still says incoming/outgoing).
+  const client = compact ? null : call.client;
+  const title = compact ? typeLabel : client?.name || fmt.phone(call.phoneNumber);
+  const parts = client
+    ? [fmt.phone(call.phoneNumber), showEmployee && call.employee?.name, when].filter(Boolean)
+    : [showEmployee && call.employee?.name, !compact && typeLabel, when].filter(Boolean);
   const needsCallback = call.followUp === "pending" || call.followUp === "attempted";
   const tel = showCallButton && needsCallback ? telHref(call.phoneNumber) : null;
 
@@ -68,9 +73,19 @@ export default function CallRow({ call, showEmployee = false, showCallButton = f
   );
 }
 
-// Calls grouped under day headers ("Bugun", "Kecha", "Payshanba, 24-sentabr").
-export function CallList({ calls, showEmployee, showCallButton }) {
+// Calls grouped under day headers ("Bugun", "Kecha", "Payshanba, 24-sentabr") — or, when the list isn't in time order
+// (`grouped` false, e.g. longest first), one list with the date on each row.
+export function CallList({ calls, showEmployee, showCallButton, grouped = true }) {
   const { fmt } = useI18n();
+  if (!grouped) {
+    return (
+      <div className={styles.list}>
+        {calls.map((c) => (
+          <CallRow key={c.id} call={c} showEmployee={showEmployee} showCallButton={showCallButton} dateStyle="dateTime" />
+        ))}
+      </div>
+    );
+  }
   const groups = [];
   for (const call of calls) {
     const label = fmt.dayHeader(call.callTimestampMs);

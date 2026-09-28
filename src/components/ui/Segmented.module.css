@@ -24,6 +24,15 @@
   flex: 1;
 }
 
+.wrap .segmented {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.wrap .item {
+  flex: 1 1 auto;
+}
+
 .item {
   min-height: 30px;
   padding: 0 14px;

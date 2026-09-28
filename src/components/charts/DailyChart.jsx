@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import styles from "./DailyChart.module.css";
 import Segmented from "../ui/Segmented";
 import { useElementWidth } from "../../hooks/useAsync";
@@ -26,12 +27,16 @@ function topRoundedRect(x, y, w, h) {
 }
 
 // Calls per day, answered + missed stacked. Hover/tap or arrow keys show a
-// day's numbers; the Table view shows every value without hovering.
-export default function DailyChart({ data }) {
+// day's numbers; the Table view shows every value without hovering. With
+// `dayLink` (date -> URL) a day opens its calls: a click (or Enter), or on
+// a touch screen a second tap on the same day — the first shows its numbers.
+export default function DailyChart({ data, dayLink }) {
   const { t, fmt } = useI18n();
+  const navigate = useNavigate();
   const [ref, width] = useElementWidth();
   const [view, setView] = useState("chart");
   const [active, setActive] = useState(null);
+  const tap = useRef({ touch: false, wasActive: false });
 
   const n = data.length;
   const plotW = Math.max(0, width - AXIS_W);
@@ -49,6 +54,10 @@ export default function DailyChart({ data }) {
   const activeDay = active != null ? data[active] : null;
 
   function onKeyDown(e) {
+    if (e.key === "Enter" && dayLink && active != null) {
+      navigate(dayLink(data[active].date));
+      return;
+    }
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     e.preventDefault();
     setActive((i) => {
@@ -96,7 +105,7 @@ export default function DailyChart({ data }) {
             <tbody>
               {[...data].reverse().map((d) => (
                 <tr key={d.date}>
-                  <td>{fmt.isoDateLong(d.date)}</td>
+                  <td>{dayLink ? <Link to={dayLink(d.date)}>{fmt.isoDateLong(d.date)}</Link> : fmt.isoDateLong(d.date)}</td>
                   <td>{fmt.number(d.total)}</td>
                   <td>{fmt.number(d.total - d.missed)}</td>
                   <td>{fmt.number(d.missed)}</td>
@@ -179,9 +188,15 @@ export default function DailyChart({ data }) {
                   y={0}
                   width={band}
                   height={PLOT_H}
-                  className={styles.hit}
+                  className={`${styles.hit} ${dayLink ? styles.hitLink : ""}`}
                   onPointerEnter={() => setActive(i)}
-                  onPointerDown={() => setActive(i)}
+                  onPointerDown={(e) => {
+                    tap.current = { touch: e.pointerType !== "mouse", wasActive: active === i };
+                    setActive(i);
+                  }}
+                  onClick={() => {
+                    if (dayLink && (!tap.current.touch || tap.current.wasActive)) navigate(dayLink(d.date));
+                  }}
                 />
               ))}
             </svg>
@@ -209,6 +224,7 @@ export default function DailyChart({ data }) {
                 <strong>{fmt.number(activeDay.total)}</strong>
                 <span>{t("dashboard.total")}</span>
               </div>
+              {dayLink && <div className={styles.tooltipHint}>{t("dashboard.openDay")}</div>}
             </div>
           )}
         </div>

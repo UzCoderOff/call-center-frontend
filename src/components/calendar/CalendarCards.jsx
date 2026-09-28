@@ -112,12 +112,12 @@ export function AttentionCard() {
           return (
             <div key={a.id} className={styles.attentionItem}>
               <div>
-                <p className={styles.rowTitle}>{a.clientName}</p>
-                <p className={styles.rowSub}>
+                <p className={styles.attentionName}>{a.clientName}</p>
+                <p className={styles.attentionSub}>
                   {fmt.isoDay(a.date)}, {fmt.minutes(a.start)}
                   {a.cancelReason ? ` · ${t("attention.reason", { reason: a.cancelReason })}` : ""}
                 </p>
-                {a.clientPhone && <p className={styles.rowSub}>{fmt.phone(a.clientPhone)}</p>}
+                {a.clientPhone && <p className={styles.attentionSub}>{fmt.phone(a.clientPhone)}</p>}
               </div>
               <div className={styles.attentionActions}>
                 {tel && (

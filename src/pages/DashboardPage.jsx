@@ -9,21 +9,26 @@ import StatsOverview from "../components/stats/StatsOverview";
 import EmployeeStatsTable from "../components/stats/EmployeeStatsTable";
 import { ReportStatusBadge } from "../components/reports/ReportAnswers";
 import { ReportHistory } from "./ReportsPage";
+import { AutoBadge, AutoReportHistory, autoLine } from "../components/reports/AutoReport";
 import { isSyncProblem, syncLine } from "../components/SyncStatus";
 import { AttentionCard, LawyerCalendarCard, MyAppointmentsCard } from "../components/calendar/CalendarCards";
-import { canBookAppointments } from "../lib/access";
+import { canBookAppointments, canSeeClients, isLawyer } from "../lib/access";
+import { StatusBadge } from "../components/clients/parts";
+import { List, ListRow } from "../components/ui/List";
+import { CallTodayCard } from "../components/clients/ClientCards";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
-import { rangeFor } from "../lib/format";
+import { rangeFor, todayIso } from "../lib/format";
 import { useI18n } from "../i18n";
 
-// Home adapts to the person: managers get the company overview; call-center
-// staff their call numbers; everyone else (translators, document services…)
-// their daily report.
+// Home adapts to the person: managers get the company overview; a lawyer
+// their day and their cases; call-center staff their call numbers; everyone
+// else (translators, document services…) their daily report.
 export default function DashboardPage() {
   const { user } = useAuth();
   if (isManagerRole(user.role)) return <ManagerHome />;
+  if (isLawyer(user)) return <LawyerHome />;
   if (user.employee?.collectCalls) return <CallsHome />;
   return <StaffHome />;
 }
@@ -48,6 +53,21 @@ function TempPasswordBanner() {
   );
 }
 
+// "Calls" with the period picker right next to the numbers it changes.
+function CallsSection({ title, range, onRange, children }) {
+  return (
+    <section className={styles.section}>
+      <div className={styles.sectionHead}>
+        <h2 className={styles.sectionTitle}>{title}</h2>
+        <div className={styles.rangePicker}>
+          <RangePicker value={range} onChange={onRange} />
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function ManagerHome() {
   const { t, fmt } = useI18n();
   const [range, setRange] = useState("7d");
@@ -55,44 +75,39 @@ function ManagerHome() {
 
   return (
     <div>
-      <PageHeader
-        title={t("dashboard.titleCompany")}
-        subtitle={t("dashboard.subtitleCompany")}
-        actions={
-          <div className={styles.rangePicker}>
-            <RangePicker value={range} onChange={setRange} />
-          </div>
-        }
-      />
+      <PageHeader title={t("dashboard.titleCompany")} subtitle={fmt.isoDay(todayIso())} />
       <TempPasswordBanner />
       <div className={styles.stack}>
         <LawyerCalendarCard />
+        <CallTodayCard />
         <TeamReportsCard />
-        <AsyncBoundary state={state}>
-          {(data) => {
-            const problems = data.employees.filter((e) => e.active && e.collectCalls && isSyncProblem(e.sync));
-            return (
-              <div className={styles.stack}>
-                {problems.length > 0 && (
-                  <Banner tone="warning" icon="alertTriangle">
-                    <strong>{t("dashboard.syncProblems", { count: problems.length })}</strong>
-                    <div className={styles.bannerDetail}>
-                      {problems.map((e) => `${e.name} — ${syncLine(e.sync, t, fmt)}`).join(" · ")}
-                    </div>
-                  </Banner>
-                )}
-                <StatsOverview data={data} range={range} showEmployee />
-                <Card flush title={t("dashboard.byEmployee")}>
-                  {data.employees.length === 0 ? (
-                    <EmptyState icon="users" text={t("dashboard.noEmployees")} />
-                  ) : (
-                    <EmployeeStatsTable employees={data.employees} />
+        <CallsSection title={t("dashboard.callsSection")} range={range} onRange={setRange}>
+          <AsyncBoundary state={state}>
+            {(data) => {
+              const problems = data.employees.filter((e) => e.active && e.collectCalls && isSyncProblem(e.sync));
+              return (
+                <div className={styles.stack}>
+                  {problems.length > 0 && (
+                    <Banner tone="warning" icon="alertTriangle">
+                      <strong>{t("dashboard.syncProblems", { count: problems.length })}</strong>
+                      <div className={styles.bannerDetail}>
+                        {problems.map((e) => `${e.name} — ${syncLine(e.sync, t, fmt)}`).join(" · ")}
+                      </div>
+                    </Banner>
                   )}
-                </Card>
-              </div>
-            );
-          }}
-        </AsyncBoundary>
+                  <StatsOverview data={data} range={range} showEmployee />
+                  <Card flush title={t("dashboard.byEmployee")}>
+                    {data.employees.length === 0 ? (
+                      <EmptyState icon="users" text={t("dashboard.noEmployees")} />
+                    ) : (
+                      <EmployeeStatsTable employees={data.employees} />
+                    )}
+                  </Card>
+                </div>
+              );
+            }}
+          </AsyncBoundary>
+        </CallsSection>
       </div>
     </div>
   );
@@ -105,9 +120,14 @@ function TeamReportsCard() {
   const data = state.data;
   if (!data || data.rows.length === 0) return null;
 
-  const expected = data.rows.length;
-  const submitted = data.rows.filter((r) => r.report).length;
-  const missing = data.rows.filter((r) => !r.report).map((r) => r.employee.name.split(" ")[0]);
+  // Per person (someone can have an automatic report and a form sent by
+  // hand the same day); automatic reports are always in.
+  const people = new Map();
+  for (const r of data.rows) people.set(r.employee.id, (people.get(r.employee.id) ?? { name: r.employee.name, done: false }));
+  for (const r of data.rows) if (r.report || r.auto) people.get(r.employee.id).done = true;
+  const expected = people.size;
+  const submitted = [...people.values()].filter((p) => p.done).length;
+  const missing = [...people.values()].filter((p) => !p.done).map((p) => p.name.split(" ")[0]);
 
   return (
     <Card
@@ -141,28 +161,73 @@ function CallsHome() {
 
   return (
     <div>
-      <PageHeader
-        title={t("dashboard.titleSelf")}
-        subtitle={t("dashboard.subtitleSelf")}
-        actions={
-          <div className={styles.rangePicker}>
-            <RangePicker value={range} onChange={setRange} />
-          </div>
-        }
-      />
+      <PageHeader title={t("dashboard.titleSelf")} subtitle={fmt.isoDay(todayIso())} />
       <TempPasswordBanner />
       <div className={styles.stack}>
         {canBookAppointments(user) && <AttentionCard />}
+        {canSeeClients(user) && <CallTodayCard />}
         {user.employee?.hasReport && <TodayReportStatus />}
         {canBookAppointments(user) && <MyAppointmentsCard />}
-        <AsyncBoundary state={state}>
-          {(data) => (
-            <div className={styles.stack}>
-              {data.sync && <p className={styles.selfSync}>{syncLine(data.sync, t, fmt)}</p>}
-              <StatsOverview data={data} range={range} />
-            </div>
-          )}
-        </AsyncBoundary>
+        <CallsSection title={t("dashboard.myCallsSection")} range={range} onRange={setRange}>
+          <AsyncBoundary state={state}>
+            {(data) => (
+              <div className={styles.stack}>
+                <StatsOverview data={data} range={range} />
+                {data.sync && <p className={styles.selfSync}>{syncLine(data.sync, t, fmt)}</p>}
+              </div>
+            )}
+          </AsyncBoundary>
+        </CallsSection>
+      </div>
+    </div>
+  );
+}
+
+// A lawyer's home: today's appointments in their calendar (and the "plan
+// next week" reminder), and their clients whose cases are open.
+function LawyerHome() {
+  const { user } = useAuth();
+  const { t, fmt } = useI18n();
+  const [today] = useState(() => Date.now());
+  const firstName = (user.name || user.username).split(" ")[0];
+  const cases = useAsync(() => api.clients({ filter: "active" }), []);
+  return (
+    <div>
+      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} />
+      <TempPasswordBanner />
+      <div className={styles.stack}>
+        <LawyerCalendarCard />
+        <Card
+          flush
+          title={t("lawyer.myCases")}
+          subtitle={cases.data ? t("lawyer.openCount", { count: cases.data.pagination.total }) : undefined}
+          action={
+            <Button size="small" variant="plain" to="/clients">
+              {t("common.seeAll")}
+              <Icon name="chevronRight" size={15} />
+            </Button>
+          }
+        >
+          <AsyncBoundary state={cases}>
+            {(data) =>
+              data.clients.length === 0 ? (
+                <EmptyState icon="briefcase" text={t("lawyer.noCases")} />
+              ) : (
+                <List>
+                  {data.clients.slice(0, 8).map((c) => (
+                    <ListRow
+                      key={c.id}
+                      to={`/clients/${c.id}`}
+                      title={c.name}
+                      subtitle={c.latestCase?.legalStage ? t(`cases.stages.${c.latestCase.legalStage}`) : c.phone ? fmt.phone(c.phone) : undefined}
+                      trailing={c.latestCase && <StatusBadge status={c.latestCase.status} />}
+                    />
+                  ))}
+                </List>
+              )
+            }
+          </AsyncBoundary>
+        </Card>
       </div>
     </div>
   );
@@ -172,7 +237,8 @@ function StaffHome() {
   const { user } = useAuth();
   const { t, fmt } = useI18n();
   const hasReport = Boolean(user.employee?.hasReport);
-  const history = useAsync(() => (hasReport ? api.reports({ pageSize: 5 }) : Promise.resolve(null)), [hasReport]);
+  const auto = Boolean(user.employee?.autoReport);
+  const history = useAsync(() => (hasReport && !auto ? api.reports({ pageSize: 5 }) : Promise.resolve(null)), [hasReport, auto]);
   const firstName = (user.employee?.name || user.username).split(" ")[0];
   const [today] = useState(() => Date.now());
 
@@ -186,7 +252,11 @@ function StaffHome() {
           <>
             <TodayReportStatus large />
             {canBookAppointments(user) && <MyAppointmentsCard />}
-            {history.data && <ReportHistory reports={history.data.reports} title={t("home.recentReports")} />}
+            {auto ? (
+              <AutoReportHistory employeeId={user.employee.id} title={t("home.recentReports")} />
+            ) : (
+              history.data && <ReportHistory reports={history.data.reports} title={t("home.recentReports")} />
+            )}
           </>
         ) : canBookAppointments(user) ? (
           <MyAppointmentsCard />
@@ -203,6 +273,18 @@ function TodayReportStatus({ large = false }) {
   const { t, fmt } = useI18n();
   const state = useAsync(() => api.todayReport(), []);
   const data = state.data;
+  if (data?.auto) {
+    return (
+      <Card title={t("home.todayTitle")} subtitle={t("autoReport.name")} action={<AutoBadge />}>
+        <p className={styles.reportStatusText}>{t("autoReport.homeLine", { summary: autoLine(data.auto, t) })}</p>
+        <div className={styles.actionsRow}>
+          <Button to="/reports" variant="secondary" size={large ? "large" : "medium"} icon="clipboard">
+            {t("home.viewReport")}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
   if (!data?.template) return null;
   const report = data.report;
 

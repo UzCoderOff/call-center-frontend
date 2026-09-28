@@ -49,6 +49,7 @@ export function I18nProvider({ children }) {
     const time = dict.time;
     const fmt = {
       number: (n) => f.formatNumber(n, lang),
+      money: (n) => `${f.formatNumber(n, lang)} ${t("reports.soum")}`,
       duration: (s) => f.formatDuration(s, time),
       durationParts: (s) => f.durationParts(s, time),
       clock: f.formatClock,

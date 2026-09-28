@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import styles from "./Misc.module.css";
 import Icon from "./Icon";
 import Button from "./Button";
@@ -31,17 +32,28 @@ export function PageHeader({ title, subtitle, back, actions }) {
   );
 }
 
-export function StatTile({ label, value, sub, dot }) {
-  return (
-    <div className={styles.tile}>
+// A headline number. With `to`, the whole tile opens the list behind the
+// number (e.g. "Missed" -> the missed calls of that period).
+export function StatTile({ label, value, sub, dot, to }) {
+  const content = (
+    <>
       <span className={styles.tileLabel}>
         {dot && <i className={styles.dot} style={{ background: dot }} aria-hidden="true" />}
-        {label}
+        <span className={styles.tileLabelText}>{label}</span>
+        {to && <Icon name="chevronRight" size={15} className={styles.tileChevron} />}
       </span>
       <span className={styles.tileValue}>{value}</span>
       {sub && <span className={styles.tileSub}>{sub}</span>}
-    </div>
+    </>
   );
+  if (to) {
+    return (
+      <Link to={to} className={`${styles.tile} ${styles.tileLink}`}>
+        {content}
+      </Link>
+    );
+  }
+  return <div className={styles.tile}>{content}</div>;
 }
 
 // A duration for a big number display: digits full size, units small —
