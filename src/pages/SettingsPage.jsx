@@ -48,7 +48,15 @@ const AUDIT_ICON = {
   "case.delete": "trash",
   "payment.delete": "trash",
   "clients.import": "upload",
+  "clients.bulk": "users",
 };
+
+// A bulk change in words: "operator — Nodira", "closed as didn't continue".
+function bulkWhat(summary, t) {
+  if (summary.kind === "operator") return t("bulk.auditOperator", { name: summary.name || "—" });
+  if (summary.kind === "lawyer") return t("bulk.auditLawyer", { name: summary.name || "—" });
+  return t("bulk.auditDeclined");
+}
 
 function AuditLog() {
   const { t, fmt } = useI18n();
@@ -74,6 +82,7 @@ function AuditLog() {
                     name: r.clientName || "—",
                     merged: r.summary.merged || "—",
                     amount: r.summary.amount == null ? "—" : fmt.money(r.summary.amount),
+                    what: r.action === "clients.bulk" ? bulkWhat(r.summary, t) : "",
                   })}
                   subtitle={[r.user?.employee?.name || r.user?.username, fmt.dateTime(new Date(r.createdAt).getTime())].filter(Boolean).join(" · ")}
                 />

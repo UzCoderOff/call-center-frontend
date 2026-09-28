@@ -684,3 +684,47 @@ a.item:hover .itemTitle {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
 }
+
+/* ---------- Selecting many clients ---------- */
+.bulkBar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-raised, var(--surface));
+  box-shadow: 0 0 0 1px var(--separator), 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.bulkCount {
+  font-weight: 600;
+  margin-right: auto;
+}
+
+.bulkActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.selectMark {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: 7px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--text-3, var(--separator));
+  color: #fff;
+}
+
+.selectMarkOn {
+  background: var(--accent);
+  box-shadow: none;
+}

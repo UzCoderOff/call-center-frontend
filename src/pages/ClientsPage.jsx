@@ -9,7 +9,8 @@ import { List, ListRow } from "../components/ui/List";
 import { AsyncBoundary, Avatar, EmptyState, PageHeader } from "../components/ui/Misc";
 import { STATUSES, StatusBadge } from "../components/clients/parts";
 import { TargetsCard } from "../components/clients/ClientCards";
-import { ClientSheet } from "../components/clients/ClientSheets";
+import { BulkSheet, ClientSheet } from "../components/clients/ClientSheets";
+import Icon from "../components/ui/Icon";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { canManageClients, isLawyer } from "../lib/access";
@@ -17,8 +18,9 @@ import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
 const FILTERS = ["all", "callToday", "debt", "active"];
-// Managers also see archived clients (hidden everywhere else, kept, restorable).
-const MANAGER_FILTERS = [...FILTERS, "archived"];
+// Managers also see old consultations that went nowhere (to close them in one
+// go) and archived clients (hidden everywhere else, kept, restorable).
+const MANAGER_FILTERS = [...FILTERS, "stale", "archived"];
 // A lawyer: their own clients, all of them or the open cases.
 const LAWYER_FILTERS = ["all", "active", "debt"];
 
@@ -52,6 +54,12 @@ export default function ClientsPage() {
   });
   const [search, setSearch] = useState(q);
   const [creating, setCreating] = useState(params.get("new") === "1");
+  // Selecting many (managers): ticked ids, or every client the filters match.
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+  const [allMatching, setAllMatching] = useState(false);
+  const [bulk, setBulk] = useState(null); // "operator" | "lawyer" | "declined"
+  const [bulkDone, setBulkDone] = useState("");
   const [now] = useState(() => Date.now());
   const [endOfToday] = useState(() => new Date().setHours(23, 59, 59, 999));
 
@@ -73,6 +81,38 @@ export default function ClientsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
+  // A different list: start the selection over.
+  useEffect(() => {
+    setSelected(new Set());
+    setAllMatching(false);
+  }, [q, filter, status, operatorId, lawyerId]);
+
+  function toggle(id) {
+    setAllMatching(false);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function stopSelecting() {
+    setBulkDone("");
+    setSelecting(false);
+    setSelected(new Set());
+    setAllMatching(false);
+  }
+
+  async function applyBulk(set) {
+    const result = await api.bulkClients(allMatching ? { query: query(), set } : { ids: [...selected], set });
+    setBulk(null);
+    setSelected(new Set());
+    setAllMatching(false);
+    setBulkDone(t("bulk.doneMessage", { clients: result.clients, cases: result.cases }));
+    state.reload();
+  }
+
   const employees = useAsync(() => (manager ? api.employees() : Promise.resolve([])), [manager]);
   const lawyers = useAsync(() => (manager ? api.clientLawyers() : Promise.resolve(null)), [manager]);
   const state = useAsync(() => api.clients(query({ page })), [q, filter, status, operatorId, lawyerId, page]);
@@ -86,6 +126,9 @@ export default function ClientsPage() {
           <>
             {manager && (
               <>
+                <Button icon="checkCircle" onClick={() => (selecting ? stopSelecting() : setSelecting(true))}>
+                  {selecting ? t("bulk.stop") : t("bulk.select")}
+                </Button>
                 <Button icon="upload" to="/clients/import">
                   {t("clients.import")}
                 </Button>
@@ -126,6 +169,7 @@ export default function ClientsPage() {
           {manager && (
             <SelectField aria-label={t("cases.operator")} value={operatorId} onChange={(e) => update({ operatorId: e.target.value })}>
               <option value="">{t("clients.anyOperator")}</option>
+              <option value="none">{t("clients.noOperatorFilter")}</option>
               {(employees.data || [])
                 .filter((e) => e.active && e.collectCalls)
                 .map((e) => (
@@ -138,6 +182,7 @@ export default function ClientsPage() {
           {manager && (
             <SelectField aria-label={t("cases.lawyer")} value={lawyerId} onChange={(e) => update({ lawyerId: e.target.value })}>
               <option value="">{t("lawyer.anyLawyer")}</option>
+              <option value="none">{t("lawyer.unassigned")}</option>
               {(lawyers.data?.accounts || []).map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
@@ -148,6 +193,7 @@ export default function ClientsPage() {
         </div>
       </div>
 
+      {bulkDone && <p className={styles.count}>{bulkDone}</p>}
       <AsyncBoundary state={state}>
         {(data) =>
           data.clients.length === 0 ? (
@@ -157,16 +203,66 @@ export default function ClientsPage() {
             />
           ) : (
             <>
+              {selecting && (
+                <div className={styles.bulkBar}>
+                  <span className={styles.bulkCount}>
+                    {allMatching ? t("bulk.allCount", { count: data.pagination.total }) : t("bulk.count", { count: selected.size })}
+                  </span>
+                  <Button size="small" variant="plain" onClick={() => setSelected(new Set(data.clients.map((c) => c.id)))}>
+                    {t("bulk.selectPage")}
+                  </Button>
+                  {data.pagination.total > data.clients.length && !allMatching && (
+                    <Button size="small" variant="plain" onClick={() => setAllMatching(true)}>
+                      {t("bulk.selectAll", { count: data.pagination.total })}
+                    </Button>
+                  )}
+                  {(selected.size > 0 || allMatching) && (
+                    <Button
+                      size="small"
+                      variant="plain"
+                      onClick={() => {
+                        setSelected(new Set());
+                        setAllMatching(false);
+                      }}
+                    >
+                      {t("bulk.clear")}
+                    </Button>
+                  )}
+                  <div className={styles.bulkActions}>
+                    {["operator", "lawyer", "declined"].map((kind) => (
+                      <Button
+                        key={kind}
+                        size="small"
+                        icon={kind === "operator" ? "user" : kind === "lawyer" ? "briefcase" : "minusCircle"}
+                        disabled={!allMatching && selected.size === 0}
+                        onClick={() => setBulk(kind)}
+                      >
+                        {t(`bulk.${kind}`)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <List>
                 {data.clients.map((c) => {
                   const k = c.latestCase;
                   const callAt = c.nextCallAt ? new Date(c.nextCallAt).getTime() : null;
                   const dueToday = callAt && callAt < endOfToday;
+                  const on = allMatching || selected.has(c.id);
                   return (
                     <ListRow
                       key={c.id}
-                      to={`/clients/${c.id}`}
-                      leading={<Avatar name={c.name} size={40} />}
+                      to={selecting ? undefined : `/clients/${c.id}`}
+                      onClick={selecting ? () => toggle(c.id) : undefined}
+                      leading={
+                        selecting ? (
+                          <span className={`${styles.selectMark} ${on ? styles.selectMarkOn : ""}`} role="checkbox" aria-checked={on} aria-label={c.name}>
+                            {on && <Icon name="check" size={16} />}
+                          </span>
+                        ) : (
+                          <Avatar name={c.name} size={40} />
+                        )
+                      }
                       title={c.name}
                       subtitle={[c.phone && fmt.phone(c.phone), k?.lawyer, c.caseCount > 1 && t("clients.cases", { count: c.caseCount })].filter(Boolean).join(" · ")}
                       footer={
@@ -202,6 +298,17 @@ export default function ClientsPage() {
           )
         }
       </AsyncBoundary>
+
+      {bulk && (
+        <BulkSheet
+          kind={bulk}
+          count={allMatching ? state.data?.pagination.total ?? 0 : selected.size}
+          operators={(employees.data || []).filter((e) => e.active && (e.collectCalls || e.calendarAccess === "book"))}
+          lawyers={lawyers.data?.accounts || []}
+          onApply={applyBulk}
+          onClose={() => setBulk(null)}
+        />
+      )}
 
       {creating && (
         <ClientSheet

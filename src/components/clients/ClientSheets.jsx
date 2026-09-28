@@ -574,6 +574,54 @@ export function MergeSheet({ client, onClose, onSaved }) {
   );
 }
 
+// --------------------------------------------------------------- bulk
+// Many clients at once: who their operator or lawyer is, or "didn't
+// continue" for their consultations. kind: "operator" | "lawyer" | "declined".
+export function BulkSheet({ kind, count, operators, lawyers, onApply, onClose }) {
+  const { t } = useI18n();
+  const [choice, setChoice] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const options = kind === "operator" ? operators : kind === "lawyer" ? lawyers : [];
+
+  async function apply() {
+    if (kind !== "declined" && !choice) return setError(t("bulk.pickFirst"));
+    setBusy(true);
+    setError("");
+    try {
+      await onApply(kind === "operator" ? { operatorId: Number(choice) } : kind === "lawyer" ? { lawyerId: Number(choice) } : { status: "declined" });
+    } catch (err) {
+      setError(t("clients.saveFailed", { reason: err.code || "?" }));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet title={t(`bulk.${kind}Title`, { count })} onClose={onClose}>
+      <div className={pageStyles.formStack}>
+        <p className={pageStyles.note}>{t(`bulk.${kind}Hint`, { count })}</p>
+        {kind !== "declined" && (
+          <SelectField label={t(kind === "operator" ? "cases.operator" : "cases.lawyer")} value={choice} onChange={(e) => setChoice(e.target.value)}>
+            <option value="">{t("bulk.choose")}</option>
+            {options.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </SelectField>
+        )}
+        <ErrorLine text={error} />
+        <div className={pageStyles.formActions}>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <Button variant={kind === "declined" ? "destructive" : "primary"} busy={busy} onClick={apply}>
+            {t("bulk.apply", { count })}
+          </Button>
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
 // --------------------------------------------------------- next call
 const pad = (n) => String(n).padStart(2, "0");
 

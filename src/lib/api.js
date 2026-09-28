@@ -106,6 +106,9 @@ export const api = {
   todayReport: () => request("/reports/today"),
   submitTodayReport: (answers) => request("/reports/today", { method: "PUT", body: { answers } }),
   reportsDay: (params) => request(`/reports/day${qs(params)}`),
+  // A run of days: { from, to, officeId? } — totals per form and per person.
+  reportsSummary: (params) => request(`/reports/summary${qs(params)}`),
+  reportsExportUrl: (params) => `${BASE}/reports/export${qs(params)}`,
   autoReport: (params) => request(`/reports/auto${qs(params)}`),
   reports: (params) => request(`/reports${qs(params)}`),
   report: (id) => request(`/reports/${id}`),
@@ -163,6 +166,9 @@ export const api = {
   addLink: (clientId, payload) => request(`/clients/${clientId}/links`, { method: "POST", body: payload }),
   deleteLink: (id) => request(`/client-links/${id}`, { method: "DELETE" }),
   importClients: (rows) => request("/clients/import", { method: "POST", body: { rows } }),
+  // Many clients at once: { ids } or { query } (the list's filters), and set:
+  // { operatorId } | { lawyerId } | { status: "declined" }.
+  bulkClients: (payload) => request("/clients/bulk", { method: "POST", body: payload }),
   // A Google Sheets link -> the file's bytes (the server downloads it).
   googleSheet: async (url) => {
     const res = await fetch(`${BASE}/clients/import/google${qs({ url })}`, { credentials: "same-origin" });

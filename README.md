@@ -30,7 +30,9 @@ Sections appear only when they apply to the person:
 - **Reports** (managers, and staff with a report form or an automatic
   report) — staff fill in today's report, or for call-center staff it makes
   itself from their calls, bookings and clients; managers see each day by
-  office, totals, and review.
+  office, totals, and review — or a period (week, month, any dates) with
+  per-service and per-person totals and an Excel download. Forms can have
+  table questions: rows staff add, like lines in Excel.
 - **Lawyers** (LAWYER accounts): home with today's appointments and their
   open cases, their own calendar, their own clients — nothing else.
 - **Team** and **Settings** (managers; editing is DEVELOPER-only) — staff,

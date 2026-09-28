@@ -10,13 +10,13 @@ import { useAsync } from "../hooks/useAsync";
 import { useBack } from "../hooks/useBack";
 import { api } from "../lib/api";
 import { readSpreadsheet } from "../lib/sheets";
-import { FIELDS, findHeader, guessMapping, searchable, toClientRow } from "../lib/clientImport";
+import { FIELDS, findHeader, guessField, guessLawyer, guessMapping, searchable, toClientRow } from "../lib/clientImport";
 import { useI18n } from "../i18n";
 
 const BATCH = 200;
 
-// Which operator a sheet belongs to, from its name: "Шаходат шартнома"
-// (a first name) or "ШХ август" (initials).
+// Which operator a sheet belongs to, from its name: "Нодира шартнома"
+// (a first name) or "НТ август" (initials).
 function guessOperator(sheetName, employees) {
   const name = searchable(sheetName);
   const initial = (word) => searchable(word).charAt(0);
@@ -45,6 +45,11 @@ export default function ClientImportPage() {
   const employees = useAsync(() => api.employees(), []);
   // Whose sheet it is: people who work with clients (take calls or book).
   const operators = (employees.data || []).filter((e) => e.active && (e.collectCalls || e.calendarAccess === "book"));
+  const lawyerList = useAsync(() => api.clientLawyers(), []);
+  const accounts = useMemo(() => lawyerList.data?.accounts || [], [lawyerList.data]);
+  // Which account each lawyer name in the file means: an account id, or ""
+  // for "just the name". Names not chosen yet use the best guess.
+  const [lawyerChoice, setLawyerChoice] = useState({});
 
   const [fileName, setFileName] = useState("");
   const [link, setLink] = useState("");
@@ -65,13 +70,14 @@ export default function ClientImportPage() {
             name: s.name,
             rows: s.rows,
             header,
-            mapping: header >= 0 ? guessMapping(s.rows[header]) : [],
+            mapping: header >= 0 ? guessMapping(s.rows[header], s.rows.slice(header + 1)) : [],
             include: header >= 0,
             operatorId: guessOperator(s.name, operators),
           };
         })
       );
       setFileName(name);
+      setLawyerChoice({});
       setResult(null);
       setError("");
     } catch (err) {
@@ -109,8 +115,8 @@ export default function ClientImportPage() {
 
   const update = (i, patch) => setSheets((list) => list.map((s, j) => (j === i ? { ...s, ...patch } : s)));
 
-  // Every row of the included sheets, as it will be sent.
-  const rows = useMemo(() => {
+  // Every row of the included sheets, as read.
+  const sheetRows = useMemo(() => {
     if (!sheets) return [];
     return sheets.flatMap((s) =>
       s.include && s.header >= 0
@@ -127,6 +133,22 @@ export default function ClientImportPage() {
         : []
     );
   }, [sheets]);
+
+  // The lawyer names in the file (most rows first), each with the account
+  // it goes to: the importer's choice, else the best guess.
+  const lawyers = useMemo(() => {
+    const counts = new Map();
+    for (const r of sheetRows) if (r.lawyer?.trim()) counts.set(r.lawyer.trim(), (counts.get(r.lawyer.trim()) || 0) + 1);
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count, accountId: name in lawyerChoice ? lawyerChoice[name] : String(guessLawyer(name, accounts)?.id ?? "") }));
+  }, [sheetRows, lawyerChoice, accounts]);
+
+  // …and every row as it will be sent, with its lawyer's account settled.
+  const rows = useMemo(() => {
+    const chosen = new Map(lawyers.map((l) => [l.name, l.accountId]));
+    return sheetRows.map((r) => (r.lawyer?.trim() ? { ...r, lawyerId: chosen.get(r.lawyer.trim()) ? Number(chosen.get(r.lawyer.trim())) : null } : r));
+  }, [sheetRows, lawyers]);
 
   async function run() {
     const total = rows.length;
@@ -197,6 +219,15 @@ export default function ClientImportPage() {
                           </option>
                         ))}
                       </SelectField>
+                      {!s.operatorId && <p className={pageStyles.note}>{t("import.noOperatorWarning")}</p>}
+                      {/* An email column used for something else is read as that. */}
+                      {s.rows[s.header].map((title, col) =>
+                        guessField(title) === "email" && s.mapping[col] !== "email" ? (
+                          <p key={col} className={pageStyles.note}>
+                            {t("import.emailRemapped", { title: String(title).trim(), field: fieldLabel(s.mapping[col]) })}
+                          </p>
+                        ) : null
+                      )}
                       <div>
                         <Button size="small" variant="plain" icon={openSheet === i ? "chevronDown" : "chevronRight"} onClick={() => setOpenSheet(openSheet === i ? null : i)}>
                           {t("import.columns", { count: s.mapping.filter(Boolean).length })}
@@ -236,6 +267,35 @@ export default function ClientImportPage() {
         )}
 
         {sheets && !result && (
+          <Card title={t("import.lawyersStep")} subtitle={lawyers.length > 0 ? t("import.lawyersHint") : undefined}>
+            {lawyers.length === 0 ? (
+              <p className={pageStyles.note}>{t("import.noLawyers")}</p>
+            ) : (
+              <>
+                <div className={styles.mapping}>
+                  {lawyers.map((l) => (
+                    <div key={l.name} className={styles.mapItem}>
+                      <span className={styles.mapTitle} title={l.name}>
+                        {l.name} · {t("import.lawyerRows", { count: l.count })}
+                      </span>
+                      <select aria-label={l.name} value={l.accountId} onChange={(e) => setLawyerChoice((c) => ({ ...c, [l.name]: e.target.value }))}>
+                        <option value="">{t("import.lawyerNameOnly")}</option>
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                {lawyers.some((l) => !l.accountId) && <p className={pageStyles.note}>{t("import.lawyersUnmatched")}</p>}
+              </>
+            )}
+          </Card>
+        )}
+
+        {sheets && !result && (
           <Card title={t("import.step3")}>
             {rows.length === 0 ? (
               <p className={pageStyles.note}>{t("import.noRows")}</p>
@@ -262,7 +322,7 @@ export default function ClientImportPage() {
                             {r.status ? t(`cases.statuses.${r.status}`) : "—"}
                             {r.legalStage ? ` · ${t(`cases.stages.${r.legalStage}`)}` : ""}
                           </td>
-                          <td>{r.lawyer || "—"}</td>
+                          <td>{r.lawyerId ? accounts.find((a) => a.id === r.lawyerId)?.name : r.lawyer || "—"}</td>
                           <td>{r.contractAmount ? fmt.money(r.contractAmount) : "—"}</td>
                           <td>{r.paid ? fmt.money(r.paid) : "—"}</td>
                         </tr>

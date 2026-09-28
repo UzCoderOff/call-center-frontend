@@ -52,7 +52,16 @@ export const FIELDS = [
   { key: "tasks", words: ["vazifa"] },
   { key: "work", words: ["bajarilgan ish"] },
   { key: "comments", words: ["izox", "kommentariy", "primechanie"] },
+  // Any other column: its text goes onto the client's history, labelled
+  // with the column's title.
+  { key: "note", words: [] },
 ].map((f) => ({ ...f, words: f.words.map(searchable), not: (f.not || []).map(searchable) }));
+
+// Columns that are only worked out from the others (what's left to pay,
+// whether it's paid, who the operator is) — recalculated here, so left out.
+const DERIVED = ["qolgan", "qoldi", "tolov xolati", "operator", "qayerdan"].map(searchable);
+
+const looksLikeEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v).trim());
 
 export function guessField(title) {
   const t = searchable(title);
@@ -83,15 +92,33 @@ export function findHeader(rows) {
   return best.index;
 }
 
-export function guessMapping(headerRow) {
+// What each column holds, from its title — and, given the rows under it,
+// from what's actually written there.
+export function guessMapping(headerRow, dataRows = []) {
   const used = new Set();
-  return (headerRow || []).map((title) => {
+  const mapping = (headerRow || []).map((title) => {
     const key = guessField(title);
-    // One column per field; later duplicates (e.g. a second "summa") are left out.
-    if (!key || used.has(key)) return "";
-    used.add(key);
-    return key;
+    if (key && !used.has(key)) {
+      used.add(key);
+      return key;
+    }
+    // Not a field of its own, or a second copy of one (a second "финал"):
+    // kept as notes — unless it's the row number or worked out from the rest.
+    const t = searchable(title);
+    if (t.length < 2 || DERIVED.some((w) => t.includes(w))) return "";
+    return "note";
   });
+  // An "email" column that mostly holds other text (what the client came
+  // about, where they met) is read as what it's about — or as notes if the
+  // sheet has that column already.
+  const at = mapping.indexOf("email");
+  if (at >= 0) {
+    const values = dataRows.map((r) => String(r?.[at] ?? "").trim()).filter(Boolean);
+    if (values.length >= 3 && values.filter(looksLikeEmail).length * 2 < values.length) {
+      mapping[at] = mapping.includes("matter") ? "note" : "matter";
+    }
+  }
+  return mapping;
 }
 
 // ------------------------------------------------------------- values
@@ -118,7 +145,8 @@ export function parseDate(value) {
   }
   let m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/);
   if (m) return { date: `${m[1]}-${m[2]}-${m[3]}`, time: m[4] ? `${pad(m[4])}:${m[5]}` : null };
-  m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})(?:\s+(\d{1,2})[:.](\d{2}))?/);
+  // Dots, slashes, dashes or commas ("8,09,2026"), even mixed ("02.09/2026").
+  m = s.match(/^(\d{1,2})[./,-](\d{1,2})[./,-](\d{2,4})(?:\s+(\d{1,2})[:.](\d{2}))?/);
   if (m) {
     const year = m[3].length === 2 ? `20${m[3]}` : m[3];
     const month = Number(m[2]);
@@ -129,10 +157,18 @@ export function parseDate(value) {
   return null;
 }
 
-// "15000000", "1.5E7", "450.000", "15 000 000 сўм" -> 15000000
+// "15000000", "1.5E7", "450.000", "15 000 000 сўм" -> 15000000;
+// "15 млн", "1,5 mln" -> 15000000 / 1500000; "450 минг" -> 450000.
 export function parseAmount(value) {
   const s = String(value ?? "").trim();
   if (!s) return null;
+  const scaled = s.match(/^(\d+(?:[.,]\d+)?)\s*(млн|mln|million|миллион|минг|ming|тыс|k)\b/i) || s.match(/^(\d+(?:[.,]\d+)?)\s*(млн|минг|тыс)/i);
+  if (scaled) {
+    const unit = scaled[2].toLowerCase();
+    const factor = /^(млн|mln|million|миллион)/.test(unit) ? 1e6 : 1e3;
+    const n = Math.round(Number(scaled[1].replace(",", ".")) * factor);
+    return n > 0 ? n : null;
+  }
   if (/^[\d.]+e[+-]?\d+$/i.test(s) || /^\d+(\.\d+)?$/.test(s) && !/^\d{1,3}(\.\d{3})+$/.test(s)) {
     const n = Math.round(Number(s));
     return Number.isFinite(n) && n > 0 ? n : null;
@@ -141,11 +177,22 @@ export function parseAmount(value) {
   return digits ? Number(digits) : null;
 }
 
+// "9.98909284848E+11" -> "998909284848" (numbers only; other text as is).
+export function fullNumbers(value) {
+  return String(value ?? "").replace(/\b\d(?:\.\d+)?E\+?\d{1,2}\b/gi, (m) => {
+    const n = Number(m);
+    return Number.isSafeInteger(Math.round(n)) ? String(Math.round(n)) : m;
+  });
+}
+
 // Phone numbers in a cell — several may share one ("+998… +998…", or two
 // 12-digit numbers run together).
 export function parsePhones(value) {
   const out = [];
-  for (const match of String(value ?? "").match(/\+?\d[\d\s\-()]{6,}\d/g) || []) {
+  // A number Excel stored in scientific form ("9.98909284848E+11") is the
+  // phone written out in full.
+  const cell = fullNumbers(value);
+  for (const match of cell.match(/\+?\d[\d\s\-()]{6,}\d/g) || []) {
     // "14040 998993273934": a stray number glued to a phone by a space —
     // keep just the parts that are phone-length on their own.
     const tokens = match.split(/\s+/);
@@ -161,13 +208,36 @@ export function parsePhones(value) {
   return out.slice(0, 5);
 }
 
+// Regions, cities, towns and Tashkent's districts, as they're written in the
+// sheets (either script; searchable() makes them meet).
 const CITIES = [
+  // regions and region centres
   "toshkent", "tashkent", "andijon", "buxoro", "samarqand", "namangan", "fargona", "qoqon", "xorazm", "urganch",
-  "navoiy", "qarshi", "termiz", "jizzax", "guliston", "nukus", "nurobod", "qashqadaryo", "surxondaryo", "sirdaryo",
-  "margilon", "chirchiq", "angren", "olmaliq", "denov", "shahrisabz", "kattaqorgon", "xiva", "bekobod", "yangiyol",
+  "navoiy", "qarshi", "termiz", "jizzax", "guliston", "nukus", "qashqadaryo", "surxondaryo", "sirdaryo",
+  "qoraqalpogiston", "qoraqalpoq", "qoraqalpoqiston", "karakalpakstan",
+  // towns
+  "nurobod", "margilon", "chirchiq", "angren", "olmaliq", "denov", "shahrisabz", "kattaqorgon", "xiva", "bekobod",
+  "yangiyol", "parkent", "zangiota", "qibray", "ohangaron", "nurafshon", "chinoz", "piskent", "boka", "gazalkent",
+  "bostonliq", "kosonsoy", "chust", "uchqorgon", "asaka", "xonobod", "shahrixon", "rishton", "quva", "marhamat",
+  "kogon", "gijduvon", "zarafshon", "uchquduq", "kitob", "guzor", "muborak", "boysun", "sherobod", "urgut", "beruniy",
+  "xojayli", "kungrad", "qongirot", "turtkul", "yangiyer", "gallaorol", "zomin", "paxtakor",
+  // (Towns that are also everyday words — Baxt, Shirin, Pop — are left out.)
+  // Tashkent's districts
+  "chilonzor", "yunusobod", "yakkasaroy", "mirobod", "mirzo ulugbek", "shayxontoxur", "olmazor", "uchtepa",
+  "yashnobod", "sergeli", "bektemir", "yangixayot",
 ].map(searchable);
 
-// "Qosimova Gulnora. Toshkent. Erini …" / "Otajonova Odinaxon /Andijon/ Ajrim"
+// "Toshkent", "Farg'ona 278", "Asli Namanganlik" (from Namangan): a part
+// that names a place — a word of it is one, perhaps with "-lik".
+function isCity(part) {
+  const t = searchable(part);
+  if (!t) return false;
+  if (CITIES.includes(t)) return true;
+  const words = t.split(" ").filter((w) => !/^\d+$/.test(w));
+  return words.length <= 3 && words.some((w) => CITIES.includes(w) || CITIES.includes(w.replace(/li[kq]$/, "")));
+}
+
+// "Karimova Dilnoza. Toshkent. Meros …" / "Ergashev Anvar /Andijon/ Ajrim"
 // -> the name, a city if one is named, and the rest as what it's about.
 export function splitName(value) {
   const parts = String(value ?? "")
@@ -176,7 +246,7 @@ export function splitName(value) {
     .filter(Boolean);
   if (parts.length === 0) return { name: "" };
   let [name, ...rest] = parts;
-  // "Искандар Тошкент": a city as the last word of the name.
+  // "Анвар Тошкент": a city as the last word of the name.
   const nameWords = name.split(/\s+/);
   if (nameWords.length >= 2 && CITIES.includes(searchable(nameWords[nameWords.length - 1]))) {
     rest = [nameWords.pop(), ...rest];
@@ -185,7 +255,7 @@ export function splitName(value) {
   let city = null;
   const matter = [];
   for (const part of rest) {
-    if (!city && CITIES.includes(searchable(part))) city = part;
+    if (!city && isCity(part)) city = part;
     else matter.push(part);
   }
   return { name, city, matter: matter.join(". ") || null };
@@ -207,6 +277,7 @@ const STAGE_RULES = [
   ["shartnoma", { status: "contract" }],
   ["qayta qongiroq", { status: "call_again" }],
   ["rad etdi", { status: "declined" }],
+  ["davom etmadi", { status: "declined" }],
   ["konsul", { status: "consultation" }],
   ["maslaxat", { status: "consultation" }],
   ["yozildi", { status: "consultation" }],
@@ -225,66 +296,169 @@ export function parseStage(value) {
   return out;
 }
 
+// ------------------------------------------------------------- lawyers
+
+// The words that identify a person, spelled so Cyrillic and Latin meet:
+// "Алиев" and "Aliyev" (иев / iyev), "Ерназаров" and "Yernazarov".
+// Titles and initials don't count.
+const TITLE_WORDS = new Set(["advokat", "yurist", "adv"]);
+function personWords(name) {
+  return searchable(name)
+    .split(" ")
+    .map((w) => w.replace(/iye/g, "ie").replace(/^ye/, "e"))
+    .filter((w) => w.length >= 3 && !TITLE_WORDS.has(w));
+}
+
+// The lawyer account a name in the sheet means ("Алиев Жаҳонгир
+// Азизович" -> the account "Aliyev Jahongir"): every identifying word of
+// one name is in the other. None, or more than one: null — the importer
+// then asks.
+export function guessLawyer(name, accounts) {
+  const words = personWords(name);
+  if (words.length === 0) return null;
+  const hits = (accounts || []).filter((a) => {
+    const theirs = personWords(a.name);
+    return theirs.length > 0 && (words.every((w) => theirs.includes(w)) || theirs.every((w) => words.includes(w)));
+  });
+  return hits.length === 1 ? hits[0] : null;
+}
+
 const NOTE_FIELDS = ["lastCall", "tasks", "work", "comments"];
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 // Text cells only count if they contain a letter ("0", "-" are noise).
 const textOnly = (value) => (/\p{L}/u.test(value) ? value : "");
+// Same as the server's: a row marked as the example.
+const EXAMPLE_ROW = /\((мисол|misol|пример|example)\)/i;
+
+// Dashes, zeros, question marks: nothing to keep.
+const noise = (v) => /^[\s\-–—.,?0]*$/.test(v);
+const DATE_TOKEN = /\d{1,2}[./,-]\d{1,2}[./,-]\d{2,4}/g;
+const CURRENCY = /(сўм|сум|so['ʻ’`]?m|sum|uzs|\$)/gi;
+const shownDate = (d) => `${d.date}${d.time ? ` ${d.time}` : ""}`;
 
 // One sheet row -> a client row for the server (or null if it's empty).
 // `mapping[i]` is the field of column i; `titles[i]` its title (used to
 // label notes); `extra` adds { operatorId, sheet, row }.
+//
+// Nothing written in the sheet is lost: whatever doesn't fit its column (a
+// Telegram username in the phone column, words in a date or amount, a second
+// date) goes onto the client's history, labelled with the column's title.
 export function toClientRow(cells, mapping, titles, extra = {}) {
   const get = (key) => {
     const i = mapping.indexOf(key);
     return i >= 0 ? String(cells[i] ?? "").trim() : "";
   };
+  const title = (key) => String(titles[mapping.indexOf(key)] || "").trim();
+  const notes = [];
+  const keep = (label, value) => notes.push(`${label}: ${value}`);
+
   // A "name" without a single letter ("0", "-", "12") is noise, not a person.
   const raw = textOnly(get("name"));
-  const phones = parsePhones(get("phones"));
+  const phoneCell = fullNumbers(get("phones"));
+  const phones = parsePhones(phoneCell);
   if (!raw && phones.length === 0) return null;
+  // The sheet's filled-in example ("Каримов Карим (мисол)") isn't a client.
+  if (EXAMPLE_ROW.test(raw)) return null;
 
-  const { name, city, matter } = splitName(raw);
-  const stage = parseStage(get("stage"));
-  const final = parseStage(get("final"));
-  const start = parseDate(get("startDate"));
-  const contractOn = parseDate(get("contractDate"));
-  const next = parseDate(get("nextCall"));
+  const { name, city, matter: matterInName } = splitName(raw);
 
-  const notes = [];
+  // Phone column: Telegram usernames and any words are kept.
+  for (const [handle] of phoneCell.matchAll(/@\s?[A-Za-z0-9_.]{3,}/g)) keep("Telegram", handle.replace(/\s/g, ""));
+  const phoneWords = phoneCell.replace(/@\s?[A-Za-z0-9_.]{3,}/g, "").replace(/[\d\s+()-]/g, "");
+  if (/\p{L}/u.test(phoneWords)) keep(title("phones"), phoneCell);
+
+  // Email: an address, or (written there instead) a note.
+  let email = null;
+  const emailCell = get("email");
+  if (looksLikeEmail(emailCell)) email = emailCell;
+  else if (emailCell && !noise(emailCell)) keep(title("email"), emailCell);
+
+  // What it's about: written after the name and/or in its own column — both
+  // kept when they differ ("Ajrim. Toshkentda ofisda"). An address written
+  // there is the email.
+  let columnMatter = textOnly(get("matter"));
+  if (columnMatter && looksLikeEmail(columnMatter)) {
+    if (!email) email = columnMatter.trim();
+    columnMatter = "";
+  }
+  const matter =
+    [matterInName, columnMatter]
+      .filter(Boolean)
+      .filter((m, i, all) => all.findIndex((o) => searchable(o) === searchable(m)) === i)
+      .join(". ") || null;
+
+  const numberCell = get("number");
+  const number = /\d/.test(numberCell) && numberCell !== "0" ? numberCell : null;
+  if (!number && textOnly(numberCell)) keep(title("number"), numberCell);
+
+  // Stage and result words -> status; other text kept.
+  const stageCell = get("stage");
+  const stage = parseStage(stageCell);
+  if (stageCell && !stage.status && !stage.legalStage && !noise(stageCell)) keep(title("stage"), stageCell);
+  const finalCell = get("final");
+  const final = parseStage(finalCell);
+  if (finalCell && !final.status && !final.legalStage && !noise(finalCell)) {
+    const d = parseDate(finalCell);
+    keep(title("final"), d && !/\p{L}/u.test(finalCell) ? shownDate(d) : finalCell);
+  }
+
+  // Dates: the first one is used; a cell with more (or with words) is kept.
+  const dateOf = (key) => {
+    const cell = get(key);
+    const d = parseDate(cell);
+    if (cell && !noise(cell) && (!d || (cell.match(DATE_TOKEN) || []).length > 1 || /\p{L}/u.test(cell))) keep(title(key), cell);
+    return d;
+  };
+  const start = dateOf("startDate");
+  const contractOn = dateOf("contractDate");
+  const next = dateOf("nextCall");
+
+  // Amounts: a number (words like "сўм" are fine); anything else is kept.
+  const amountOf = (key) => {
+    const cell = get(key);
+    const n = parseAmount(cell);
+    const words = cell.replace(CURRENCY, "").replace(/млн|mln|million|миллион|минг|ming|тыс/gi, "");
+    if (cell && !noise(cell) && (n == null || /\p{L}/u.test(words))) keep(title(key), cell);
+    return n;
+  };
+  const contractAmount = amountOf("contractAmount");
+  const paid = amountOf("paid");
+
   for (const key of NOTE_FIELDS) {
-    const i = mapping.indexOf(key);
     let value = get(key);
     if (!value) continue;
     if (key === "lastCall") {
       const d = parseDate(value);
-      if (d) value = `${d.date}${d.time ? ` ${d.time}` : ""}`;
+      if (d) value = shownDate(d);
     }
-    notes.push(`${String(titles[i] || "").trim()}: ${value}`);
+    keep(title(key), value);
   }
-  // The "final" column: a result word becomes the status (above); other
-  // text is kept as a note. Bare numbers and dashes are noise.
-  const finalText = get("final");
-  if (finalText && !final.status && !final.legalStage && !parseDate(finalText) && !/^[\d\s+.,-]*$/.test(finalText)) {
-    notes.push(`${String(titles[mapping.indexOf("final")] || "").trim()}: ${finalText}`);
-  }
+  // Any other column the importer keeps as notes.
+  mapping.forEach((key, i) => {
+    if (key !== "note") return;
+    const value = String(cells[i] ?? "").trim();
+    if (!value || noise(value)) return;
+    const serial = /^\d{5}(\.\d+)?$/.test(value) ? parseDate(value) : null;
+    keep(String(titles[i] || "").trim(), serial ? shownDate(serial) : value);
+  });
 
   return {
     clientId: /^\d{1,9}$/.test(get("clientId")) ? Number(get("clientId")) : null,
     name,
     phones,
     city: capitalize(textOnly(get("city")) || city) || null,
-    email: /@/.test(get("email")) ? get("email") : null,
-    matter: textOnly(get("matter")) || matter || null,
+    email,
+    matter,
     lawyer: textOnly(get("lawyer")) || null,
-    number: /\d/.test(get("number")) && get("number") !== "0" ? get("number") : null,
+    number,
     status: stage.status || final.status || null,
     legalStage: stage.legalStage || final.legalStage || null,
     startDate: start?.date || null,
     contractDate: contractOn?.date || null,
-    contractAmount: parseAmount(get("contractAmount")),
-    paid: parseAmount(get("paid")),
+    contractAmount,
+    paid,
     nextCallAt: next ? new Date(`${next.date}T${next.time || "10:00"}:00`).toISOString() : null,
     notes,
     ...extra,

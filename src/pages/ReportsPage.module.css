@@ -181,3 +181,63 @@
   font-weight: 500;
   color: var(--good-text);
 }
+
+/* ---------- Day / period ---------- */
+.modeRow {
+  margin-bottom: 14px;
+  max-width: 360px;
+}
+
+.periodBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+}
+
+.periodBar > :first-child {
+  flex: 1 1 280px;
+}
+
+.periodDates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 150px));
+  gap: 10px;
+}
+
+/* Totals tables: per person, per kind of service. */
+.peopleWrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.peopleTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.peopleTable th,
+.peopleTable td {
+  padding: 7px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--separator);
+  white-space: nowrap;
+}
+
+.peopleTable th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.peopleTable tfoot td {
+  font-weight: 700;
+  border-bottom: 0;
+}
+
+.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}

@@ -5,7 +5,8 @@ import pageStyles from "./Pages.module.css";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Icon from "../components/ui/Icon";
-import { SelectField } from "../components/ui/Field";
+import { SelectField, TextField } from "../components/ui/Field";
+import Segmented from "../components/ui/Segmented";
 import { List, ListRow, ListSectionHeader } from "../components/ui/List";
 import { AsyncBoundary, Avatar, EmptyState, PageHeader } from "../components/ui/Misc";
 import ReportForm from "../components/reports/ReportForm";
@@ -27,13 +28,19 @@ function shiftIso(iso, days) {
 }
 
 // ------------------------------------------------------------ managers
+// One day (who sent their report, the day's totals), or a period — a
+// week, a month, any dates — with the totals, per person, and Excel.
 function ManagerReports() {
   const { t, fmt } = useI18n();
   const [params, setParams] = useSearchParams();
+  const mode = params.get("mode") === "period" ? "period" : "day";
   const date = params.get("date") || "";
   const officeId = params.get("office") || "";
   const offices = useAsync(() => api.offices(), []);
-  const state = useAsync(() => api.reportsDay({ date: date || undefined, officeId: officeId || undefined }), [date, officeId]);
+  const state = useAsync(
+    () => (mode === "day" ? api.reportsDay({ date: date || undefined, officeId: officeId || undefined }) : Promise.resolve(null)),
+    [mode, date, officeId]
+  );
 
   function update(changes) {
     const next = new URLSearchParams(params);
@@ -46,14 +53,45 @@ function ManagerReports() {
 
   const shownDate = state.data?.date;
   const isToday = shownDate && shownDate === state.data?.today;
+  const officeSelect = (
+    <SelectField aria-label={t("settings.offices")} value={officeId} onChange={(e) => update({ office: e.target.value })} className={styles.officeSelect}>
+      <option value="">{t("reports.allOffices")}</option>
+      {(offices.data || []).map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.name}
+        </option>
+      ))}
+    </SelectField>
+  );
 
   return (
     <div>
       <PageHeader
         title={t("reports.title")}
-        subtitle={shownDate ? `${isToday ? `${t("reports.today")}, ` : ""}${fmt.isoDateLong(shownDate)}` : t("reports.subtitleManager")}
+        subtitle={
+          mode === "period"
+            ? t("reports.periodSubtitle")
+            : shownDate
+              ? `${isToday ? `${t("reports.today")}, ` : ""}${fmt.isoDateLong(shownDate)}`
+              : t("reports.subtitleManager")
+        }
       />
+      <div className={styles.modeRow}>
+        <Segmented
+          value={mode}
+          onChange={(v) => update({ mode: v === "period" ? "period" : "" })}
+          label={t("reports.title")}
+          options={[
+            { value: "day", label: t("reports.modeDay") },
+            { value: "period", label: t("reports.modePeriod") },
+          ]}
+        />
+      </div>
 
+      {mode === "period" ? (
+        <PeriodView params={params} update={update} officeId={officeId} officeSelect={officeSelect} />
+      ) : (
+        <>
       <div className={styles.toolbar}>
         <div className={styles.dateNav}>
           <button
@@ -80,24 +118,128 @@ function ManagerReports() {
             </Button>
           )}
         </div>
-        <SelectField
-          aria-label={t("settings.offices")}
-          value={officeId}
-          onChange={(e) => update({ office: e.target.value })}
-          className={styles.officeSelect}
-        >
-          <option value="">{t("reports.allOffices")}</option>
-          {(offices.data || []).map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-        </SelectField>
+        {officeSelect}
       </div>
 
       <AsyncBoundary state={state}>
-        {(data) => <DayView data={data} />}
+        {(data) => data && <DayView data={data} />}
       </AsyncBoundary>
+        </>
+      )}
+    </div>
+  );
+}
+
+// "YYYY-MM-DD" helpers for the period presets (the browser's calendar).
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function presetRange(key) {
+  const now = new Date();
+  if (key === "week") {
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    return { from: iso(monday), to: iso(now) };
+  }
+  if (key === "lastMonth") {
+    return { from: iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)), to: iso(new Date(now.getFullYear(), now.getMonth(), 0)) };
+  }
+  return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(now) };
+}
+
+// A period: this week / this month / last month or any dates; per form the
+// totals (table questions per column and per kind), each person's totals,
+// and the reports as an Excel file.
+function PeriodView({ params, update, officeId, officeSelect }) {
+  const { t, fmt } = useI18n();
+  const [month] = useState(() => presetRange("month"));
+  const from = params.get("from") || month.from;
+  const to = params.get("to") || month.to;
+  const state = useAsync(() => api.reportsSummary({ from, to, officeId: officeId || undefined }), [from, to, officeId]);
+  const preset = ["week", "month", "lastMonth"].find((k) => {
+    const r = presetRange(k);
+    return r.from === from && r.to === to;
+  });
+
+  return (
+    <div className={pageStyles.stack}>
+      <div className={styles.periodBar}>
+        <Segmented
+          wrap
+          value={preset || ""}
+          onChange={(k) => update(presetRange(k))}
+          label={t("reports.modePeriod")}
+          options={[
+            { value: "week", label: t("reports.thisWeek") },
+            { value: "month", label: t("reports.thisMonth") },
+            { value: "lastMonth", label: t("reports.lastMonth") },
+          ]}
+        />
+        <div className={styles.periodDates}>
+          <TextField type="date" aria-label={t("reports.from")} label={t("reports.from")} value={from} max={to} onChange={(e) => e.target.value && update({ from: e.target.value })} />
+          <TextField type="date" aria-label={t("reports.to")} label={t("reports.to")} value={to} min={from} onChange={(e) => e.target.value && update({ to: e.target.value })} />
+        </div>
+        {officeSelect}
+      </div>
+
+      <AsyncBoundary state={state}>
+        {(data) =>
+          data.forms.length === 0 ? (
+            <EmptyState icon="clipboard" text={t("reports.periodEmpty")} />
+          ) : (
+            data.forms.map((f) => (
+              <Card
+                key={f.template.id}
+                title={f.template.name}
+                subtitle={t("reports.periodCount", { reports: f.reports, days: f.days, from: fmt.isoDateLong(data.from), to: fmt.isoDateLong(data.to) })}
+                action={
+                  <Button size="small" icon="note" href={api.reportsExportUrl({ templateId: f.template.id, from: data.from, to: data.to, officeId: officeId || undefined })} download>
+                    {t("reports.excel")}
+                  </Button>
+                }
+              >
+                <TotalsList totals={f.totals} />
+                <PeopleTable people={f.people} />
+              </Card>
+            ))
+          )
+        }
+      </AsyncBoundary>
+    </div>
+  );
+}
+
+// Each person's numbers over the period, side by side.
+function PeopleTable({ people }) {
+  const { t, fmt } = useI18n();
+  const measures = people[0]?.measures || [];
+  if (people.length === 0) return null;
+  return (
+    <div className={styles.peopleWrap}>
+      <table className={styles.peopleTable}>
+        <thead>
+          <tr>
+            <th>{t("reports.person")}</th>
+            <th className={styles.num}>{t("reports.reportsCount")}</th>
+            {measures.map((m) => (
+              <th key={m.id} className={styles.num} title={m.group ? `${m.group}: ${m.label}` : m.label}>
+                {m.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {people.map((p) => (
+            <tr key={p.employee.id}>
+              <td>{p.employee.name}</td>
+              <td className={styles.num}>{fmt.number(p.reports)}</td>
+              {p.measures.map((m) => (
+                <td key={m.id} className={styles.num}>
+                  {m.type === "money" ? fmt.money(m.total) : fmt.number(m.total)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -189,7 +331,7 @@ function AutoSummary({ auto }) {
 }
 
 function FormSummary({ form }) {
-  const { t, fmt } = useI18n();
+  const { t } = useI18n();
   const complete = form.submitted >= form.expected;
   return (
     <Card title={form.template.name} subtitle={t("reports.submittedCount", { submitted: form.submitted, expected: form.expected })}>
@@ -199,41 +341,102 @@ function FormSummary({ form }) {
           style={{ width: `${form.expected ? Math.min(100, (form.submitted / form.expected) * 100) : 0}%` }}
         />
       </div>
-      {form.totals.length > 0 && (
-        <ul className={styles.totals}>
-          {form.totals.map((total) =>
-            total.counts ? (
-              // Choice questions: one chip per option that was picked, with its count.
-              <li key={total.id} className={styles.choiceTotal}>
-                <span className={styles.totalLabel}>{total.label}</span>
-                <span className={styles.choiceChips}>
-                  {Object.entries(total.counts).filter(([, n]) => n > 0).length === 0
-                    ? "—"
-                    : Object.entries(total.counts)
-                        .filter(([, n]) => n > 0)
-                        .map(([opt, n]) => (
-                          <span key={opt} className={styles.choiceChip}>
-                            {opt} <b>{n}</b>
-                          </span>
-                        ))}
-                </span>
-              </li>
-            ) : (
-              <li key={total.id}>
-                <span className={styles.totalLabel}>{total.label}</span>
-                <span className={styles.totalValue}>
-                  {total.type === "money"
-                    ? `${fmt.number(total.total)} ${t("reports.soum")}`
-                    : total.type === "number"
-                      ? fmt.number(total.total)
-                      : t("reports.yesCount", { yes: total.yes, answered: total.answered })}
-                </span>
-              </li>
-            )
-          )}
-        </ul>
-      )}
+      <TotalsList totals={form.totals} />
     </Card>
+  );
+}
+
+// The totals of a form's questions — for a day or a period.
+function TotalsList({ totals }) {
+  const { t, fmt } = useI18n();
+  if (!totals || totals.length === 0) return null;
+  return (
+    <ul className={styles.totals}>
+      {totals.map((total) =>
+        total.type === "table" ? (
+          <li key={total.id} className={styles.choiceTotal}>
+            <span className={styles.totalLabel}>{total.label}</span>
+            <TableTotals total={total} />
+          </li>
+        ) : total.counts ? (
+          // Choice questions: one chip per option that was picked, with its count.
+          <li key={total.id} className={styles.choiceTotal}>
+            <span className={styles.totalLabel}>{total.label}</span>
+            <span className={styles.choiceChips}>
+              {Object.entries(total.counts).filter(([, n]) => n > 0).length === 0
+                ? "—"
+                : Object.entries(total.counts)
+                    .filter(([, n]) => n > 0)
+                    .map(([opt, n]) => (
+                      <span key={opt} className={styles.choiceChip}>
+                        {opt} <b>{n}</b>
+                      </span>
+                    ))}
+            </span>
+          </li>
+        ) : (
+          <li key={total.id}>
+            <span className={styles.totalLabel}>{total.label}</span>
+            <span className={styles.totalValue}>
+              {total.type === "money"
+                ? `${fmt.number(total.total)} ${t("reports.soum")}`
+                : total.type === "number"
+                  ? fmt.number(total.total)
+                  : t("reports.yesCount", { yes: total.yes, answered: total.answered })}
+            </span>
+          </li>
+        )
+      )}
+    </ul>
+  );
+}
+
+// A table question added up: per kind (e.g. per service) how many lines and
+// the number/money totals, then everything together.
+function TableTotals({ total }) {
+  const { t, fmt } = useI18n();
+  const show = (c, v) => (c.type === "money" ? fmt.money(v) : fmt.number(v));
+  if (total.rows === 0) return <span className={styles.totalValue}>—</span>;
+  return (
+    <div className={styles.peopleWrap}>
+      <table className={styles.peopleTable}>
+        <thead>
+          <tr>
+            <th>{total.by?.label || ""}</th>
+            <th className={styles.num}>{t("reports.lines")}</th>
+            {total.columns.map((c) => (
+              <th key={c.id} className={styles.num}>
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {(total.groups.length > 0 ? total.groups : []).map((g, i) => (
+            <tr key={g.name ?? `none-${i}`}>
+              <td>{g.name || t("reports.notSpecified")}</td>
+              <td className={styles.num}>{fmt.number(g.rows)}</td>
+              {total.columns.map((c) => (
+                <td key={c.id} className={styles.num}>
+                  {show(c, g.totals[c.id])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>{t("reports.allTogether")}</td>
+            <td className={styles.num}>{fmt.number(total.rows)}</td>
+            {total.columns.map((c) => (
+              <td key={c.id} className={styles.num}>
+                {show(c, c.total)}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   );
 }
 
