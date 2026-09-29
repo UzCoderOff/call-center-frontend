@@ -11,7 +11,7 @@ import { useI18n } from "../../i18n";
 
 // Nothing happened that day (a Sunday, a day off).
 export const isEmptyDay = (day) =>
-  (day.calls?.total || 0) + day.booked + day.newClients + day.consultations + day.contracts + day.payments.count === 0;
+  (day.calls?.total || 0) + day.booked + day.newClients + day.consultations + day.contracts + (day.payments?.count || 0) === 0;
 
 export function AutoBadge() {
   const { t } = useI18n();
@@ -60,7 +60,9 @@ export default function AutoReportNumbers({ day }) {
       [t("autoReport.newClients"), fmt.number(day.newClients)],
       [t("autoReport.consultations"), fmt.number(day.consultations)],
       [t("autoReport.contracts"), fmt.number(day.contracts)],
-      [t("autoReport.payments"), day.payments.count > 0 ? `${day.payments.count} · ${fmt.money(day.payments.amount)}` : "0"],
+      // Only for people who see client money — the server leaves it out
+      // for everyone else.
+      ...(day.payments ? [[t("autoReport.payments"), day.payments.count > 0 ? `${day.payments.count} · ${fmt.money(day.payments.amount)}` : "0"]] : []),
     ],
   });
 

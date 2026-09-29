@@ -22,6 +22,7 @@ import { useBack } from "../hooks/useBack";
 import { api } from "../lib/api";
 import { rangeFor } from "../lib/format";
 import { useI18n } from "../i18n";
+import { reportSummary } from "./SettingsPage";
 
 export default function EmployeeDetailPage() {
   const { id } = useParams();
@@ -69,7 +70,8 @@ export default function EmployeeDetailPage() {
             </div>
 
             {e.autoReport && <AutoReportHistory employeeId={e.id} title={t("work.reports")} />}
-            {e.reportTemplate && <EmployeeReports employeeId={e.id} onlyIfAny={e.autoReport} />}
+            {/* The forms they fill in; on automatic alone, only old ones if any. */}
+            {e.reportTemplate && <EmployeeReports employeeId={e.id} onlyIfAny={e.autoReport && !e.alsoForm} />}
           </div>
         </div>
       )}
@@ -136,9 +138,9 @@ function WorkCard({ employee, onChange }) {
       <KeyValue label={t("work.office")}>{employee.office?.name || t("work.none")}</KeyValue>
       <KeyValue label={t("work.position")}>{employee.position?.name || t("work.none")}</KeyValue>
       <KeyValue label={t("settings.reportForm")}>
-        {employee.autoReport
-          ? [t("autoReport.name"), employee.reportTemplate && t("autoReport.formKept", { name: employee.reportTemplate.name })].filter(Boolean).join(" · ")
-          : employee.reportTemplate?.name || t("settings.noReportForm")}
+        {employee.autoReport && !employee.alsoForm && employee.reportTemplate
+          ? [t("autoReport.name"), t("autoReport.formKept", { name: employee.reportTemplate.name })].join(" · ")
+          : reportSummary(employee, t)}
       </KeyValue>
       <KeyValue label={t("settings.calendarAccess")}>{t(`settings.access.${employee.calendarAccess || "none"}`)}</KeyValue>
       <KeyValue label={t("settings.collectCalls")}>
@@ -166,6 +168,7 @@ function EditWorkSheet({ employee, onClose, onSaved }) {
     reportTemplateId: employee.reportTemplate?.id ?? "",
     collectCalls: employee.collectCalls,
     autoReport: employee.autoReport,
+    alsoForm: employee.alsoForm,
     calendarAccess: employee.calendarAccess,
   });
   const [busy, setBusy] = useState(false);

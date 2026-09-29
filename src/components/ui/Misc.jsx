@@ -117,7 +117,33 @@ export function ErrorState({ error, onRetry }) {
 export function AsyncBoundary({ state, children }) {
   if (state.error && !state.data) return <ErrorState error={state.error} onRetry={state.reload} />;
   if (!state.data) return <LoadingState />;
-  return <div className={state.loading ? styles.refetching : undefined}>{children(state.data)}</div>;
+  return (
+    <div className={state.loading ? styles.refetching : undefined}>
+      {/* A reload failed: what's below is from before — say so, don't pass
+          old numbers off as new. */}
+      {state.error && <StaleBanner onRetry={state.reload} />}
+      {children(state.data)}
+    </div>
+  );
+}
+
+function StaleBanner({ onRetry }) {
+  const { t } = useI18n();
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <Banner
+        tone="warning"
+        icon="alertTriangle"
+        action={
+          <Button size="small" icon="refresh" onClick={onRetry}>
+            {t("common.retry")}
+          </Button>
+        }
+      >
+        {t("common.staleData")}
+      </Banner>
+    </div>
+  );
 }
 
 export function Avatar({ name, size = 40 }) {

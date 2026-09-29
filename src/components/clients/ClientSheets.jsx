@@ -4,20 +4,13 @@ import pageStyles from "../../pages/Pages.module.css";
 import Sheet from "../ui/Sheet";
 import Button from "../ui/Button";
 import Icon from "../ui/Icon";
-import { SelectField, TextAreaField, TextField } from "../ui/Field";
+import { MoneyField, SelectField, TextAreaField, TextField } from "../ui/Field";
 import { LEGAL_STAGES, SOURCES, STATUSES } from "./parts";
 import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
 import { todayIso } from "../../lib/format";
 import { useI18n } from "../../i18n";
 
-const digits = (v) => String(v ?? "").replace(/\D/g, "");
-const grouped = (v) => digits(v).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-
-// Sums in so'm, shown with spaces as they're typed ("15 000 000").
-function MoneyField({ label, value, onChange, ...rest }) {
-  return <TextField label={label} value={grouped(value)} onChange={(e) => onChange(digits(e.target.value))} inputMode="numeric" {...rest} />;
-}
 
 // Who handles the case: one of the lawyer accounts (the case then shows up
 // for that lawyer), a name already used on other cases, or someone else by
@@ -203,7 +196,7 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
 }
 
 // -------------------------------------------------------------- case
-export function CaseSheet({ clientId, item, canManage, onClose, onSaved }) {
+export function CaseSheet({ clientId, item, canManage, finance = false, onClose, onSaved }) {
   const { t } = useI18n();
   const editing = Boolean(item);
   const [matter, setMatter] = useState(item?.matter || "");
@@ -230,7 +223,9 @@ export function CaseSheet({ clientId, item, canManage, onClose, onSaved }) {
       status,
       legalStage: hasContract ? legalStage || null : null,
       startDate,
-      contractAmount: amount ? Number(amount) : null,
+      // Only people who see money set the contract amount (the server
+      // ignores it from anyone else, so it can't be wiped by accident).
+      ...(finance ? { contractAmount: amount ? Number(amount) : null } : {}),
       ...(canManage ? { operatorId: operatorId ? Number(operatorId) : null } : {}),
     };
     try {
@@ -281,7 +276,7 @@ export function CaseSheet({ clientId, item, canManage, onClose, onSaved }) {
         </div>
         <LawyerField value={lawyer} onChange={setLawyer} />
         <TextField label={t("cases.number")} value={number} onChange={(e) => setNumber(e.target.value)} />
-        <MoneyField label={t("cases.contractAmount")} value={amount} onChange={setAmount} />
+        {finance && <MoneyField label={t("cases.contractAmount")} value={amount} onChange={setAmount} />}
         {canManage && (
           <SelectField label={t("cases.operator")} value={operatorId} onChange={(e) => setOperatorId(e.target.value)}>
             <option value="">{t("cases.noOperator")}</option>
@@ -312,13 +307,22 @@ export function CaseSheet({ clientId, item, canManage, onClose, onSaved }) {
 }
 
 // ----------------------------------------------------------- payment
-export function PaymentSheet({ clientId, cases, caseId, onClose, onSaved }) {
+// The firm's consultation fee — filled in for a consultation payment (it can
+// be changed).
+const CONSULTATION_FEE = 450000;
+
+// `finance`: sees contract money. Without it, only the consultation fee can
+// be recorded (the server enforces the same).
+export function PaymentSheet({ clientId, cases, caseId, finance = false, onClose, onSaved }) {
   const { t } = useI18n();
   const target = cases.find((c) => c.id === caseId);
-  const [amount, setAmount] = useState(target?.remaining > 0 ? String(target.remaining) : "");
+  const firstKind = !finance || target?.status === "consultation" || target?.status === "call_again" ? "consultation" : "contract";
+  const [amount, setAmount] = useState(
+    firstKind === "consultation" ? String(CONSULTATION_FEE) : target?.remaining > 0 ? String(target.remaining) : ""
+  );
   const [date, setDate] = useState(todayIso());
   const [method, setMethod] = useState("card");
-  const [kind, setKind] = useState(target?.status === "consultation" ? "consultation" : "contract");
+  const [kind, setKind] = useState(firstKind);
   const [forCase, setForCase] = useState(caseId ? String(caseId) : cases[0] ? String(cases[0].id) : "");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -339,7 +343,7 @@ export function PaymentSheet({ clientId, cases, caseId, onClose, onSaved }) {
   }
 
   return (
-    <Sheet title={t("payments.add")} onClose={onClose}>
+    <Sheet title={finance ? t("payments.add") : t("payments.addConsultation")} onClose={onClose}>
       <div className={pageStyles.formStack}>
         <MoneyField label={t("payments.amount")} value={amount} onChange={setAmount} />
         <div className={styles.twoCol}>
@@ -353,13 +357,15 @@ export function PaymentSheet({ clientId, cases, caseId, onClose, onSaved }) {
           </SelectField>
         </div>
         <div className={styles.twoCol}>
-          <SelectField label={t("payments.kind")} value={kind} onChange={(e) => setKind(e.target.value)}>
-            {["consultation", "contract", "other"].map((k) => (
-              <option key={k} value={k}>
-                {t(`payments.kinds.${k}`)}
-              </option>
-            ))}
-          </SelectField>
+          {finance && (
+            <SelectField label={t("payments.kind")} value={kind} onChange={(e) => setKind(e.target.value)}>
+              {["consultation", "contract", "other"].map((k) => (
+                <option key={k} value={k}>
+                  {t(`payments.kinds.${k}`)}
+                </option>
+              ))}
+            </SelectField>
+          )}
           {cases.length > 1 && (
             <SelectField label={t("payments.forCase")} value={forCase} onChange={(e) => setForCase(e.target.value)}>
               {cases.map((c) => (

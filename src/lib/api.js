@@ -27,19 +27,35 @@ export function onUnauthorized(handler) {
   unauthorizedHandler = handler;
 }
 
+// A request that hasn't answered in this long is given up (a phone on a bad
+// connection would otherwise spin forever) and reported as "timeout".
+const TIMEOUT_MS = 30 * 1000;
+
 async function request(path, { method = "GET", body, signal } = {}) {
   let res;
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, TIMEOUT_MS);
+  const onAbort = () => controller.abort();
+  signal?.addEventListener("abort", onAbort);
   try {
     res = await fetch(`${BASE}${path}`, {
       method,
       headers: body ? { "Content-Type": "application/json" } : undefined,
       credentials: "same-origin",
       body: body ? JSON.stringify(body) : undefined,
-      signal,
+      signal: controller.signal,
     });
   } catch (err) {
+    if (timedOut) throw new ApiError("timeout", 0, null);
     if (err.name === "AbortError") throw err;
     throw new ApiError("network_error", 0, null);
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
   }
 
   let data = null;
@@ -93,6 +109,10 @@ export const api = {
   updateBossAccount: (id, payload) => request(`/users/${id}`, { method: "PATCH", body: payload }),
   resetBossPassword: (id) => request(`/users/${id}/reset-password`, { method: "POST" }),
   deleteBossAccount: (id) => request(`/users/${id}`, { method: "DELETE" }),
+  revokeBossDevice: (id, deviceId) => request(`/users/${id}/devices/${deviceId}`, { method: "DELETE" }),
+
+  // --- money from clients (developer + accounts with "Moliya") ---
+  finance: (month) => request(`/finance${qs({ month })}`),
 
   revokeDevice: (employeeId, deviceId) => request(`/employees/${employeeId}/devices/${deviceId}`, { method: "DELETE" }),
 
@@ -125,6 +145,15 @@ export const api = {
   bookAppointment: (calendarId, payload) => request(`/calendars/${calendarId}/appointments`, { method: "POST", body: payload }),
   appointments: (params) => request(`/appointments${qs(params)}`),
   updateAppointment: (id, payload) => request(`/appointments/${id}`, { method: "PATCH", body: payload }),
+  // The consultation fee, when paid after booking: { feeAmount, feeMethod }.
+  appointmentFee: (id, payload) => request(`/appointments/${id}/fee`, { method: "POST", body: payload }),
+
+  // --- tasks (the boss gives someone work with a due time) ---
+  tasks: (params) => request(`/tasks${qs(params)}`),
+  taskPeople: () => request("/tasks/people"),
+  createTask: (payload) => request("/tasks", { method: "POST", body: payload }),
+  updateTask: (id, payload) => request(`/tasks/${id}`, { method: "PATCH", body: payload }),
+  deleteTask: (id) => request(`/tasks/${id}`, { method: "DELETE" }),
 
   // --- organisation settings ---
   offices: () => request("/offices"),
@@ -169,6 +198,67 @@ export const api = {
   // Many clients at once: { ids } or { query } (the list's filters), and set:
   // { operatorId } | { lawyerId } | { status: "declined" }.
   bulkClients: (payload) => request("/clients/bulk", { method: "POST", body: payload }),
+  // --- training materials ---
+  materials: (params) => request(`/materials${qs(params)}`),
+  material: (id) => request(`/materials/${id}`),
+  materialOptions: () => request("/materials/options"),
+  createMaterial: (payload) => request("/materials", { method: "POST", body: payload }),
+  updateMaterial: (id, payload) => request(`/materials/${id}`, { method: "PATCH", body: payload }),
+  archiveMaterial: (id) => request(`/materials/${id}`, { method: "DELETE" }),
+  restoreMaterial: (id) => request(`/materials/${id}/restore`, { method: "POST" }),
+  deleteMaterialForever: (id) => request(`/materials/${id}/permanent`, { method: "DELETE" }),
+  markMaterialRead: (id) => request(`/materials/${id}/read`, { method: "POST" }),
+  materialReaders: (id) => request(`/materials/${id}/readers`),
+  deleteMaterialFile: (fileId) => request(`/materials/files/${fileId}`, { method: "DELETE" }),
+  materialFileUrl: (fileId, { download = false } = {}) => `${BASE}/materials/files/${fileId}${download ? "?download=1" : ""}`,
+  // Sends a file in pieces (see the backend's routes/materials.js), calling
+  // onProgress(0..1). A piece that fails is sent again, up to 3 times.
+  uploadMaterialFile: async (materialId, file, onProgress = () => {}) => {
+    const { uploadId, chunkBytes } = await request(`/materials/${materialId}/uploads`, {
+      method: "POST",
+      body: { name: file.name, size: file.size },
+    });
+    let offset = 0;
+    let failures = 0;
+    while (offset < file.size) {
+      const piece = file.slice(offset, offset + chunkBytes);
+      let res;
+      try {
+        res = await fetch(`${BASE}/materials/uploads/${uploadId}?offset=${offset}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/octet-stream" },
+          credentials: "same-origin",
+          body: piece,
+        });
+      } catch {
+        res = null;
+      }
+      const data = res ? await res.json().catch(() => null) : null;
+      if (res?.ok || res?.status === 409) {
+        // 409: the server already has more (a retried piece) — go on from there.
+        offset = data?.received ?? offset;
+        failures = 0;
+        onProgress(offset / file.size);
+        continue;
+      }
+      if (res?.status === 401 && unauthorizedHandler) unauthorizedHandler();
+      if (!res || res.status >= 500) {
+        failures += 1;
+        if (failures <= 3) continue;
+      }
+      throw new ApiError(data?.error || (res ? `http_${res.status}` : "network_error"), res?.status ?? 0, data);
+    }
+    return request(`/materials/uploads/${uploadId}/finish`, { method: "POST" });
+  },
+
+  // --- Telegram ---
+  telegramMe: () => request("/telegram/me"),
+  telegramLink: () => request("/telegram/link", { method: "POST" }),
+  telegramPrefs: (prefs) => request("/telegram/me/prefs", { method: "PATCH", body: prefs }),
+  telegramTest: () => request("/telegram/me/test", { method: "POST" }),
+  telegramDisconnect: () => request("/telegram/me", { method: "DELETE" }),
+  telegramOverview: () => request("/telegram/overview"),
+
   // A Google Sheets link -> the file's bytes (the server downloads it).
   googleSheet: async (url) => {
     const res = await fetch(`${BASE}/clients/import/google${qs({ url })}`, { credentials: "same-origin" });

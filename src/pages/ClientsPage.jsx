@@ -13,16 +13,24 @@ import { BulkSheet, ClientSheet } from "../components/clients/ClientSheets";
 import Icon from "../components/ui/Icon";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
-import { canManageClients, isLawyer } from "../lib/access";
+import { canManageClients, canSeeFinance, isLawyer } from "../lib/access";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
-const FILTERS = ["all", "callToday", "debt", "active"];
-// Managers also see old consultations that went nowhere (to close them in one
-// go) and archived clients (hidden everywhere else, kept, restorable).
-const MANAGER_FILTERS = [...FILTERS, "stale", "archived"];
-// A lawyer: their own clients, all of them or the open cases.
-const LAWYER_FILTERS = ["all", "active", "debt"];
+// Two sections, so the cases that are going on aren't buried under one-off
+// consultations: "Mijozlar" — clients with a contract (or a finished case) —
+// and "Konsultatsiyalar" — everyone else. A search looks in both.
+const SECTIONS = ["clients", "consultations"];
+// The quick filters of each section. Managers also get old consultations
+// that went nowhere (to close them in one go) and the archive.
+const FILTERS = {
+  clients: { staff: ["all", "callToday", "debt", "active"], manager: ["all", "callToday", "debt", "active", "archived"], lawyer: ["all", "active", "debt"] },
+  consultations: { staff: ["all", "callToday", "active"], manager: ["all", "callToday", "active", "stale", "archived"], lawyer: ["all", "active"] },
+};
+const SECTION_STATUSES = {
+  clients: ["contract", "done"],
+  consultations: ["consultation", "call_again", "declined"],
+};
 
 // The clients database: search by name / phone / case number (either
 // script), quick filters, and a row per client with where their case stands.
@@ -37,7 +45,11 @@ export default function ClientsPage() {
   const [params, setParams] = useSearchParams();
 
   const q = params.get("q") || "";
-  const filters = manager ? MANAGER_FILTERS : lawyer ? LAWYER_FILTERS : FILTERS;
+  const section = SECTIONS.includes(params.get("section")) ? params.get("section") : "clients";
+  // Searching: every client, whatever their section.
+  const searching = Boolean(q);
+  // "Owes money" only for people who see money.
+  const filters = FILTERS[section][manager ? "manager" : lawyer ? "lawyer" : "staff"].filter((f) => f !== "debt" || canSeeFinance(user));
   const filter = filters.includes(params.get("filter")) ? params.get("filter") : "all";
   const status = params.get("status") || "";
   const operatorId = params.get("operatorId") || "";
@@ -46,6 +58,7 @@ export default function ClientsPage() {
   // The current filters, for the list and for the Excel export.
   const query = (extra = {}) => ({
     q: q || undefined,
+    section: searching ? undefined : section,
     filter: filter === "all" ? undefined : filter,
     status: status || undefined,
     operatorId: operatorId || undefined,
@@ -85,7 +98,7 @@ export default function ClientsPage() {
   useEffect(() => {
     setSelected(new Set());
     setAllMatching(false);
-  }, [q, filter, status, operatorId, lawyerId]);
+  }, [q, section, filter, status, operatorId, lawyerId]);
 
   function toggle(id) {
     setAllMatching(false);
@@ -115,7 +128,14 @@ export default function ClientsPage() {
 
   const employees = useAsync(() => (manager ? api.employees() : Promise.resolve([])), [manager]);
   const lawyers = useAsync(() => (manager ? api.clientLawyers() : Promise.resolve(null)), [manager]);
-  const state = useAsync(() => api.clients(query({ page })), [q, filter, status, operatorId, lawyerId, page]);
+  const state = useAsync(() => api.clients(query({ page })), [q, section, filter, status, operatorId, lawyerId, page]);
+  // The section counts stay from the last list that had them (searching
+  // doesn't send a section).
+  const [counts, setCounts] = useState(null);
+  useEffect(() => {
+    if (state.data?.sections) setCounts(state.data.sections);
+  }, [state.data]);
+  const statuses = searching ? STATUSES : SECTION_STATUSES[section];
 
   return (
     <div>
@@ -132,7 +152,7 @@ export default function ClientsPage() {
                 <Button icon="upload" to="/clients/import">
                   {t("clients.import")}
                 </Button>
-                <Button icon="note" href={api.clientsExportUrl(query())} download>
+                <Button icon="note" href={api.clientsExportUrl(query({ section: undefined }))} download>
                   {t("clients.export")}
                 </Button>
               </>
@@ -148,7 +168,18 @@ export default function ClientsPage() {
 
       <div className={styles.toolbar}>
         {!lawyer && <TargetsCard manager={manager} />}
+        <Segmented
+          full
+          value={searching ? null : section}
+          onChange={(v) => update({ section: v === "clients" ? "" : v, filter: "", status: "", q: "" })}
+          label={t("clients.sectionsLabel")}
+          options={SECTIONS.map((sec) => ({
+            value: sec,
+            label: counts ? `${t(`clients.sections.${sec}`)} · ${fmt.number(counts[sec])}` : t(`clients.sections.${sec}`),
+          }))}
+        />
         <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("clients.search")} aria-label={t("clients.search")} />
+        {searching && <p className={styles.count} style={{ margin: 0 }}>{t("clients.searchingAll")}</p>}
         <Segmented
           full
           wrap
@@ -160,7 +191,7 @@ export default function ClientsPage() {
         <div className={styles.filters}>
           <SelectField aria-label={t("cases.status")} value={status} onChange={(e) => update({ status: e.target.value })}>
             <option value="">{t("clients.anyStatus")}</option>
-            {STATUSES.map((s) => (
+            {statuses.map((s) => (
               <option key={s} value={s}>
                 {t(`cases.statuses.${s}`)}
               </option>
@@ -199,7 +230,15 @@ export default function ClientsPage() {
           data.clients.length === 0 ? (
             <EmptyState
               icon="contact"
-              text={q || filter !== "all" || status || operatorId || lawyerId ? t("clients.emptyFiltered") : lawyer ? t("lawyer.noCases") : t("clients.empty")}
+              text={
+                q || filter !== "all" || status || operatorId || lawyerId
+                  ? t("clients.emptyFiltered")
+                  : section === "clients" && counts?.consultations
+                    ? t("clients.emptyContracts")
+                    : lawyer
+                      ? t("lawyer.noCases")
+                      : t("clients.empty")
+              }
             />
           ) : (
             <>

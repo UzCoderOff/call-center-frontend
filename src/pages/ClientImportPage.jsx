@@ -12,6 +12,8 @@ import { api } from "../lib/api";
 import { readSpreadsheet } from "../lib/sheets";
 import { FIELDS, findHeader, guessField, guessLawyer, guessMapping, searchable, toClientRow } from "../lib/clientImport";
 import { useI18n } from "../i18n";
+import { useAuth } from "../hooks/useAuth";
+import { canSeeFinance } from "../lib/access";
 
 const BATCH = 200;
 
@@ -39,6 +41,10 @@ function guessOperator(sheetName, employees) {
 // (same phone, or same name) are filled in rather than duplicated, so the
 // same file can be imported again safely.
 export default function ClientImportPage() {
+  const { user } = useAuth();
+  // Contract amounts and payments in the sheet are imported only by people
+  // who see money; for anyone else the server leaves them out.
+  const money = canSeeFinance(user);
   const { t, fmt } = useI18n();
   const goBack = useBack("/clients");
   const fileInput = useRef(null);
@@ -301,6 +307,7 @@ export default function ClientImportPage() {
               <p className={pageStyles.note}>{t("import.noRows")}</p>
             ) : (
               <>
+                {!money && <p className={pageStyles.note} style={{ marginBottom: 10 }}>{t("finance.importSkipped")}</p>}
                 <div className={styles.tableWrap}>
                   <table className={styles.table}>
                     <thead>
@@ -309,8 +316,8 @@ export default function ClientImportPage() {
                         <th>{fieldLabel("phones")}</th>
                         <th>{t("cases.status")}</th>
                         <th>{fieldLabel("lawyer")}</th>
-                        <th>{fieldLabel("contractAmount")}</th>
-                        <th>{fieldLabel("paid")}</th>
+                        {money && <th>{fieldLabel("contractAmount")}</th>}
+                        {money && <th>{fieldLabel("paid")}</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -323,8 +330,8 @@ export default function ClientImportPage() {
                             {r.legalStage ? ` · ${t(`cases.stages.${r.legalStage}`)}` : ""}
                           </td>
                           <td>{r.lawyerId ? accounts.find((a) => a.id === r.lawyerId)?.name : r.lawyer || "—"}</td>
-                          <td>{r.contractAmount ? fmt.money(r.contractAmount) : "—"}</td>
-                          <td>{r.paid ? fmt.money(r.paid) : "—"}</td>
+                          {money && <td>{r.contractAmount ? fmt.money(r.contractAmount) : "—"}</td>}
+                          {money && <td>{r.paid ? fmt.money(r.paid) : "—"}</td>}
                         </tr>
                       ))}
                     </tbody>

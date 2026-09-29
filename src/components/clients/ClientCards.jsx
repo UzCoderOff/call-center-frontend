@@ -10,6 +10,7 @@ import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
 import { telHref } from "../../lib/format";
 import { useI18n } from "../../i18n";
+import { saveFailed } from "../../lib/saveFailed";
 
 // This month's consultations and contracts against the targets (Settings ->
 // Positions). Staff see their own bars; managers one row per operator.
@@ -53,6 +54,8 @@ export function CallTodayCard() {
     try {
       await api.updateClient(client.id, { nextCallAt: null, nextCallNote: null });
       state.reload();
+    } catch (err) {
+      saveFailed(err, t);
     } finally {
       setBusy(null);
     }

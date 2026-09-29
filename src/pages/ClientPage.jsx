@@ -15,6 +15,8 @@ import { useBack } from "../hooks/useBack";
 import { api } from "../lib/api";
 import { telHref } from "../lib/format";
 import { useI18n } from "../i18n";
+import { saveFailed } from "../lib/saveFailed";
+import { TaskSheet } from "../components/tasks/TaskParts";
 
 // One client: contact details, the next call, their cases (status, court
 // stage, money), connected people, and a timeline of everything — notes,
@@ -47,13 +49,21 @@ function ClientView({ client, reload, goBack }) {
   // restored from the "Archive" filter.
   async function archive() {
     if (!confirm(t("clients.confirmArchive", { name: client.name }))) return;
-    await api.archiveClient(client.id);
-    navigate("/clients", { replace: true });
+    try {
+      await api.archiveClient(client.id);
+      navigate("/clients", { replace: true });
+    } catch (err) {
+      saveFailed(err, t);
+    }
   }
 
   async function restore() {
-    await api.restoreClient(client.id);
-    reload();
+    try {
+      await api.restoreClient(client.id);
+      reload();
+    } catch (err) {
+      saveFailed(err, t);
+    }
   }
 
   const sub = [client.city, client.source && t(`clients.sources.${client.source}`), t("clients.addedOn", { date: fmt.date(new Date(client.createdAt).getTime()) })]
@@ -71,6 +81,11 @@ function ClientView({ client, reload, goBack }) {
             {tel && (
               <Button variant="primary" icon="phone" href={tel}>
                 {t("common.call")}
+              </Button>
+            )}
+            {client.canManage && (
+              <Button icon="checkCircle" onClick={() => setSheet({ type: "task" })}>
+                {t("tasks.giveForClient")}
               </Button>
             )}
             {!client.asLawyer && (
@@ -123,6 +138,7 @@ function ClientView({ client, reload, goBack }) {
                 canManage={client.canManage}
                 asLawyer={client.asLawyer}
                 onEdit={() => setSheet({ type: "case", item: c })}
+                finance={client.finance}
                 onPay={() => setSheet({ type: "payment", caseId: c.id })}
                 onChanged={reload}
               />
@@ -162,10 +178,11 @@ function ClientView({ client, reload, goBack }) {
 
       {sheet?.type === "client" && <ClientSheet client={client} onClose={close} onSaved={saved} />}
       {sheet?.type === "nextCall" && <NextCallSheet client={client} onClose={close} onSaved={saved} />}
-      {sheet?.type === "case" && <CaseSheet clientId={client.id} item={sheet.item} canManage={client.canManage} onClose={close} onSaved={saved} />}
-      {sheet?.type === "payment" && <PaymentSheet clientId={client.id} cases={client.cases} caseId={sheet.caseId} onClose={close} onSaved={saved} />}
+      {sheet?.type === "case" && <CaseSheet clientId={client.id} item={sheet.item} canManage={client.canManage} finance={client.finance} onClose={close} onSaved={saved} />}
+      {sheet?.type === "payment" && <PaymentSheet clientId={client.id} cases={client.cases} caseId={sheet.caseId} finance={client.finance} onClose={close} onSaved={saved} />}
       {sheet?.type === "link" && <LinkSheet client={client} onClose={close} onSaved={saved} />}
       {sheet?.type === "merge" && <MergeSheet client={client} onClose={close} onSaved={saved} />}
+      {sheet?.type === "task" && <TaskSheet client={{ id: client.id, name: client.name }} onClose={close} onSaved={close} />}
     </div>
   );
 }
@@ -193,6 +210,8 @@ function NextCall({ client, onChange, onDone }) {
     try {
       await api.updateClient(client.id, { nextCallAt: null, nextCallNote: null });
       onDone();
+    } catch (err) {
+      saveFailed(err, t);
     } finally {
       setBusy(false);
     }
@@ -217,7 +236,7 @@ function NextCall({ client, onChange, onDone }) {
   );
 }
 
-function CaseCard({ item, canManage, asLawyer = false, onEdit, onPay, onChanged }) {
+function CaseCard({ item, canManage, finance = false, asLawyer = false, onEdit, onPay, onChanged }) {
   const { t, fmt } = useI18n();
   const [busy, setBusy] = useState(false);
   const hasContract = item.status === "contract" || item.status === "done";
@@ -229,6 +248,8 @@ function CaseCard({ item, canManage, asLawyer = false, onEdit, onPay, onChanged 
     try {
       await api.updateCase(item.id, patch);
       onChanged();
+    } catch (err) {
+      saveFailed(err, t);
     } finally {
       setBusy(false);
     }
@@ -236,8 +257,12 @@ function CaseCard({ item, canManage, asLawyer = false, onEdit, onPay, onChanged 
 
   async function removePayment(p) {
     if (!confirm(t("payments.confirmDelete"))) return;
-    await api.deletePayment(p.id);
-    onChanged();
+    try {
+      await api.deletePayment(p.id);
+      onChanged();
+    } catch (err) {
+      saveFailed(err, t);
+    }
   }
 
   return (
@@ -268,7 +293,7 @@ function CaseCard({ item, canManage, asLawyer = false, onEdit, onPay, onChanged 
       </div>
       {hasContract && <StageTrack stage={item.legalStage} />}
       <MoneyBlock item={item} />
-      {item.payments.length > 0 && (
+      {item.payments?.length > 0 && (
         <div className={styles.payments}>
           {item.payments.slice(0, 5).map((p) => (
             <div key={p.id} className={styles.payment}>
@@ -279,7 +304,7 @@ function CaseCard({ item, canManage, asLawyer = false, onEdit, onPay, onChanged 
                 {p.note ? ` · ${p.note}` : ""}
               </span>
               <span className={styles.paymentAmount}>{fmt.money(p.amount)}</span>
-              {canManage && (
+              {canManage && (finance || p.kind === "consultation") && (
                 <button type="button" className={styles.iconButton} onClick={() => removePayment(p)} aria-label={t("payments.delete")}>
                   <Icon name="trash" size={15} />
                 </button>
@@ -290,9 +315,11 @@ function CaseCard({ item, canManage, asLawyer = false, onEdit, onPay, onChanged 
       )}
       {!asLawyer && (
         <div className={pageStyles.actionsRow} style={{ marginTop: 0 }}>
-          <Button size="small" icon="cash" onClick={onPay}>
-            {t("payments.add")}
-          </Button>
+          {onPay && (
+            <Button size="small" icon="cash" onClick={onPay}>
+              {t("payments.add")}
+            </Button>
+          )}
           <Button size="small" variant="plain" onClick={onEdit}>
             {t("cases.edit")}
           </Button>
@@ -308,8 +335,12 @@ function Connections({ client, onAdd, onChanged }) {
   const { t, fmt } = useI18n();
   async function remove(link) {
     if (!confirm(t("links.confirmRemove", { name: link.other.name }))) return;
-    await api.deleteLink(link.id);
-    onChanged();
+    try {
+      await api.deleteLink(link.id);
+      onChanged();
+    } catch (err) {
+      saveFailed(err, t);
+    }
   }
   return (
     <Card
@@ -424,14 +455,21 @@ function Timeline({ client, userId, onChanged }) {
       await api.addNote(client.id, text);
       setText("");
       onChanged();
+    } catch (err) {
+      // The note stays in the box, to send again.
+      saveFailed(err, t);
     } finally {
       setBusy(false);
     }
   }
 
   async function removeNote(noteId) {
-    await api.deleteNote(noteId);
-    onChanged();
+    try {
+      await api.deleteNote(noteId);
+      onChanged();
+    } catch (err) {
+      saveFailed(err, t);
+    }
   }
 
   const shown = showAll ? items : items.slice(0, 25);

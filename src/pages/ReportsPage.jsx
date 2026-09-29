@@ -445,6 +445,7 @@ function MyReports() {
   const { t } = useI18n();
   const { user } = useAuth();
   const auto = Boolean(user.employee?.autoReport);
+  const form = Boolean(user.employee?.reportForm);
   const today = useAsync(() => api.todayReport(), []);
   const history = useAsync(() => api.reports({ pageSize: 30 }), []);
 
@@ -454,18 +455,23 @@ function MyReports() {
       <div className={pageStyles.stack}>
         <AsyncBoundary state={today}>
           {(data) =>
-            data.auto ? (
-              <AutoTodayCard data={data} employeeId={user.employee.id} />
-            ) : data.template ? (
-              <TodayReportCard
-                data={data}
-                onSaved={(report) => {
-                  today.setData((d) => ({ ...d, report }));
-                  history.reload();
-                }}
-              />
-            ) : (
+            !data.auto && !data.template ? (
               <EmptyState icon="alertCircle" text={t("home.noReportForm")} />
+            ) : (
+              <>
+                {/* Automatic numbers, and/or the form to fill in (both for
+                    "automatic + form"). */}
+                {data.auto && <AutoTodayCard data={data} employeeId={user.employee.id} />}
+                {data.template && (
+                  <TodayReportCard
+                    data={data}
+                    onSaved={(report) => {
+                      today.setData((d) => ({ ...d, report }));
+                      history.reload();
+                    }}
+                  />
+                )}
+              </>
             )
           }
         </AsyncBoundary>
@@ -474,7 +480,7 @@ function MyReports() {
 
         {/* Reports filled in by hand (for someone now on automatic: the old ones, if any). */}
         <AsyncBoundary state={history}>
-          {(data) => (!auto || data.reports.length > 0) && <ReportHistory reports={data.reports} title={auto ? t("autoReport.formHistory") : undefined} />}
+          {(data) => (!auto || form || data.reports.length > 0) && <ReportHistory reports={data.reports} title={auto ? t("autoReport.formHistory") : undefined} />}
         </AsyncBoundary>
       </div>
     </div>

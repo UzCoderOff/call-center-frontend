@@ -18,6 +18,7 @@ import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { shiftIso, todayIso, weekStartOf } from "../lib/format";
 import { useI18n } from "../i18n";
+import { saveFailed } from "../lib/saveFailed";
 
 // The lawyer's calendar, one day at a time.
 //
@@ -107,6 +108,8 @@ function CalendarView({ calendars, initialId, onCalendarChanged }) {
       await api.publishCalendarWeek(calendar.id, weekStart);
       setFlash(t("calendar.publishedNow"));
       state.reload();
+    } catch (err) {
+      saveFailed(err, t);
     } finally {
       setPublishing(false);
     }

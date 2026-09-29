@@ -12,6 +12,8 @@
 //   openSetup()         the phone-setup guide (permissions, battery, auto-launch)
 //   appVersion()        e.g. "2.0.0"
 //   isCollectingCalls() whether this phone syncs calls
+//   canDownload()       true from app 2.2.0: links to files (PDFs, Excel
+//                       exports) download and open in the phone's own apps
 //
 // In a normal browser none of this exists and the portal behaves as a website.
 const bridge = typeof window !== "undefined" ? window.LedgerApp : undefined;

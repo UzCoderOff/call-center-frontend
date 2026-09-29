@@ -11,6 +11,7 @@ import { api } from "../../lib/api";
 import { telHref, todayIso, weekStartOf } from "../../lib/format";
 import { useI18n } from "../../i18n";
 import pageStyles from "../../pages/Pages.module.css";
+import { saveFailed } from "../../lib/saveFailed";
 
 // Home, for the lawyer: is next week confirmed (the weekly reminder — shown
 // from Thursday until it is), and today's appointments.
@@ -98,6 +99,8 @@ export function AttentionCard() {
     try {
       await api.updateAppointment(a.id, { clientInformed: true });
       state.setData((rows) => rows.filter((r) => r.id !== a.id));
+    } catch (err) {
+      saveFailed(err, t);
     } finally {
       setDone(null);
     }

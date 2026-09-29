@@ -105,7 +105,7 @@ function CreateEmployeeSheet({ onClose, onCreated }) {
   const { t } = useI18n();
   const options = useOrgOptions();
   const [form, setForm] = useState({ name: "", phoneNumber: "", username: "" });
-  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, autoReport: false, calendarAccess: "none" });
+  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, autoReport: false, alsoForm: false, calendarAccess: "none" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(null);
@@ -226,6 +226,11 @@ function BossAccounts() {
                   chevron
                   trailing={
                     <>
+                      {b.seesFinance && (
+                        <Badge tone="good" icon="cash">
+                          {t("finance.badge")}
+                        </Badge>
+                      )}
                       {b.calendar && (
                         <Badge tone="accent" icon="calendar">
                           {t("nav.calendar")}
@@ -269,6 +274,8 @@ function CreateBossSheet({ onClose, onCreated }) {
   // New accounts are lawyers unless switched on: seeing everything is the
   // exception (the head of the firm).
   const [seesAll, setSeesAll] = useState(false);
+  // Money from clients: off unless chosen — meant for the head of the firm.
+  const [seesFinance, setSeesFinance] = useState(false);
   const [hasCalendar, setHasCalendar] = useState(true);
   const [calendarName, setCalendarName] = useState("");
   const [error, setError] = useState("");
@@ -284,6 +291,7 @@ function CreateBossSheet({ onClose, onCreated }) {
         username: username.trim(),
         name: name.trim() || undefined,
         role: seesAll ? "BOSS" : "LAWYER",
+        seesFinance,
         hasCalendar,
         calendarName: calendarName.trim() || undefined,
       });
@@ -334,6 +342,7 @@ function CreateBossSheet({ onClose, onCreated }) {
         />
         <TextField label={t("accounts.name")} placeholder={t("accounts.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
         <Switch label={t("accounts.seesAllSwitch")} hint={seesAll ? t("accounts.seesAllHint") : t("accounts.ownOnlyHint")} checked={seesAll} onChange={setSeesAll} />
+        <Switch label={t("finance.switch")} hint={t("finance.switchHint")} checked={seesFinance} onChange={setSeesFinance} />
         <Switch label={t("team.hasCalendar")} hint={t("team.hasCalendarHint")} checked={hasCalendar} onChange={setHasCalendar} />
         {hasCalendar && (
           <TextField
@@ -370,13 +379,19 @@ function BossSheet({ account, onClose, onUpdated, onRemoved }) {
     run("role", async () => onUpdated(await api.updateBossAccount(account.id, { role: on ? "BOSS" : "LAWYER" })));
   }
 
+  // Money from clients — contract amounts, payments, debts. Asked first.
+  function setSeesFinance(on) {
+    if (on && !confirm(t("finance.confirmOn", { name: label }))) return;
+    run("finance", async () => onUpdated(await api.updateBossAccount(account.id, { seesFinance: on })));
+  }
+
   async function run(kind, action) {
     setBusy(kind);
     setError("");
     try {
       await action();
-    } catch {
-      setError(t("team.actionFailed"));
+    } catch (err) {
+      setError(err?.code === "has_appointments" ? t("team.bossHasAppointments") : t("team.actionFailed"));
     } finally {
       setBusy(null);
     }
@@ -415,12 +430,48 @@ function BossSheet({ account, onClose, onUpdated, onRemoved }) {
       />
 
       <Switch
+        label={t("finance.switch")}
+        hint={t("finance.switchHint")}
+        checked={Boolean(account.seesFinance)}
+        disabled={busy === "finance"}
+        onChange={setSeesFinance}
+      />
+
+      <Switch
         label={t("team.hasCalendar")}
         hint={account.calendar ? account.calendar.name : t("team.hasCalendarHint")}
         checked={Boolean(account.calendar)}
         disabled={busy === "calendar"}
         onChange={(on) => run("calendar", async () => onUpdated(await api.updateBossAccount(account.id, { hasCalendar: on })))}
       />
+
+      {account.devices?.length > 0 && (
+        <div className={pageStyles.formStack} style={{ margin: "14px 0" }}>
+          <span className={pageStyles.note}>{t("team.bossPhones")}</span>
+          {account.devices.map((d) => (
+            <div key={d.id} className={pageStyles.actionsRow} style={{ marginTop: 0, alignItems: "center", justifyContent: "space-between" }}>
+              <span>
+                {d.label || t("team.unknownPhone")}
+                {d.appVersion ? ` · ${d.appVersion}` : ""}
+              </span>
+              <Button
+                size="small"
+                variant="destructive"
+                busy={busy === `device${d.id}`}
+                onClick={() => {
+                  if (!confirm(t("team.confirmSignOutPhone", { name: label }))) return;
+                  run(`device${d.id}`, async () => {
+                    await api.revokeBossDevice(account.id, d.id);
+                    onUpdated({ ...account, devices: account.devices.filter((x) => x.id !== d.id) });
+                  });
+                }}
+              >
+                {t("team.signOutPhone")}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {tempPassword && (
         <CredentialsView

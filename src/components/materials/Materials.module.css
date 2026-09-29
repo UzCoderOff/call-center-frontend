@@ -1,0 +1,251 @@
+/* Training materials: easy reading on a phone — comfortable line length,
+   big type, and the "say this" lines of a script standing out. */
+
+/* ---------- The text ---------- */
+.rich {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.rich h2 {
+  margin-top: 10px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.rich h3 {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.rich > :first-child {
+  margin-top: 0;
+}
+
+.rich ul,
+.rich ol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 24px;
+}
+
+.rich a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* "Say this" — the words of the script. */
+.say {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+}
+
+.say p + p {
+  margin-top: 6px;
+}
+
+.sayLabel,
+.noteLabel {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sayLabel {
+  color: var(--accent);
+}
+
+.note {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--warning-soft);
+  border-left: 4px solid var(--warning);
+}
+
+.noteLabel {
+  color: var(--warning-text);
+}
+
+.sayIcon {
+  flex: none;
+  margin-top: 3px;
+  color: var(--accent);
+}
+
+/* ---------- The material page ---------- */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.reading {
+  max-width: 760px;
+}
+
+.readBar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.readDone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--good-soft);
+  color: var(--good-text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ---------- Files ---------- */
+.media {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.picture {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  border-radius: var(--radius-md);
+  background: var(--fill);
+}
+
+.player {
+  width: 100%;
+}
+
+video.player {
+  max-height: 70vh;
+  border-radius: var(--radius-md);
+  background: #000;
+}
+
+.mediaCaption {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.fileActions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ---------- The list ---------- */
+.rowBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kindTile {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.kindTile.done {
+  background: var(--good-soft);
+  color: var(--good-text);
+}
+
+.progressLine {
+  margin: 10px 0 12px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+/* ---------- The editor ---------- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bodyField textarea {
+  min-height: 280px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.preview {
+  padding: 14px;
+  border: 1px dashed var(--separator-strong);
+  border-radius: var(--radius-md);
+  min-height: 120px;
+}
+
+.help {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.help code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--fill);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.groupLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.upload {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.uploadBar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--fill);
+  overflow: hidden;
+}
+
+.uploadBar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.hiddenInput {
+  display: none;
+}

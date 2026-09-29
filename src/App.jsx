@@ -1,4 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import Button from "./components/ui/Button";
+import { EmptyState } from "./components/ui/Misc";
+import { useI18n } from "./i18n";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import AppShell, { BrandMark } from "./components/layout/AppShell";
 import LoginPage from "./pages/LoginPage";
@@ -15,10 +18,15 @@ import TemplateEditorPage from "./pages/TemplateEditorPage";
 import ProfilePage from "./pages/ProfilePage";
 import CalendarPage, { PlannerRedirect } from "./pages/CalendarPage";
 import MorePage from "./pages/MorePage";
-import { canManageClients, canSeeCalendar, canSeeCalls, canSeeClients, canSeeReports, canSeeTeam } from "./lib/access";
+import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeReports, canSeeTeam } from "./lib/access";
 import ClientsPage from "./pages/ClientsPage";
 import ClientPage from "./pages/ClientPage";
 import ClientImportPage from "./pages/ClientImportPage";
+import MaterialsPage from "./pages/MaterialsPage";
+import MaterialPage from "./pages/MaterialPage";
+import MaterialEditorPage from "./pages/MaterialEditorPage";
+import FinancePage from "./pages/FinancePage";
+import TasksPage from "./pages/TasksPage";
 
 export function Splash() {
   return (
@@ -30,9 +38,22 @@ export function Splash() {
 
 // `allow(user)` decides access to a section; without it, any signed-in
 // person may enter.
+// The server couldn't be reached while opening the portal (no internet, the
+// server restarting): say so, with a button — not the login form.
+function Offline() {
+  const { retry } = useAuth();
+  const { t } = useI18n();
+  return (
+    <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: 24 }}>
+      <EmptyState icon="alertTriangle" title={t("common.offlineTitle")} text={t("common.offlineText")} action={<Button icon="refresh" onClick={retry}>{t("common.retry")}</Button>} />
+    </div>
+  );
+}
+
 function Protected({ children, allow }) {
   const { user, status } = useAuth();
   if (status === "checking") return <Splash />;
+  if (status === "offline") return <Offline />;
   if (status === "anon") return <Navigate to="/login" replace />;
   if (allow && !allow(user)) return <Navigate to="/" replace />;
   return children;
@@ -71,6 +92,12 @@ function Routed() {
         <Route path="team/:id" element={guarded(canSeeTeam, <EmployeeDetailPage />)} />
         <Route path="settings" element={guarded(canSeeTeam, <SettingsPage />)} />
         <Route path="settings/templates/:id" element={guarded(canSeeTeam, <TemplateEditorPage />)} />
+        <Route path="finance" element={guarded(canSeeFinance, <FinancePage />)} />
+        <Route path="tasks" element={<TasksPage />} />
+        <Route path="materials" element={<MaterialsPage />} />
+        <Route path="materials/new" element={guarded(canManageMaterials, <MaterialEditorPage />)} />
+        <Route path="materials/:id" element={<MaterialPage />} />
+        <Route path="materials/:id/edit" element={guarded(canManageMaterials, <MaterialEditorPage />)} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="more" element={<MorePage />} />
       </Route>

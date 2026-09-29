@@ -13,6 +13,7 @@ import { api } from "../lib/api";
 import { callBridge, hasBridge, inApp } from "../lib/appBridge";
 import { applyTheme, readPref, writePref } from "../lib/prefs";
 import { LANGUAGES, useI18n } from "../i18n";
+import TelegramCard from "../components/telegram/TelegramCard";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -37,6 +38,7 @@ export default function ProfilePage() {
         </Card>
 
         {inApp && <AppPanel />}
+        <TelegramCard />
         {isManagerRole(user.role) && (
           <List>
             <ListRow to="/settings" leading={<Icon name="settings" size={20} />} title={t("nav.settings")} subtitle={t("settings.subtitle")} />

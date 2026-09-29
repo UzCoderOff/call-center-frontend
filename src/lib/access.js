@@ -34,6 +34,19 @@ export function canSeeClients(user) {
   return isManager(user) || isLawyer(user) || Boolean(user.employee?.collectCalls) || user.employee?.calendarAccess === "book";
 }
 
+// Money from clients — contract amounts, payments, debts: the developer, and
+// boss/lawyer accounts the developer gave the "Moliya" switch (the server
+// decides and leaves money out for everyone else).
+export function canSeeFinance(user) {
+  return Boolean(user?.finance);
+}
+
 export function canManageClients(user) {
+  return isManager(user);
+}
+
+// Training materials: everyone reads the ones meant for them; the boss and
+// the developer write them and choose who sees each.
+export function canManageMaterials(user) {
   return isManager(user);
 }

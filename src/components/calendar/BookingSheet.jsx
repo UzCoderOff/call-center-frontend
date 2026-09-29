@@ -3,7 +3,9 @@ import pageStyles from "../../pages/Pages.module.css";
 import Sheet from "../ui/Sheet";
 import Button from "../ui/Button";
 import Segmented from "../ui/Segmented";
-import { TextAreaField, TextField } from "../ui/Field";
+import { MoneyField, SelectField, Switch, TextAreaField, TextField } from "../ui/Field";
+import { useAuth } from "../../hooks/useAuth";
+import { isLawyer } from "../../lib/access";
 import { KeyValue } from "../ui/Misc";
 import { api } from "../../lib/api";
 import { useI18n } from "../../i18n";
@@ -13,7 +15,12 @@ const ERRORS = {
   not_free_time: "calendar.notFree",
   in_the_past: "calendar.inPast",
   not_published: "calendar.notPublishedError",
+  phone_required_for_fee: "calendar.feeNeedsPhone",
 };
+
+// The firm's usual consultation fee (the server has the same default).
+export const CONSULTATION_FEE = 450000;
+export const FEE_METHODS = ["cash", "card", "transfer"];
 
 // Booking a client into a free slot. Immediate — the lawyer already
 // approved this time by publishing the week. `prefill` comes from a call
@@ -28,11 +35,20 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
   const [clientPhone, setClientPhone] = useState(prefill?.phone || "");
   const [matter, setMatter] = useState("");
   const [notes, setNotes] = useState("");
+  // "Fee received": the consultation fee was paid now — it's recorded on the
+  // client with the booking. Lawyers don't record payments.
+  const { user } = useAuth();
+  const canTakeFee = !isLawyer(user);
+  const [feeReceived, setFeeReceived] = useState(false);
+  const [feeAmount, setFeeAmount] = useState(String(CONSULTATION_FEE));
+  const [feeMethod, setFeeMethod] = useState("cash");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   async function submit(e) {
     e.preventDefault();
+    if (feeReceived && !clientPhone.trim()) return setError(t("calendar.feeNeedsPhone"));
+    if (feeReceived && !Number(feeAmount)) return setError(t("payments.amountRequired"));
     setBusy(true);
     setError("");
     try {
@@ -45,6 +61,7 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
         matter: matter.trim() || null,
         notes: notes.trim() || null,
         callLogId: prefill?.callId || undefined,
+        ...(feeReceived ? { feeReceived: true, feeAmount: Number(feeAmount), feeMethod } : {}),
       });
       onBooked(appointment);
     } catch (err) {
@@ -94,6 +111,21 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
           onChange={(e) => setMatter(e.target.value)}
         />
         <TextAreaField label={t("calendar.notes")} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        {canTakeFee && (
+          <Switch label={t("calendar.feeReceived")} hint={t("calendar.feeReceivedHint")} checked={feeReceived} onChange={setFeeReceived} />
+        )}
+        {feeReceived && (
+          <div className={pageStyles.formStack} style={{ gap: 10 }}>
+            <MoneyField label={t("payments.amount")} value={feeAmount} onChange={setFeeAmount} />
+            <SelectField label={t("payments.method")} value={feeMethod} onChange={(e) => setFeeMethod(e.target.value)}>
+              {FEE_METHODS.map((m) => (
+                <option key={m} value={m}>
+                  {t(`payments.methods.${m}`)}
+                </option>
+              ))}
+            </SelectField>
+          </div>
+        )}
         {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
         <div className={pageStyles.formActions}>
           <Button onClick={onClose}>{t("common.cancel")}</Button>

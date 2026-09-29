@@ -11,6 +11,17 @@ import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
+import { TelegramOverview } from "../components/telegram/TelegramCard";
+import { ReportModeFields, reportModeOf } from "../components/team/WorkSettingsFields";
+
+// "Avtomatik + Kunlik shakl", "Kunlik shakl", "Avtomatik", "Hisobot yoʻq".
+export function reportSummary(x, t) {
+  const mode = reportModeOf({ autoReport: x.autoReport, alsoForm: x.alsoForm, reportTemplateId: x.reportTemplate?.id });
+  if (mode === "autoForm") return x.reportTemplate ? t("reportMode.summaryBoth", { name: x.reportTemplate.name }) : t("autoReport.name");
+  if (mode === "auto") return t("autoReport.name");
+  if (mode === "form") return x.reportTemplate.name;
+  return t("settings.noReportForm");
+}
 
 // How the firm is organised: offices, positions (job presets) and the daily
 // report forms. Everything here can change as the firm learns what each
@@ -32,6 +43,7 @@ export default function SettingsPage() {
         <Offices canEdit={canEdit} />
         <Positions canEdit={canEdit} />
         <Templates canEdit={canEdit} />
+        <TelegramOverview />
         <AuditLog />
       </div>
     </div>
@@ -49,6 +61,10 @@ const AUDIT_ICON = {
   "payment.delete": "trash",
   "clients.import": "upload",
   "clients.bulk": "users",
+  "material.archive": "archive",
+  "material.restore": "refresh",
+  "material.delete": "trash",
+  "material.file.delete": "trash",
 };
 
 // A bulk change in words: "operator — Nodira", "closed as didn't continue".
@@ -259,7 +275,7 @@ function Positions({ canEdit }) {
                   chevron={canEdit}
                   leading={<IconTile icon="user" />}
                   title={p.name}
-                  subtitle={[p.autoReport ? t("autoReport.name") : p.reportTemplate?.name || t("settings.noReportForm"), p.calendarAccess !== "none" && `${t("settings.calendarAccess")}: ${t(`settings.access.${p.calendarAccess}`)}`].filter(Boolean).join(" · ")}
+                  subtitle={[reportSummary(p, t), p.calendarAccess !== "none" && `${t("settings.calendarAccess")}: ${t(`settings.access.${p.calendarAccess}`)}`].filter(Boolean).join(" · ")}
                   trailing={
                     p.collectCalls && (
                       <Badge tone="accent" icon="phone">
@@ -289,9 +305,13 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
   const { t } = useI18n();
   const [name, setName] = useState(position?.name || "");
   const [collectCalls, setCollectCalls] = useState(position?.collectCalls ?? false);
-  const [autoReport, setAutoReport] = useState(position?.autoReport ?? false);
+  // The daily report preset: none / form / automatic / automatic + form.
+  const [report, setReport] = useState({
+    autoReport: position?.autoReport ?? false,
+    alsoForm: position?.alsoForm ?? false,
+    reportTemplateId: position?.reportTemplate?.id ?? "",
+  });
   const [calendarAccess, setCalendarAccess] = useState(position?.calendarAccess ?? "none");
-  const [templateId, setTemplateId] = useState(position?.reportTemplate?.id ?? "");
   const [targetConsultations, setTargetConsultations] = useState(position?.targetConsultations ?? "");
   const [targetContracts, setTargetContracts] = useState(position?.targetContracts ?? "");
   const [busy, setBusy] = useState(false);
@@ -305,9 +325,10 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
     const payload = {
       name,
       collectCalls,
-      autoReport,
+      autoReport: report.autoReport,
+      alsoForm: Boolean(report.autoReport && report.alsoForm),
       calendarAccess,
-      reportTemplateId: templateId || null,
+      reportTemplateId: report.reportTemplateId || null,
       targetConsultations: target(targetConsultations),
       targetContracts: target(targetContracts),
     };
@@ -356,20 +377,7 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
           checked={collectCalls}
           onChange={setCollectCalls}
         />
-        <Switch label={t("autoReport.switch")} hint={t("autoReport.switchHint")} checked={autoReport} onChange={setAutoReport} />
-        <SelectField
-          label={t("settings.reportForm")}
-          hint={autoReport ? t("autoReport.formKeptHint") : undefined}
-          value={templateId}
-          onChange={(e) => setTemplateId(e.target.value)}
-        >
-          <option value="">{t("settings.noReportForm")}</option>
-          {templates.map((tpl) => (
-            <option key={tpl.id} value={tpl.id}>
-              {tpl.name}
-            </option>
-          ))}
-        </SelectField>
+        <ReportModeFields value={report} onChange={setReport} templates={templates} />
         <div className={pageStyles.formStack} style={{ gap: 6 }}>
           <span className={pageStyles.note}>{t("settings.targetsHint")}</span>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>

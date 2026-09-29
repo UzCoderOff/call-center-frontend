@@ -1,0 +1,44 @@
+/* Tasks: a round tick at the end of each row, big enough for a thumb. */
+.doneButton {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-right: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--separator-strong);
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.doneButton:hover {
+  border-color: var(--good);
+  color: var(--good);
+}
+
+.doneOn {
+  border-color: var(--good);
+  background: var(--good);
+  color: var(--on-accent);
+}
+
+.doneOn:hover {
+  color: var(--on-accent);
+}
+
+.doneTitle {
+  color: var(--text-2);
+  text-decoration: line-through;
+}
+
+.notes {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--fill);
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}

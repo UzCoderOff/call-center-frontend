@@ -6,7 +6,10 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [status, setStatus] = useState("checking"); // checking | authed | anon
+  // checking | authed | anon | offline (the server couldn't be reached —
+  // that's not the same as being signed out, so no login form for it)
+  const [status, setStatus] = useState("checking");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -17,13 +20,18 @@ export function AuthProvider({ children }) {
         setUser(me);
         setStatus("authed");
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
-        setStatus("anon");
+        setStatus(err instanceof ApiError && err.status === 401 ? "anon" : "offline");
       });
     return () => {
       cancelled = true;
     };
+  }, [attempt]);
+
+  const retry = useCallback(() => {
+    setStatus("checking");
+    setAttempt((n) => n + 1);
   }, []);
 
   // Any 401 later on (expired session, deactivated account) sends the
@@ -80,7 +88,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, status, login, logout, refreshMe }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, status, login, logout, refreshMe, retry }}>{children}</AuthContext.Provider>
   );
 }
 

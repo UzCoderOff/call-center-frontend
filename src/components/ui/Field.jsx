@@ -13,6 +13,15 @@ export function TextField({ label, hint, className = "", ...inputProps }) {
   );
 }
 
+const digitsOnly = (v) => String(v ?? "").replace(/\D/g, "");
+const grouped = (v) => digitsOnly(v).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+// Sums in so'm, shown with spaces as they're typed ("15 000 000"); the value
+// is the plain digits.
+export function MoneyField({ label, value, onChange, ...rest }) {
+  return <TextField label={label} value={grouped(value)} onChange={(e) => onChange(digitsOnly(e.target.value))} inputMode="numeric" {...rest} />;
+}
+
 export function SelectField({ label, hint, children, className = "", ...selectProps }) {
   const id = useId();
   return (

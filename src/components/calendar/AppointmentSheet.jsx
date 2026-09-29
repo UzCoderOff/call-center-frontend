@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 import pageStyles from "../../pages/Pages.module.css";
 import Sheet from "../ui/Sheet";
 import Button from "../ui/Button";
-import { TextAreaField } from "../ui/Field";
+import { MoneyField, SelectField, TextAreaField } from "../ui/Field";
+import Badge from "../ui/Badge";
+import { CONSULTATION_FEE, FEE_METHODS } from "./BookingSheet";
+import { canBookAppointments, isLawyer } from "../../lib/access";
 import { KeyValue } from "../ui/Misc";
 import { AppointmentStatusBadge } from "./Appointment";
 import { useAuth, isManagerRole } from "../../hooks/useAuth";
@@ -21,7 +24,27 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
+  // Recording the consultation fee after booking.
+  const [takingFee, setTakingFee] = useState(false);
+  const [feeAmount, setFeeAmount] = useState(String(CONSULTATION_FEE));
+  const [feeMethod, setFeeMethod] = useState("cash");
   const a = appointment;
+  const fee = a.payments?.[0] || null;
+  const mayTakeFee = !fee && a.status !== "cancelled" && !isLawyer(user) && canBookAppointments(user);
+
+  async function recordFee() {
+    if (!Number(feeAmount)) return setError(t("payments.amountRequired"));
+    setBusy("fee");
+    setError("");
+    try {
+      onChanged(await api.appointmentFee(a.id, { feeAmount: Number(feeAmount), feeMethod }));
+      setTakingFee(false);
+    } catch (err) {
+      setError(err.code === "phone_required_for_fee" ? t("calendar.feeNeedsPhone") : t("calendar.actionFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
   const upcoming = a.date > today || (a.date === today && a.start > nowMinutes);
@@ -56,6 +79,15 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
         {a.matter && <KeyValue label={t("calendar.matter")}>{a.matter}</KeyValue>}
         {a.notes && <KeyValue label={t("calendar.notes")}>{a.notes}</KeyValue>}
         {booker && <KeyValue label={t("calendar.bookedBy")}>{booker}</KeyValue>}
+        <KeyValue label={t("calendar.fee")}>
+          {fee ? (
+            <Badge tone="good" icon="check">
+              {`${fmt.money(fee.amount)} · ${t(`payments.methods.${fee.method || "cash"}`)}`}
+            </Badge>
+          ) : (
+            <Badge tone="warning">{t("calendar.feeNotPaid")}</Badge>
+          )}
+        </KeyValue>
         {a.cancelReason && <KeyValue label={t("calendar.cancelReason")}>{a.cancelReason}</KeyValue>}
         {a.callLogId && (
           <KeyValue label={t("calendar.call")}>
@@ -71,6 +103,30 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
           {t("common.call")}
         </Button>
       )}
+
+      {mayTakeFee &&
+        (takingFee ? (
+          <div className={pageStyles.formStack}>
+            <MoneyField label={t("payments.amount")} value={feeAmount} onChange={setFeeAmount} />
+            <SelectField label={t("payments.method")} value={feeMethod} onChange={(e) => setFeeMethod(e.target.value)}>
+              {FEE_METHODS.map((m) => (
+                <option key={m} value={m}>
+                  {t(`payments.methods.${m}`)}
+                </option>
+              ))}
+            </SelectField>
+            <div className={pageStyles.formActions}>
+              <Button onClick={() => setTakingFee(false)}>{t("common.cancel")}</Button>
+              <Button variant="primary" icon="cash" busy={busy === "fee"} onClick={recordFee}>
+                {t("calendar.saveFee")}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button icon="cash" block onClick={() => setTakingFee(true)}>
+            {t("calendar.takeFee")}
+          </Button>
+        ))}
 
       {canManage && started && a.status !== "cancelled" && (
         <div className={pageStyles.actionsRow} style={{ marginTop: 0 }}>
