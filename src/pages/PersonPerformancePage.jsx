@@ -5,10 +5,12 @@ import styles from "../components/performance/Performance.module.css";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Sheet from "../components/ui/Sheet";
+import Segmented from "../components/ui/Segmented";
 import { MoneyField, TextField } from "../components/ui/Field";
-import { AsyncBoundary, PageHeader, StatTile } from "../components/ui/Misc";
+import { AsyncBoundary, PageHeader } from "../components/ui/Misc";
 import DailyChart from "../components/charts/DailyChart";
-import { BurnUpChart, MonthsChart } from "../components/performance/charts";
+import { BurnUpChart, MeasureMonthsChart } from "../components/performance/charts";
+import { MeasureRow, TargetSheet, useMeasureText, useMeasureValue } from "../components/performance/Measures";
 import HowCounted from "../components/performance/HowCounted";
 import { shiftMonth, useMonthLabel } from "../components/finance/parts";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
@@ -17,10 +19,11 @@ import { useBack } from "../hooks/useBack";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
-// One person's month at work: against their targets day by day, their
-// bookings and what came of them, their calls, the money they brought in
-// and took, what they cost (Moliya), their reports and tasks, and the last
-// six months. Staff see their own page (no contract money, no cost).
+// One person's month, measured by the work they do: their targets (set
+// here — "Reja qoʻyish"), then client work (calls, consultations, contracts)
+// and/or office work (the numbers in their daily report form), money, days
+// worked, reports and tasks, and the last six months of any measure. Staff
+// see their own page (no contract money, no cost).
 export default function PersonPerformancePage() {
   const { id } = useParams();
   const { t, fmt } = useI18n();
@@ -61,61 +64,21 @@ export default function PersonPerformancePage() {
             </div>
             {p.workDays.away.length > 0 && <AwayNote away={p.workDays.away} />}
 
-            <Tiles p={p} />
-
-            <div className={styles.columns}>
-              <Card title={t("perf.consultationsProgress")} subtitle={t("perf.progressSubtitle")}>
-                <Progress p={p} field="consultations" tone="s1" />
-              </Card>
-              <Card title={t("perf.contractsProgress")} subtitle={t("perf.progressSubtitle")}>
-                <Progress p={p} field="contracts" tone="s2" />
-              </Card>
-            </div>
-
-            <div className={styles.columns}>
-              <Bookings p={p} />
-              <Money p={p} onChanged={state.reload} />
-            </div>
-
+            <Plan p={p} manager={manager} onChanged={state.reload} />
+            {p.work.client && <ClientWork p={p} />}
+            {p.work.office && p.office.length > 0 && <OfficeWork p={p} />}
             {p.calls && <Calls p={p} />}
-
             <div className={styles.columns}>
+              <Money p={p} onChanged={state.reload} />
               <Discipline p={p} />
-              <History p={p} monthLabel={monthLabel} />
             </div>
+            <History p={p} monthLabel={monthLabel} />
 
             <Card>
               <details className={styles.how}>
                 <summary>{t("perf.daysTitle")}</summary>
                 <div className={styles.tableScroll} style={{ marginTop: 12 }}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>{t("perf.col.date")}</th>
-                        {p.calls && <th>{t("perf.col.answered")}</th>}
-                        {p.calls && <th>{t("perf.col.missed")}</th>}
-                        <th>{t("perf.col.booked")}</th>
-                        <th>{t("perf.col.consultations")}</th>
-                        <th>{t("perf.col.contracts")}</th>
-                        <th>{t("perf.col.fees")}</th>
-                        {p.finance && <th>{t("perf.col.brought")}</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...p.days].reverse().map((d) => (
-                        <tr key={d.date}>
-                          <td>{fmt.isoDateLong(d.date)}</td>
-                          {p.calls && <td>{d.answered}</td>}
-                          {p.calls && <td>{d.missed}</td>}
-                          <td>{d.booked}</td>
-                          <td>{d.consultations}</td>
-                          <td>{d.contracts}</td>
-                          <td>{d.fees ? fmt.number(d.fees) : "—"}</td>
-                          {p.finance && <td>{d.brought ? fmt.number(d.brought) : "—"}</td>}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <DaysTable p={p} fmt={fmt} />
                 </div>
               </details>
             </Card>
@@ -135,60 +98,43 @@ function AwayNote({ away }) {
   return <p className={styles.pace}>{t("perf.awayNote", { days: away.map((a) => `${fmt.isoDateLong(a.date)} (${label(a)})`).join(", ") })}</p>;
 }
 
-// "12 / 60 — by today 14 (2 behind)".
-function useTargetLine() {
+// Targets and results: everything they're measured on, targets first, with
+// what each number means. Managers set the targets here.
+function Plan({ p, manager, onChanged }) {
   const { t } = useI18n();
-  return (x) => {
-    if (x.target == null) return t("perf.noTarget");
-    const diff = x.count - (x.expected ?? 0);
-    return t(diff >= 0 ? "perf.aheadLine" : "perf.behindLine", { expected: x.expected, n: Math.abs(diff) });
-  };
-}
-
-function Tiles({ p }) {
-  const { t, fmt } = useI18n();
-  const line = useTargetLine();
-  const brought = p.money.brought.total + (p.money.reportIncome || 0);
+  const [editing, setEditing] = useState(false);
+  const targeted = p.metrics.filter((m) => m.target != null);
   return (
-    <div className={styles.tiles}>
-      <StatTile
-        label={t("perf.col.consultations")}
-        value={p.consultations.target != null ? `${p.consultations.count} / ${p.consultations.target}` : String(p.consultations.count)}
-        sub={line(p.consultations)}
-        dot="var(--series-consultation)"
-      />
-      <StatTile
-        label={t("perf.col.contracts")}
-        value={p.contracts.target != null ? `${p.contracts.count} / ${p.contracts.target}` : String(p.contracts.count)}
-        sub={[line(p.contracts), p.finance && p.contracts.amount ? fmt.money(p.contracts.amount) : null].filter(Boolean).join(" · ")}
-        dot="var(--series-contract)"
-      />
-      <StatTile
-        label={t("perf.col.conversion")}
-        value={p.conversion.rate != null ? `${p.conversion.rate}%` : "—"}
-        sub={t("perf.conversionSub", { signed: p.conversion.signed, total: p.conversion.consultations })}
-        dot="var(--accent)"
-      />
-      <StatTile label={t("perf.col.booked")} value={String(p.bookings.made)} sub={t("perf.bookedSub", { added: p.clientsAdded })} dot="var(--accent)" />
-      <StatTile
-        label={p.finance ? t("perf.col.brought") : t("perf.col.fees")}
-        value={fmt.money(brought)}
-        sub={p.finance && p.cost?.amount != null ? t("perf.costLine", { cost: fmt.money(p.cost.amount) }) : t("perf.broughtSub")}
-        dot="var(--good)"
-      />
-    </div>
+    <Card
+      title={t("perf.planTitle")}
+      subtitle={targeted.length ? t("perf.planSubtitle") : t("perf.planNone")}
+      action={
+        manager ? (
+          <Button size="small" variant="primary" icon="plus" onClick={() => setEditing(true)}>
+            {t("perf.target.set")}
+          </Button>
+        ) : undefined
+      }
+    >
+      {p.metrics.length === 0 ? (
+        <p className={styles.emptyNote}>{t("perf.nothingToMeasure")}</p>
+      ) : (
+        <div className={styles.measures}>
+          {p.metrics.map((m) => (
+            <MeasureRow key={m.key} measure={m} />
+          ))}
+        </div>
+      )}
+      {editing && (
+        <TargetSheet
+          employeeId={p.employee.id}
+          month={p.month}
+          onClose={() => setEditing(false)}
+          onSaved={onChanged}
+        />
+      )}
+    </Card>
   );
-}
-
-function Progress({ p, field, tone }) {
-  const { t } = useI18n();
-  const x = p[field];
-  const dates = [];
-  const [y, m] = p.month.split("-").map(Number);
-  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  for (let d = 1; d <= last; d++) dates.push(`${p.month}-${String(d).padStart(2, "0")}`);
-  const perDay = new Map(p.days.map((d) => [d.date, d[field]]));
-  return <BurnUpChart dates={dates} perDay={perDay} workDates={p.workDates} target={x.target} tone={tone} label={t(`perf.series.${field}`)} />;
 }
 
 function Fact({ label, value, note }) {
@@ -201,20 +147,92 @@ function Fact({ label, value, note }) {
   );
 }
 
-function Bookings({ p }) {
-  const { t, fmt } = useI18n();
+function monthDates(month) {
+  const [y, m] = month.split("-").map(Number);
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return Array.from({ length: last }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
+}
+
+// Client work, in plain words: booked, came, signed.
+function ClientWork({ p }) {
+  const { t } = useI18n();
   const b = p.bookings;
-  const pct = (a, n) => (n ? `${Math.round((a / n) * 100)}%` : "—");
+  const c = p.conversion;
+  const dates = monthDates(p.month);
   return (
-    <Card title={t("perf.bookingsTitle")} subtitle={t("perf.bookingsSubtitle")}>
+    <Card title={t("perf.clientTitle")} subtitle={t("perf.clientSubtitle")}>
       <div className={styles.facts}>
-        <Fact label={t("perf.b.total")} value={b.total} note={t("perf.b.online", { n: b.online })} />
-        <Fact label={t("perf.b.attended")} value={b.attended} note={pct(b.attended, b.attended + b.noShow)} />
-        <Fact label={t("perf.b.noShow")} value={b.noShow} note={b.unmarked ? t("perf.b.unmarked", { n: b.unmarked }) : null} />
-        <Fact label={t("perf.b.upcoming")} value={b.upcoming} />
-        <Fact label={t("perf.b.cancelled")} value={b.cancelled} />
-        <Fact label={t("perf.b.paid")} value={`${b.paid} / ${b.total}`} note={fmt.money(b.paidAmount)} />
+        <Fact label={t("perf.cw.booked")} value={b.made} note={t("perf.cw.bookedNote", { added: p.clientsAdded })} />
+        <Fact label={t("perf.cw.came")} value={`${b.attended} / ${b.total}`} note={t("perf.cw.cameNote", { noShow: b.noShow, unmarked: b.unmarked, upcoming: b.upcoming })} />
+        <Fact label={t("perf.measure.consultations")} value={p.consultations.count} note={t("perf.measureHint.consultations")} />
+        <Fact label={t("perf.measure.contracts")} value={p.contracts.count} note={t("perf.measureHint.contracts")} />
+        <Fact
+          label={t("perf.cw.signedShare")}
+          value={c.rate != null ? `${c.rate}%` : "—"}
+          note={t("perf.cw.signedShareNote", { signed: c.signed, total: c.consultations })}
+        />
       </div>
+      <div className={styles.columns} style={{ marginTop: 18 }}>
+        <BurnUpChart dates={dates} perDay={new Map(p.days.map((d) => [d.date, d.consultations]))} workDates={p.workDates} target={p.consultations.target} tone="s1" label={t("perf.measure.consultations")} />
+        <BurnUpChart dates={dates} perDay={new Map(p.days.map((d) => [d.date, d.contracts]))} workDates={p.workDates} target={p.contracts.target} tone="s2" label={t("perf.measure.contracts")} />
+      </div>
+    </Card>
+  );
+}
+
+// Office work: the numbers in their daily report form over the month — how
+// much, per working day, by service (tables) — and one of them day by day.
+function OfficeWork({ p }) {
+  const { t, fmt } = useI18n();
+  const text = useMeasureText();
+  const show = useMeasureValue();
+  const [picked, setPicked] = useState(p.office[0]?.key);
+  const chosen = p.office.find((m) => m.key === picked) || p.office[0];
+  const dates = monthDates(p.month);
+  return (
+    <Card title={t("perf.officeTitle")} subtitle={t("perf.officeSubtitle")}>
+      <div className={styles.measures}>
+        {p.office.map((m) => (
+          <div key={m.key} className={styles.measure}>
+            <div className={styles.measureHead}>
+              <span className={styles.measureLabel}>{text(m).label}</span>
+              <strong className={styles.measureValue}>{show(m, m.value)}</strong>
+            </div>
+            <span className={styles.measureNote}>
+              {[m.perWorkDay != null ? t("perf.ow.perDay", { n: m.unit === "money" ? fmt.money(Math.round(m.perWorkDay)) : fmt.number(m.perWorkDay) }) : null, m.target != null ? t("perf.ow.target", { target: show(m, m.target) }) : null]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+            {m.groups.length > 0 && (
+              <div className={styles.targetList} style={{ marginTop: 4 }}>
+                {m.groups.map((g) => (
+                  <div key={g.name} className={styles.targetRow}>
+                    <span className={styles.muted}>{g.name}</span>
+                    <span>{show(m, g.total)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {chosen && (
+        <div style={{ marginTop: 18 }}>
+          {p.office.length > 1 && (
+            <div style={{ marginBottom: 10 }}>
+              <Segmented wrap size="small" value={chosen.key} onChange={setPicked} label={t("perf.officeTitle")} options={p.office.map((m) => ({ value: m.key, label: text(m).label }))} />
+            </div>
+          )}
+          <BurnUpChart
+            dates={dates}
+            perDay={new Map(p.days.map((d) => [d.date, d.measures?.[chosen.key] || 0]))}
+            workDates={p.workDates}
+            target={chosen.target}
+            tone="s1"
+            label={text(chosen).label}
+          />
+        </div>
+      )}
     </Card>
   );
 }
@@ -236,36 +254,24 @@ function Money({ p, onChanged }) {
       }
     >
       <div className={styles.facts}>
-        {p.finance ? (
-          <>
+        {p.work.client &&
+          (p.finance ? (
             <Fact label={t("perf.m.brought")} value={fmt.number(m.brought.total)} note={t("perf.m.broughtSplit", { consultation: fmt.number(m.brought.consultation), contract: fmt.number(m.brought.contract) })} />
-            <Fact label={t("perf.m.reports")} value={fmt.number(m.reportIncome)} note={m.reportExpense ? t("perf.m.expenses", { amount: fmt.number(m.reportExpense) }) : null} />
-          </>
-        ) : (
-          <Fact label={t("perf.m.fees")} value={fmt.number(m.brought.consultation)} />
-        )}
+          ) : (
+            <Fact label={t("perf.m.fees")} value={fmt.number(m.brought.consultation)} />
+          ))}
+        {p.finance && m.reportIncome > 0 && <Fact label={t("perf.m.reports")} value={fmt.number(m.reportIncome)} note={m.reportExpense ? t("perf.m.expenses", { amount: fmt.number(m.reportExpense) }) : null} />}
         <Fact label={t("perf.m.taken")} value={fmt.number(m.taken.total)} note={t("perf.m.takenSplit", { cash: fmt.number(m.taken.cash), card: fmt.number(m.taken.card), transfer: fmt.number(m.taken.transfer) })} />
         {p.cash && <Fact label={t("perf.m.holding")} value={fmt.number(p.cash.holding)} note={t("perf.m.holdingNote", { handed: fmt.number(p.cash.handed) })} />}
         {p.finance && p.cost && (
           <>
-            <Fact
-              label={t("perf.cost.label")}
-              value={p.cost.amount != null ? fmt.number(p.cost.amount) : "—"}
-              note={p.cost.amount != null ? t("perf.cost.since", { month: p.cost.fromMonth }) : t("perf.cost.notSet")}
-            />
+            <Fact label={t("perf.cost.label")} value={p.cost.amount != null ? fmt.number(p.cost.amount) : "—"} note={p.cost.amount != null ? t("perf.cost.since", { month: p.cost.fromMonth }) : t("perf.cost.notSet")} />
             {p.cost.amount != null && (
-              <>
-                <Fact
-                  label={t("perf.cost.return")}
-                  value={p.cost.ratio != null ? `×${String(p.cost.ratio).replace(".", ",")}` : "—"}
-                  note={t(p.cost.net >= 0 ? "perf.cost.netPlus" : "perf.cost.netMinus", { amount: fmt.money(Math.abs(p.cost.net)) })}
-                />
-                <Fact
-                  label={t("perf.cost.perUnit")}
-                  value={p.cost.perConsultation != null ? fmt.number(p.cost.perConsultation) : "—"}
-                  note={p.cost.perContract != null ? t("perf.cost.perContract", { amount: fmt.number(p.cost.perContract) }) : t("perf.cost.noContracts")}
-                />
-              </>
+              <Fact
+                label={t("perf.cost.return")}
+                value={p.cost.ratio != null ? `×${String(p.cost.ratio).replace(".", ",")}` : "—"}
+                note={t(p.cost.net >= 0 ? "perf.cost.netPlus" : "perf.cost.netMinus", { amount: fmt.money(Math.abs(p.cost.net)) })}
+              />
             )}
           </>
         )}
@@ -380,10 +386,11 @@ function Discipline({ p }) {
   return (
     <Card title={t("perf.disciplineTitle")}>
       <div className={styles.facts}>
+        <Fact label={t("perf.d.days")} value={`${p.workDays.soFar} / ${p.workDays.total}`} note={t("perf.d.daysNote")} />
         <Fact
           label={t("perf.d.reports")}
           value={r.due ? `${r.sent} / ${r.due}` : r.mode === "auto" ? t("perf.autoShort") : "—"}
-          note={r.mode === "auto" ? t("perf.d.auto") : r.mode === "none" ? t("perf.d.none") : null}
+          note={r.mode === "auto" ? t("perf.d.auto") : r.mode === "none" ? t("perf.d.none") : t("perf.d.reportsNote")}
         />
         <Fact label={t("perf.d.tasks")} value={k.total ? `${k.onTime} / ${k.total}` : "—"} note={k.total ? t("perf.d.tasksSplit", { late: k.late, open: k.open, overdue: k.overdue }) : t("perf.d.noTasks")} />
       </div>
@@ -392,35 +399,63 @@ function Discipline({ p }) {
   );
 }
 
+// Six months of one measure at a time — whichever they're measured on.
 function History({ p, monthLabel }) {
-  const { t, fmt } = useI18n();
+  const { t } = useI18n();
+  const text = useMeasureText();
+  const show = useMeasureValue();
+  const inHistory = (m) => !m.builtin || ["consultations", "contracts", "fees"].includes(m.key);
+  const options = p.metrics.filter(inHistory);
+  const [picked, setPicked] = useState(options[0]?.key);
+  const chosen = options.find((m) => m.key === picked) || options[0];
+  if (!chosen) return null;
+  const valueOf = (h) => (chosen.builtin ? h[chosen.key] || 0 : h.measures?.[chosen.key] || 0);
   return (
-    <Card title={t("perf.historyTitle")} subtitle={t("perf.historySubtitle")}>
-      <MonthsChart months={p.history} monthLabel={monthLabel} />
-      <div className={styles.tableScroll} style={{ marginTop: 12 }}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>{t("perf.col.month")}</th>
-              <th>{t("perf.col.consultations")}</th>
-              <th>{t("perf.col.contracts")}</th>
-              {p.finance ? <th>{t("perf.col.contracted")}</th> : null}
-              <th>{p.finance ? t("perf.col.brought") : t("perf.col.fees")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...p.history].reverse().map((m) => (
-              <tr key={m.month}>
-                <td>{monthLabel(m.month)}</td>
-                <td>{m.consultations}</td>
-                <td>{m.contracts}</td>
-                {p.finance ? <td>{fmt.number(m.contracted)}</td> : null}
-                <td>{fmt.number(p.finance ? m.brought : m.fees)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <Card title={t("perf.historyTitle")} subtitle={t("perf.historyPick")}>
+      {options.length > 1 && (
+        <div style={{ marginBottom: 12 }}>
+          <Segmented wrap size="small" value={chosen.key} onChange={setPicked} label={t("perf.historyTitle")} options={options.map((m) => ({ value: m.key, label: text(m).label }))} />
+        </div>
+      )}
+      <MeasureMonthsChart rows={p.history.map((h) => ({ month: h.month, value: valueOf(h) }))} monthLabel={monthLabel} show={(v) => show(chosen, v)} label={text(chosen).label} />
     </Card>
+  );
+}
+
+function DaysTable({ p, fmt }) {
+  const { t } = useI18n();
+  const text = useMeasureText();
+  const office = p.office || [];
+  return (
+    <table className={styles.table}>
+      <thead>
+        <tr>
+          <th>{t("perf.col.date")}</th>
+          {p.calls && <th>{t("perf.col.answered")}</th>}
+          {p.calls && <th>{t("perf.col.missed")}</th>}
+          {p.work.client && <th>{t("perf.col.booked")}</th>}
+          {p.work.client && <th>{t("perf.col.consultations")}</th>}
+          {p.work.client && <th>{t("perf.col.contracts")}</th>}
+          {office.map((m) => (
+            <th key={m.key}>{text(m).label}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {[...p.days].reverse().map((d) => (
+          <tr key={d.date}>
+            <td>{fmt.isoDateLong(d.date)}</td>
+            {p.calls && <td>{d.answered}</td>}
+            {p.calls && <td>{d.missed}</td>}
+            {p.work.client && <td>{d.booked}</td>}
+            {p.work.client && <td>{d.consultations}</td>}
+            {p.work.client && <td>{d.contracts}</td>}
+            {office.map((m) => (
+              <td key={m.key}>{d.measures?.[m.key] ? fmt.number(d.measures[m.key]) : "—"}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

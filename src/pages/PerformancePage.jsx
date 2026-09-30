@@ -4,17 +4,19 @@ import styles from "../components/performance/Performance.module.css";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import { AsyncBoundary, PageHeader } from "../components/ui/Misc";
-import { TargetBars } from "../components/performance/charts";
+import { MeasureRow } from "../components/performance/Measures";
 import HowCounted from "../components/performance/HowCounted";
 import { shiftMonth, useMonthLabel } from "../components/finance/parts";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
-// Natijalar — the team's month: who is where against their targets (and
-// where they should be by today), and one line per person with calls,
-// bookings, consultations, contracts, conversion, money, cost, reports and
-// tasks. A staff member only has their own page, so they go straight there.
+// Natijalar — the team's month, each person measured by the work they do:
+// people who work with clients (calls, consultations, contracts), office
+// staff (the numbers in their daily report form — documents translated,
+// people served…), against the targets set for each of them. One card per
+// person; the details and "Reja qoʻyish" are on their own page. A staff
+// member only has their own page, so they go straight there.
 export default function PerformancePage() {
   const { t } = useI18n();
   const [params, setParams] = useSearchParams();
@@ -26,10 +28,13 @@ export default function PerformancePage() {
     <div>
       <PageHeader title={t("perf.title")} subtitle={t("perf.subtitle")} />
       <AsyncBoundary state={state}>
-        {(data) =>
-          data.mineOnly ? (
-            <Navigate to={`/performance/${data.rows[0]?.employee.id}${month ? `?month=${month}` : ""}`} replace />
-          ) : (
+        {(data) => {
+          if (data.mineOnly) return <Navigate to={`/performance/${data.rows[0]?.employee.id}${month ? `?month=${month}` : ""}`} replace />;
+          const client = data.rows.filter((r) => r.work.client);
+          const office = data.rows.filter((r) => !r.work.client && r.work.office);
+          const other = data.rows.filter((r) => !r.work.client && !r.work.office);
+          const q = data.month === data.current ? "" : `?month=${data.month}`;
+          return (
             <div className={pageStyles.stack}>
               <div className={styles.topBar}>
                 <div className={styles.monthBar}>
@@ -45,125 +50,79 @@ export default function PerformancePage() {
                     aria-label={t("finance.nextMonth")}
                   />
                 </div>
-                <span className={styles.pace}>{t("perf.paceNote", { soFar: data.workDaysSoFar, total: data.workDays })}</span>
                 <Button size="small" icon="download" href={api.performanceExportUrl(data.month)}>
                   {t("perf.export")}
                 </Button>
               </div>
-              <Targets data={data} />
-              <TeamTable data={data} />
+
+              <Card>
+                <details className={styles.how}>
+                  <summary>{t("perf.intro.title")}</summary>
+                  <ul>
+                    <li>{t("perf.intro.client")}</li>
+                    <li>{t("perf.intro.office")}</li>
+                    <li>{t("perf.intro.targets")}</li>
+                    <li>{t("perf.intro.days")}</li>
+                  </ul>
+                </details>
+              </Card>
+
+              {[
+                { key: "client", rows: client },
+                { key: "office", rows: office },
+                { key: "other", rows: other },
+              ]
+                .filter((g) => g.rows.length > 0)
+                .map((g) => (
+                  <section key={g.key} className={styles.group}>
+                    <h2 className={styles.groupTitle}>{t(`perf.groups.${g.key}`)}</h2>
+                    <p className={styles.groupNote}>{t(`perf.groups.${g.key}Note`)}</p>
+                    <div className={styles.cards}>
+                      {g.rows.map((r) => (
+                        <PersonCard key={r.employee.id} row={r} to={`/performance/${r.employee.id}${q}`} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
               <HowCounted finance={data.finance} />
             </div>
-          )
-        }
+          );
+        }}
       </AsyncBoundary>
     </div>
   );
 }
 
-function Targets({ data }) {
+// One person: where they are on their targets (or their main numbers), the
+// days they worked, reports and tasks.
+function PersonCard({ row: r, to }) {
   const { t } = useI18n();
-  const withTargetOr = (key) => data.rows.filter((r) => r[key].target != null || r[key].count > 0);
-  const bars = (key) =>
-    withTargetOr(key)
-      .map((r) => ({ key: r.employee.id, name: r.employee.name, value: r[key].count, target: r[key].target, expected: r[key].expected }))
-      .sort((a, b) => b.value - a.value);
+  const shown = [...r.metrics.filter((m) => m.target != null), ...r.metrics.filter((m) => m.target == null)].slice(0, 3);
+  const away = r.workDays.away.filter((a) => a.kind !== "holiday").length;
   return (
-    <div className={styles.columns}>
-      <Card title={t("perf.consultationsTarget")} subtitle={t("perf.targetsSubtitle")}>
-        <TargetBars rows={bars("consultations")} tone="s1" emptyText={t("perf.noTargets")} />
-      </Card>
-      <Card title={t("perf.contractsTarget")} subtitle={t("perf.targetsSubtitle")}>
-        <TargetBars rows={bars("contracts")} tone="s2" emptyText={t("perf.noTargets")} />
-      </Card>
-    </div>
-  );
-}
-
-function TeamTable({ data }) {
-  const { t, fmt } = useI18n();
-  const f = data.finance;
-  const q = data.month === data.current ? "" : `?month=${data.month}`;
-  const rows = data.rows;
-  const sum = (pick) => rows.reduce((s, r) => s + (pick(r) || 0), 0);
-  const ratio = (r) => (r.cost?.ratio != null ? `×${String(r.cost.ratio).replace(".", ",")}` : "—");
-
-  return (
-    <Card title={t("perf.teamTitle")} subtitle={t("perf.teamSubtitle")}>
-      <div className={styles.tableScroll}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>{t("perf.col.person")}</th>
-              <th>{t("perf.col.workDays")}</th>
-              <th>{t("perf.col.calls")}</th>
-              <th>{t("perf.col.calledBack")}</th>
-              <th>{t("perf.col.booked")}</th>
-              <th>{t("perf.col.consultations")}</th>
-              <th>{t("perf.col.contracts")}</th>
-              <th>{t("perf.col.conversion")}</th>
-              <th>{f ? t("perf.col.brought") : t("perf.col.fees")}</th>
-              {f && <th>{t("perf.col.cost")}</th>}
-              {f && <th>{t("perf.col.return")}</th>}
-              <th>{t("perf.col.reports")}</th>
-              <th>{t("perf.col.tasks")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.employee.id}>
-                <td>
-                  <Link to={`/performance/${r.employee.id}${q}`}>{r.employee.name}</Link>
-                  <span className={styles.cellNote}>{[r.employee.position, r.employee.active ? null : t("perf.left")].filter(Boolean).join(" · ")}</span>
-                </td>
-                <td>
-                  {`${r.workDays.soFar} / ${r.workDays.total}`}
-                  {r.workDays.away.some((a) => a.kind !== "holiday") && (
-                    <span className={styles.cellNote}>{t("perf.awayCount", { n: r.workDays.away.filter((a) => a.kind !== "holiday").length })}</span>
-                  )}
-                </td>
-                <td>{r.calls ? `${r.calls.answered} / ${r.calls.total}` : "—"}</td>
-                <td>{r.calls && r.calls.missed ? `${r.calls.reachedRate}%` : "—"}</td>
-                <td>{r.bookings.made}</td>
-                <td>
-                  {r.consultations.count}
-                  {r.consultations.target != null && <span className={styles.cellNote}>/ {r.consultations.target}</span>}
-                </td>
-                <td>
-                  {r.contracts.count}
-                  {r.contracts.target != null && <span className={styles.cellNote}>/ {r.contracts.target}</span>}
-                </td>
-                <td>{r.conversion.rate != null ? `${r.conversion.rate}%` : "—"}</td>
-                <td>{fmt.number(r.money.brought.total + (r.money.reportIncome || 0))}</td>
-                {f && <td>{r.cost?.amount != null ? fmt.number(r.cost.amount) : "—"}</td>}
-                {f && <td className={r.cost?.ratio != null ? (r.cost.ratio >= 1 ? styles.good : styles.bad) : undefined}>{ratio(r)}</td>}
-                <td>{r.reports.due ? `${r.reports.sent} / ${r.reports.due}` : r.reports.mode === "auto" ? t("perf.autoShort") : "—"}</td>
-                <td>{r.tasks.total ? `${r.tasks.onTime} / ${r.tasks.total}` : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td>{t("perf.total")}</td>
-              <td />
-              <td>{`${sum((r) => r.calls?.answered)} / ${sum((r) => r.calls?.total)}`}</td>
-              <td />
-              <td>{sum((r) => r.bookings.made)}</td>
-              <td>{sum((r) => r.consultations.count)}</td>
-              <td>{sum((r) => r.contracts.count)}</td>
-              <td />
-              <td>{fmt.number(sum((r) => r.money.brought.total + (r.money.reportIncome || 0)))}</td>
-              {f && <td>{fmt.number(sum((r) => r.cost?.amount))}</td>}
-              {f && <td />}
-              <td />
-              <td />
-            </tr>
-          </tfoot>
-        </table>
+    <Link to={to} className={styles.personCard}>
+      <div className={styles.personHead}>
+        <span className={styles.personName}>
+          {r.employee.name}
+          {!r.employee.active && <span className={styles.muted}> · {t("perf.left")}</span>}
+        </span>
+        <span className={styles.personSub}>{[r.employee.position, r.employee.office].filter(Boolean).join(" · ")}</span>
       </div>
-      <p className={pageStyles.note} style={{ marginTop: 10 }}>
-        {f ? t("perf.teamNoteFinance") : t("perf.teamNote")}
-      </p>
-    </Card>
+      {shown.length > 0 ? (
+        <div className={styles.measures}>
+          {shown.map((m) => (
+            <MeasureRow key={m.key} measure={m} compact />
+          ))}
+        </div>
+      ) : (
+        <p className={styles.emptyNote}>{t("perf.nothingToMeasure")}</p>
+      )}
+      <div className={styles.personFoot}>
+        <span>{t("perf.card.days", { soFar: r.workDays.soFar, total: r.workDays.total })}</span>
+        {away > 0 && <span>{t("perf.card.away", { n: away })}</span>}
+        <span>{r.reports.due ? t("perf.card.reports", { sent: r.reports.sent, due: r.reports.due }) : r.reports.mode === "auto" ? t("perf.card.reportsAuto") : t("perf.card.noReports")}</span>
+        {r.tasks.total > 0 && <span>{t("perf.card.tasks", { onTime: r.tasks.onTime, total: r.tasks.total })}</span>}
+      </div>
+    </Link>
   );
 }

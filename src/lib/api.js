@@ -137,6 +137,9 @@ export const api = {
   setInstallments: (caseId, items) => request(`/client-cases/${caseId}/installments`, { method: "PUT", body: { items } }),
   employeePerformance: (id, month) => request(`/performance/${id}${qs({ month })}`),
   employeeCosts: (id) => request(`/performance/${id}/costs`),
+  employeeTargets: (id, month) => request(`/performance/${id}/targets${qs({ month })}`),
+  setTarget: (id, payload) => request(`/performance/${id}/targets`, { method: "PUT", body: payload }),
+  deleteTarget: (id, targetId) => request(`/performance/${id}/targets/${targetId}`, { method: "DELETE" }),
   setEmployeeCost: (id, payload) => request(`/performance/${id}/costs`, { method: "PUT", body: payload }),
   deleteEmployeeCost: (id, costId) => request(`/performance/${id}/costs/${costId}`, { method: "DELETE" }),
 
