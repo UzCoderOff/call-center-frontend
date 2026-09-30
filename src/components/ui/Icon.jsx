@@ -181,6 +181,8 @@ const PATHS = {
     </>
   ),
   upload: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />,
+  // Feather "bar-chart-2".
+  barChart: <path d="M18 20V10M12 20V4M6 20v-6" />,
   cash: (
     <>
       <rect x="2" y="6" width="20" height="12" rx="2" />

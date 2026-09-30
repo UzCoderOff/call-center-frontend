@@ -163,6 +163,7 @@ export default function TemplateEditorPage() {
                         {f.required && ` · ${t("reports.requiredMark")}`}
                         {f.options && ` · ${f.options.join(", ")}`}
                         {f.columns && ` · ${f.columns.map((c) => c.label).join(" | ")}`}
+                        {moneyNote(f, t)}
                       </div>
                     </div>
                     {canEdit && (
@@ -227,6 +228,27 @@ export default function TemplateEditorPage() {
   );
 }
 
+// " · Moliyada: tushum" — how a money question (or its money columns)
+// counts on the Moliya page.
+function moneyNote(field, t) {
+  const kinds = field.type === "money" ? [field.finance] : field.type === "table" ? (field.columns || []).filter((c) => c.type === "money").map((c) => c.finance) : [];
+  if (kinds.length === 0) return null;
+  const shown = [...new Set(kinds.map((k) => t(`templateEditor.financeShort.${k || "none"}`)))];
+  return ` · ${t("templateEditor.financeLabel")}: ${shown.join(", ")}`;
+}
+
+// Where a money question's amount goes on the Moliya page.
+function FinanceSelect({ value, onChange }) {
+  const { t } = useI18n();
+  return (
+    <SelectField label={t("templateEditor.financeLabel")} hint={t("templateEditor.financeHint")} value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{t("templateEditor.finance.none")}</option>
+      <option value="income">{t("templateEditor.finance.income")}</option>
+      <option value="expense">{t("templateEditor.finance.expense")}</option>
+    </SelectField>
+  );
+}
+
 function IconButton({ icon, label, onClick, disabled, flip }) {
   return (
     <button type="button" className={styles.iconButton} onClick={onClick} disabled={disabled} aria-label={label} title={label}>
@@ -242,11 +264,12 @@ function QuestionSheet({ field, onClose, onSave }) {
   const [required, setRequired] = useState(field?.required ?? false);
   const [options, setOptions] = useState((field?.options || []).join("\n"));
   const [hint, setHint] = useState(field?.hint || "");
+  const [finance, setFinance] = useState(field?.finance || "");
   // A table's columns, options as one per line while editing. A new table
   // starts with an example to change: Name | Count | Amount.
   const [columns, setColumns] = useState(() =>
     field?.columns
-      ? field.columns.map((c) => ({ ...c, options: (c.options || []).join("\n") }))
+      ? field.columns.map((c) => ({ ...c, options: (c.options || []).join("\n"), finance: c.finance || "" }))
       : [
           { id: newId("c"), label: t("templateEditor.colName"), type: "text", options: "" },
           { id: newId("c"), label: t("templateEditor.colCount"), type: "number", options: "" },
@@ -278,10 +301,12 @@ function QuestionSheet({ field, onClose, onSave }) {
               label: c.label.trim(),
               type: c.type,
               ...(c.type === "select" ? { options: splitOptions(c.options) } : {}),
+              ...(c.type === "money" && c.finance ? { finance: c.finance } : {}),
             })),
           }
         : {}),
       ...(hint.trim() ? { hint: hint.trim() } : {}),
+      ...(type === "money" && finance ? { finance } : {}),
     });
   }
 
@@ -305,6 +330,7 @@ function QuestionSheet({ field, onClose, onSave }) {
             rows={4}
           />
         )}
+        {type === "money" && <FinanceSelect value={finance} onChange={setFinance} />}
         {type === "table" && (
           <div className={pageStyles.formStack}>
             <p className={pageStyles.note}>{t("templateEditor.tableHint")}</p>
@@ -336,6 +362,7 @@ function QuestionSheet({ field, onClose, onSave }) {
                 {c.type === "select" && (
                   <TextAreaField label={t("templateEditor.options")} hint={t("templateEditor.optionsHint")} value={c.options} onChange={(e) => setColumn(i, { options: e.target.value })} rows={3} />
                 )}
+                {c.type === "money" && <FinanceSelect value={c.finance || ""} onChange={(value) => setColumn(i, { finance: value })} />}
               </div>
             ))}
             {columns.length < MAX_COLUMNS && (

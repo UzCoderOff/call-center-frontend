@@ -17,6 +17,7 @@ import { telHref } from "../lib/format";
 import { useI18n } from "../i18n";
 import { saveFailed } from "../lib/saveFailed";
 import { TaskSheet } from "../components/tasks/TaskParts";
+import ScheduleSheet, { ScheduleBlock } from "../components/clients/ScheduleSheet";
 import { canBookAppointments } from "../lib/access";
 
 // One client: contact details, the next call, their cases (status, court
@@ -177,6 +178,7 @@ function ClientView({ client, reload, goBack }) {
                 onEdit={() => setSheet({ type: "case", item: c })}
                 finance={client.finance}
                 onPay={() => setSheet({ type: "payment", caseId: c.id })}
+                onSchedule={() => setSheet({ type: "schedule", item: c })}
                 onChanged={reload}
               />
             ))
@@ -229,6 +231,7 @@ function ClientView({ client, reload, goBack }) {
           }}
         />
       )}
+      {sheet?.type === "schedule" && <ScheduleSheet item={sheet.item} onClose={close} onSaved={saved} />}
       {sheet?.type === "payment" && <PaymentSheet clientId={client.id} cases={client.cases} caseId={sheet.caseId} finance={client.finance} onClose={close} onSaved={saved} />}
       {sheet?.type === "link" && <LinkSheet client={client} onClose={close} onSaved={saved} />}
       {sheet?.type === "merge" && <MergeSheet client={client} onClose={close} onSaved={saved} />}
@@ -286,7 +289,7 @@ function NextCall({ client, onChange, onDone }) {
   );
 }
 
-function CaseCard({ item, canManage, finance = false, asLawyer = false, onEdit, onPay, onChanged }) {
+function CaseCard({ item, canManage, finance = false, asLawyer = false, onEdit, onPay, onSchedule, onChanged }) {
   const { t, fmt } = useI18n();
   const [busy, setBusy] = useState(false);
   const hasContract = item.status === "contract" || item.status === "done";
@@ -343,6 +346,7 @@ function CaseCard({ item, canManage, finance = false, asLawyer = false, onEdit, 
       </div>
       {hasContract && <StageTrack stage={item.legalStage} />}
       <MoneyBlock item={item} />
+      {finance && <ScheduleBlock schedule={item.schedule} />}
       {item.payments?.length > 0 && (
         <div className={styles.payments}>
           {item.payments.slice(0, 5).map((p) => (
@@ -368,6 +372,11 @@ function CaseCard({ item, canManage, finance = false, asLawyer = false, onEdit, 
           {onPay && (
             <Button size="small" icon="cash" onClick={onPay}>
               {t("payments.add")}
+            </Button>
+          )}
+          {finance && hasContract && item.contractAmount > 0 && onSchedule && (
+            <Button size="small" variant="plain" icon="calendar" onClick={onSchedule}>
+              {item.schedule?.items?.length ? t("schedule.edit") : t("schedule.set")}
             </Button>
           )}
           <Button size="small" variant="plain" onClick={onEdit}>
@@ -487,7 +496,7 @@ function Timeline({ client, userId, onChanged }) {
         at,
         icon: "calendar",
         title: `${t("clients.events.appointment", { calendar: a.calendar?.name || "" })} · ${t(`calendar.appointmentStatus.${a.status}`)}`,
-        sub: `${fmt.isoDay(a.date)}, ${fmt.minutes(a.start)}${a.matter ? ` · ${a.matter}` : ""}`,
+        sub: [`${fmt.isoDay(a.date)}, ${fmt.minutes(a.start)}`, a.format === "online" ? t("calendar.format.online") : null, a.matter].filter(Boolean).join(" · "),
         to: `/calendar?cal=${a.calendarId}&day=${a.date}`,
       });
     }

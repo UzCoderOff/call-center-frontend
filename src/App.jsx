@@ -18,7 +18,7 @@ import TemplateEditorPage from "./pages/TemplateEditorPage";
 import ProfilePage from "./pages/ProfilePage";
 import CalendarPage, { PlannerRedirect } from "./pages/CalendarPage";
 import MorePage from "./pages/MorePage";
-import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeReports, canSeeTeam } from "./lib/access";
+import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeePerformance, canSeeReports, canSeeTeam } from "./lib/access";
 import ClientsPage from "./pages/ClientsPage";
 import ClientPage from "./pages/ClientPage";
 import ClientImportPage from "./pages/ClientImportPage";
@@ -27,6 +27,9 @@ import MaterialPage from "./pages/MaterialPage";
 import MaterialEditorPage from "./pages/MaterialEditorPage";
 import FinancePage from "./pages/FinancePage";
 import TasksPage from "./pages/TasksPage";
+import PerformancePage from "./pages/PerformancePage";
+import PersonPerformancePage from "./pages/PersonPerformancePage";
+import DaysOffPage from "./pages/DaysOffPage";
 
 export function Splash() {
   return (
@@ -94,6 +97,9 @@ function Routed() {
         <Route path="settings/templates/:id" element={guarded(canSeeTeam, <TemplateEditorPage />)} />
         <Route path="finance" element={guarded(canSeeFinance, <FinancePage />)} />
         <Route path="tasks" element={<TasksPage />} />
+        <Route path="performance" element={guarded(canSeePerformance, <PerformancePage />)} />
+        <Route path="performance/:id" element={guarded(canSeePerformance, <PersonPerformancePage />)} />
+        <Route path="days-off" element={guarded(canSeeDaysOff, <DaysOffPage />)} />
         <Route path="materials" element={<MaterialsPage />} />
         <Route path="materials/new" element={guarded(canManageMaterials, <MaterialEditorPage />)} />
         <Route path="materials/:id" element={<MaterialPage />} />

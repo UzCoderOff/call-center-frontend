@@ -47,6 +47,10 @@
   /* Chart series (validated pair) */
   --series-answered: #0071e3;
   --series-missed: #eb6834;
+  /* Moliya: where the money came from (validated as one 3-slot set). */
+  --series-consultation: #2a78d6;
+  --series-contract: #eb6834;
+  --series-other: #1baf7a;
   --chart-grid: rgba(60, 60, 67, 0.1);
   --chart-baseline: rgba(60, 60, 67, 0.28);
 
@@ -109,6 +113,9 @@
     --focus-ring: 0 0 0 4px rgba(10, 132, 255, 0.4);
     --series-answered: #3987e5;
     --series-missed: #d95926;
+    --series-consultation: #3987e5;
+    --series-contract: #d95926;
+    --series-other: #199e70;
     --chart-grid: rgba(255, 255, 255, 0.08);
     --chart-baseline: rgba(255, 255, 255, 0.22);
     --good-text: #30d158;
@@ -150,6 +157,9 @@
   --focus-ring: 0 0 0 4px rgba(10, 132, 255, 0.4);
   --series-answered: #3987e5;
   --series-missed: #d95926;
+  --series-consultation: #3987e5;
+  --series-contract: #d95926;
+  --series-other: #199e70;
   --chart-grid: rgba(255, 255, 255, 0.08);
   --chart-baseline: rgba(255, 255, 255, 0.22);
   --good-text: #30d158;

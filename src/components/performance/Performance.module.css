@@ -1,0 +1,459 @@
+/* Natijalar — the team's and each person's month at work. */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.monthBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.monthLabel {
+  min-width: 150px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.pace {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1000px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.emptyNote {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.muted {
+  color: var(--text-3);
+}
+
+.good {
+  color: var(--good-text);
+}
+
+.bad {
+  color: var(--critical-text);
+}
+
+/* Series (tokens.css, validated together). */
+.s1 {
+  background: var(--series-consultation);
+  fill: var(--series-consultation);
+}
+.s2 {
+  background: var(--series-contract);
+  fill: var(--series-contract);
+}
+.s1Stroke {
+  stroke: var(--series-consultation);
+}
+.s2Stroke {
+  stroke: var(--series-contract);
+}
+
+.swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legend,
+.bulletLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ------------------------------------------------ target bars */
+.bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bulletRow {
+  display: grid;
+  grid-template-columns: minmax(90px, 160px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.bulletName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulletTrack {
+  position: relative;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--fill);
+}
+
+.bulletFill {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  min-width: 2px;
+}
+
+.tick {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--text);
+}
+
+.tickPace {
+  background: var(--text-3);
+}
+
+.tickKey {
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--text);
+}
+
+.tickKeyPace {
+  background: var(--text-3);
+}
+
+.bulletValue {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+
+.bulletValue strong {
+  color: var(--text);
+}
+
+.behind {
+  font-size: 11px;
+  color: var(--warning-text);
+}
+
+@media (max-width: 480px) {
+  .bulletRow {
+    grid-template-columns: 1fr auto;
+  }
+  .bulletTrack {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* ------------------------------------------------ charts */
+.chartWrap {
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.plot {
+  position: relative;
+  width: 100%;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.svg:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.baseline {
+  stroke: var(--chart-baseline);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.tick text,
+.tick {
+  font-size: 11px;
+  fill: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.actualLine {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.planLine {
+  fill: none;
+  stroke: var(--text-3);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  opacity: 0.7;
+}
+
+.endDot {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.crosshair {
+  stroke: var(--chart-baseline);
+  stroke-width: 1;
+}
+
+.lineKey {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.planKey,
+.planKeyBg {
+  background: var(--text-3);
+}
+
+.dim {
+  opacity: 0.35;
+  transition: opacity 0.12s ease;
+}
+
+.hit {
+  fill: transparent;
+}
+
+.tooltip {
+  position: absolute;
+  top: -8px;
+  transform: translate(-50%, -100%);
+  min-width: 160px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-float);
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tooltipTitle {
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.6;
+}
+
+.tooltipRow strong {
+  min-width: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltipRow span {
+  color: var(--text-2);
+}
+
+.key {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------ tables */
+.tableWrap {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.tableScroll {
+  overflow-x: auto;
+  margin: 0 -4px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  padding: 8px 10px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--separator);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 9px 10px;
+  text-align: right;
+  vertical-align: top;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--separator);
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tfoot td {
+  font-weight: 650;
+  border-top: 1.5px solid var(--separator-strong);
+}
+
+.table a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.cellNote {
+  display: block;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* ------------------------------------------------ figures in a card */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px 18px;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.factLabel {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.factValue {
+  font-size: 20px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.factNote {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.missing {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.how summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.how ul {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+.costList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.costRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}

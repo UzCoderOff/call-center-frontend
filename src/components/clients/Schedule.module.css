@@ -1,0 +1,87 @@
+/* A contract's payment schedule: the editor and the block on the case card. */
+.quick summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.n {
+  padding-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-3);
+  text-align: right;
+}
+
+.total {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--fill-hover);
+  font-size: 14px;
+}
+
+.blockHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.itemAmount {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.itemNote {
+  display: block;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.nextLine {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}

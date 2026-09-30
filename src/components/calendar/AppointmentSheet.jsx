@@ -53,6 +53,22 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
     a.status === "booked" && upcoming && (canManage || a.bookedBy?.id === user.id || isManagerRole(user.role));
   const booker = a.bookedBy?.employee?.name || a.bookedBy?.username;
   const tel = telHref(a.clientPhone);
+  // Office <-> online: the lawyer, or whoever booked it while it's booked
+  // (the server checks the same).
+  const mayEditDetails = canManage || (a.bookedBy?.id === user.id && a.status === "booked");
+  const otherFormat = a.format === "online" ? "office" : "online";
+
+  async function setFormat(format) {
+    setBusy("format");
+    setError("");
+    try {
+      onChanged(await api.updateAppointment(a.id, { format }));
+    } catch {
+      setError(t("calendar.actionFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function setStatus(status, extra = {}) {
     setBusy(status);
@@ -74,6 +90,16 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
         </KeyValue>
         <KeyValue label={t("calendar.when")}>
           {fmt.isoDay(a.date)}, {fmt.minutes(a.start)}–{fmt.minutes(a.end)}
+        </KeyValue>
+        <KeyValue label={t("calendar.format.label")}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {t(`calendar.format.${a.format === "online" ? "online" : "office"}`)}
+            {mayEditDetails && (
+              <Button size="small" variant="plain" busy={busy === "format"} onClick={() => setFormat(otherFormat)}>
+                {t(`calendar.format.switchTo.${otherFormat}`)}
+              </Button>
+            )}
+          </span>
         </KeyValue>
         {a.clientPhone && <KeyValue label={t("calendar.phone")}>{fmt.phone(a.clientPhone)}</KeyValue>}
         {a.matter && <KeyValue label={t("calendar.matter")}>{a.matter}</KeyValue>}

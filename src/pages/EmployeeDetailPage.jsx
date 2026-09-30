@@ -61,6 +61,13 @@ export default function EmployeeDetailPage() {
 
           <div className={pageStyles.stack}>
             {e.collectCalls && <CallsSection employee={e} />}
+            {!e.collectCalls && (
+              <div className={styles.linkRow}>
+                <Button to={`/performance/${e.id}`} icon="barChart">
+                  {t("perf.open")}
+                </Button>
+              </div>
+            )}
 
             <div className={styles.cards}>
               <WorkCard employee={e} onChange={employee.setData} />
@@ -94,6 +101,9 @@ function CallsSection({ employee }) {
       <div className={styles.linkRow}>
         <Button to={`/calls?employeeId=${employee.id}`} icon="phone">
           {t("employee.viewCalls")}
+        </Button>
+        <Button to={`/performance/${employee.id}`} icon="barChart">
+          {t("perf.open")}
         </Button>
       </div>
     </>
@@ -152,9 +162,18 @@ function WorkCard({ employee, onChange }) {
           t("common.no")
         )}
       </KeyValue>
+      <KeyValue label={t("work.workDays")}>{workPatternLine(employee, t)}</KeyValue>
       {editing && <EditWorkSheet employee={employee} onClose={() => setEditing(false)} onSaved={onChange} />}
     </Card>
   );
+}
+
+// "Du Se Ch Pa Ju Sh · bayramlarda dam oladi"
+function workPatternLine(employee, t) {
+  const days = t("time.weekdaysShort");
+  const pattern = employee.workDays || "123456";
+  const list = pattern === "1234567" ? t("work.everyDay") : pattern.split("").map((d) => (Array.isArray(days) ? days[Number(d) % 7] : d)).join(" ");
+  return `${list} · ${employee.holidaysOff === false ? t("work.worksHolidays") : t("work.holidaysOffShort")}`;
 }
 
 function EditWorkSheet({ employee, onClose, onSaved }) {
@@ -170,6 +189,8 @@ function EditWorkSheet({ employee, onClose, onSaved }) {
     autoReport: employee.autoReport,
     alsoForm: employee.alsoForm,
     calendarAccess: employee.calendarAccess,
+    workDays: employee.workDays,
+    holidaysOff: employee.holidaysOff,
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

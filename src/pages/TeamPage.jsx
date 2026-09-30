@@ -105,7 +105,7 @@ function CreateEmployeeSheet({ onClose, onCreated }) {
   const { t } = useI18n();
   const options = useOrgOptions();
   const [form, setForm] = useState({ name: "", phoneNumber: "", username: "" });
-  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, autoReport: false, alsoForm: false, calendarAccess: "none" });
+  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, autoReport: false, alsoForm: false, calendarAccess: "none", workDays: "123456", holidaysOff: true });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(null);

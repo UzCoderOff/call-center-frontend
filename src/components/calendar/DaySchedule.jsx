@@ -1,6 +1,6 @@
 import styles from "./Calendar.module.css";
 import Icon from "../ui/Icon";
-import { AppointmentStatusBadge, bookerName } from "./Appointment";
+import { AppointmentMeta, AppointmentStatusBadge, bookerName } from "./Appointment";
 import { blocksOn, isWholeDay } from "../../lib/calendarDays";
 import { useI18n } from "../../i18n";
 
@@ -133,6 +133,7 @@ function AppointmentItem({ appointment: a, onOpen }) {
       <span className={styles.rowMain}>
         <span className={styles.rowTitle}>{a.clientName}</span>
         <span className={styles.rowSub}>{[a.matter, booker && t("calendar.bookedByLine", { name: booker })].filter(Boolean).join(" · ")}</span>
+        <AppointmentMeta appointment={a} />
       </span>
       {a.status !== "booked" && <AppointmentStatusBadge status={a.status} />}
     </button>

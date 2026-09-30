@@ -670,3 +670,38 @@
   background: var(--accent);
   color: var(--on-accent);
 }
+
+/* Online / paid, under the client's name in a booking. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px 1px 6px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.chipGood {
+  background: var(--good-soft);
+  color: var(--good-text);
+}
+
+.chipWarn {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+.chipNeutral {
+  background: var(--fill);
+  color: var(--text-2);
+}

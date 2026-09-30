@@ -12,7 +12,7 @@ import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 import { TelegramOverview } from "../components/telegram/TelegramCard";
-import { ReportModeFields, reportModeOf } from "../components/team/WorkSettingsFields";
+import { ReportModeFields, WorkPatternFields, reportModeOf } from "../components/team/WorkSettingsFields";
 
 // "Avtomatik + Kunlik shakl", "Kunlik shakl", "Avtomatik", "Hisobot yoʻq".
 export function reportSummary(x, t) {
@@ -312,6 +312,7 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
     reportTemplateId: position?.reportTemplate?.id ?? "",
   });
   const [calendarAccess, setCalendarAccess] = useState(position?.calendarAccess ?? "none");
+  const [pattern, setPattern] = useState({ workDays: position?.workDays ?? "123456", holidaysOff: position?.holidaysOff ?? true });
   const [targetConsultations, setTargetConsultations] = useState(position?.targetConsultations ?? "");
   const [targetContracts, setTargetContracts] = useState(position?.targetContracts ?? "");
   const [busy, setBusy] = useState(false);
@@ -328,6 +329,8 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
       autoReport: report.autoReport,
       alsoForm: Boolean(report.autoReport && report.alsoForm),
       calendarAccess,
+      workDays: pattern.workDays,
+      holidaysOff: pattern.holidaysOff,
       reportTemplateId: report.reportTemplateId || null,
       targetConsultations: target(targetConsultations),
       targetContracts: target(targetContracts),
@@ -378,6 +381,7 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
           onChange={setCollectCalls}
         />
         <ReportModeFields value={report} onChange={setReport} templates={templates} />
+        <WorkPatternFields workDays={pattern.workDays} holidaysOff={pattern.holidaysOff} onChange={setPattern} />
         <div className={pageStyles.formStack} style={{ gap: 6 }}>
           <span className={pageStyles.note}>{t("settings.targetsHint")}</span>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>

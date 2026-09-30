@@ -1,0 +1,30 @@
+/* Seven day toggles: which weekdays a person works. */
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.day {
+  min-width: 42px;
+  padding: 7px 0;
+  border: 1px solid var(--separator-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.day[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.day:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}

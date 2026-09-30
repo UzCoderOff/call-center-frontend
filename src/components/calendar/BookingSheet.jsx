@@ -35,6 +35,8 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
   const [clientPhone, setClientPhone] = useState(prefill?.phone || "");
   const [matter, setMatter] = useState("");
   const [notes, setNotes] = useState("");
+  // In the office, or an online (video/phone) consultation.
+  const [format, setFormat] = useState("office");
   // "Fee received": the consultation fee was paid now — it's recorded on the
   // client with the booking. Lawyers don't record payments.
   const { user } = useAuth();
@@ -60,6 +62,7 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
         clientPhone: clientPhone.trim() || null,
         matter: matter.trim() || null,
         notes: notes.trim() || null,
+        format,
         callLogId: prefill?.callId || undefined,
         clientId: prefill?.clientId || undefined,
         ...(feeReceived ? { feeReceived: true, feeAmount: Number(feeAmount), feeMethod } : {}),
@@ -96,6 +99,19 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
             />
           </div>
         )}
+        <div className={pageStyles.formStack} style={{ gap: 6 }}>
+          <span className={pageStyles.note}>{t("calendar.format.label")}</span>
+          <Segmented
+            full
+            value={format}
+            onChange={setFormat}
+            label={t("calendar.format.label")}
+            options={[
+              { value: "office", label: t("calendar.format.office") },
+              { value: "online", label: t("calendar.format.online") },
+            ]}
+          />
+        </div>
         <TextField label={t("calendar.clientName")} value={clientName} onChange={(e) => setClientName(e.target.value)} required />
         <TextField
           label={t("calendar.clientPhone")}

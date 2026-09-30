@@ -1,0 +1,521 @@
+/* Moliya — tiles, breakdowns, meters and the income chart. */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.monthBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.monthLabel {
+  min-width: 150px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.columns {
+  display: grid;
+  /* minmax(0, …): long lines wrap instead of widening the page. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1000px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.muted {
+  color: var(--text-3);
+}
+
+.emptyNote {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.plainList {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+/* Series colors (tokens.css — validated together). */
+.s1 {
+  background: var(--series-consultation);
+  fill: var(--series-consultation);
+}
+.s2 {
+  background: var(--series-contract);
+  fill: var(--series-contract);
+}
+.s3 {
+  background: var(--series-other);
+  fill: var(--series-other);
+}
+
+.swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------ part-to-whole bar */
+.share {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.shareBar {
+  display: flex;
+  gap: 2px; /* the surface gap between parts */
+  height: 14px;
+}
+
+.shareSeg {
+  min-width: 3px;
+}
+
+.shareSeg:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.shareSeg:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.shareSeg:only-child {
+  border-radius: 4px;
+}
+
+.shareLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.shareItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shareItem strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------ breakdown lines */
+.lines {
+  display: flex;
+  flex-direction: column;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--separator);
+  font-size: 15px;
+}
+
+.line:first-child {
+  border-top: none;
+}
+
+.lineLabel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.lineNote {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.lineAmount {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.level0 {
+  font-weight: 600;
+  padding-top: 10px;
+}
+
+.level1 {
+  padding-left: 16px;
+  font-size: 14px;
+  color: var(--text-2);
+  border-top-style: dotted;
+}
+
+.level1 .lineAmount {
+  color: var(--text);
+}
+
+.level2 {
+  padding-left: 32px;
+  font-size: 13px;
+  color: var(--text-2);
+  border-top-style: dotted;
+}
+
+.lineTotal {
+  font-weight: 700;
+  font-size: 16px;
+  border-top: 1.5px solid var(--separator-strong);
+  padding: 9px 0 12px;
+}
+
+/* ------------------------------------------------ meters */
+.meters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.meterRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.meterHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.meterLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.meterAmount {
+  flex: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.meterTrack {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--fill);
+  overflow: hidden;
+}
+
+.meterFill {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background: var(--accent);
+}
+
+.meterSub {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* ------------------------------------------------ tables */
+.tableScroll {
+  overflow-x: auto;
+  margin: 0 -4px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  padding: 8px 10px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--separator);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 9px 10px;
+  text-align: right;
+  vertical-align: top;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--separator);
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+  white-space: normal;
+  min-width: 120px;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.cellNote {
+  display: block;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* ------------------------------------------------ consultations funnel */
+.funnel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.funnelStep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 120px;
+}
+
+.funnelArrow {
+  flex: none;
+  color: var(--text-3);
+}
+
+.funnelBox {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--fill-hover);
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.funnelBox strong {
+  font-size: 22px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+/* ------------------------------------------------ contracts */
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.progressTrack {
+  height: 6px;
+  max-width: 260px;
+  border-radius: 3px;
+  background: var(--fill);
+  overflow: hidden;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  background: var(--good);
+}
+
+.progressText {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.owedAmount {
+  color: var(--warning-text);
+}
+
+.expenseAmount {
+  color: var(--critical-text);
+}
+
+/* ------------------------------------------------ how it's counted */
+.how summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.how ul {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------ income chart */
+.chartWrap {
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plot {
+  position: relative;
+  width: 100%;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.svg:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.baseline {
+  stroke: var(--chart-baseline);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.tick {
+  font-size: 11px;
+  fill: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.dim {
+  opacity: 0.35;
+  transition: opacity 0.12s ease;
+}
+
+.hit {
+  fill: transparent;
+}
+
+.tooltip {
+  position: absolute;
+  top: -8px;
+  transform: translate(-50%, -100%);
+  min-width: 190px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-float);
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tooltipTitle {
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.6;
+}
+
+.tooltipRow strong {
+  min-width: 80px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltipRow span {
+  color: var(--text-2);
+}
+
+.tooltipTotal {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--separator);
+}
+
+/* Line keys, not boxes, at tooltip density. */
+.key {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.keySpacer {
+  width: 12px;
+}
+
+.tableWrap {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.tableWrap .table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}

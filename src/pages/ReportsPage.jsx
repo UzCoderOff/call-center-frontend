@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Badge from "../components/ui/Badge";
 import { useSearchParams } from "react-router-dom";
 import styles from "./ReportsPage.module.css";
 import pageStyles from "./Pages.module.css";
@@ -287,7 +288,16 @@ function DayView({ data }) {
                   leading={<Avatar name={row.employee.name} size={40} />}
                   title={row.employee.name}
                   subtitle={row.template.name}
-                  trailing={<ReportStatusBadge report={row.report} />}
+                  trailing={
+                    // Not a working day for them: no report expected.
+                    !row.report && row.off ? (
+                      <Badge tone="neutral" icon="coffee">
+                        {row.off.kind === "holiday" ? t("daysOff.holiday") : row.off.kind === "weekly" ? t("daysOff.weeklyOff") : t(`daysOff.kinds.${row.off.kind}`)}
+                      </Badge>
+                    ) : (
+                      <ReportStatusBadge report={row.report} />
+                    )
+                  }
                 />
               )
             )}

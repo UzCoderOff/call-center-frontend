@@ -81,7 +81,9 @@ function ManagerHome() {
     <div>
       <PageHeader title={t("dashboard.titleCompany")} subtitle={fmt.isoDay(todayIso())} />
       <TempPasswordBanner />
+      {user.role === "DEVELOPER" && <HolidayReviewBanner />}
       <div className={styles.stack}>
+        <DaysOffCard />
         {canSeeFinance(user) && <FinanceCard />}
         <MyTasksCard />
         <LawyerCalendarCard />
@@ -137,13 +139,68 @@ function FinanceCard() {
       }
     >
       <p className={styles.reportStatusText}>
-        {t("finance.homeLine", { received: fmt.money(data.received.total), contracted: fmt.money(data.contracted.total), owed: fmt.money(data.owed.total) })}
+        {t("finance.homeLine", { received: fmt.money(data.summary.income), contracted: fmt.money(data.summary.contracted), owed: fmt.money(data.summary.owed) })}
       </p>
     </Card>
   );
 }
 
 // "7 of 10 reports in today — not yet: Sardor, Kamola."
+// The developer confirms the holidays Ledger suggests — this asks when one is
+// coming up (within 60 days) and still unconfirmed.
+function HolidayReviewBanner() {
+  const { t, fmt } = useI18n();
+  const state = useAsync(() => api.holidayReview(), []);
+  const soon = state.data?.soon || [];
+  if (soon.length === 0) return null;
+  return (
+    <div className={styles.bannerSpace}>
+      <Banner
+        tone="warning"
+        icon="calendar"
+        action={
+          <Button size="small" variant="primary" to="/days-off">
+            {t("daysOff.review")}
+          </Button>
+        }
+      >
+        <strong>{t("daysOff.reviewTitle")}</strong>
+        <div className={styles.bannerDetail}>{soon.map((h) => `${fmt.isoDateLong(h.date)} — ${h.name}`).join(" · ")}</div>
+      </Banner>
+    </div>
+  );
+}
+
+// Requests waiting for approval, and who isn't working today.
+function DaysOffCard() {
+  const { t } = useI18n();
+  const state = useAsync(() => api.absenceSummary(), []);
+  const d = state.data;
+  if (!d || (d.pending === 0 && d.away.length === 0 && !d.holiday)) return null;
+  const reason = (off) => (off.kind === "holiday" ? t("daysOff.holiday") : t(`daysOff.kinds.${off.kind}`).toLowerCase());
+  return (
+    <Card
+      title={t("daysOff.homeTitle")}
+      action={
+        <Button size="small" variant="plain" to="/days-off">
+          {t("common.seeAll")}
+          <Icon name="chevronRight" size={15} />
+        </Button>
+      }
+    >
+      <p className={styles.progressNote} style={{ marginTop: 0 }}>
+        {[
+          d.holiday ? t("daysOff.homeHoliday", { name: d.holiday }) : null,
+          d.pending ? t("daysOff.homePending", { n: d.pending }) : null,
+          d.away.length ? t("daysOff.homeAway", { names: d.away.map((a) => `${a.employee.name.split(" ")[0]} (${reason(a.off)})`).join(", ") }) : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+    </Card>
+  );
+}
+
 function TeamReportsCard() {
   const { t } = useI18n();
   const state = useAsync(() => api.reportsDay(), []);
@@ -153,16 +210,19 @@ function TeamReportsCard() {
   // Per person. An automatic report is always in; someone who also (or
   // only) fills in a form is done when the form is sent.
   const people = new Map();
+  // Someone not working today (their day off, a holiday, away) isn't counted.
   for (const r of data.rows) {
-    const p = people.get(r.employee.id) ?? { name: r.employee.name, needsForm: false, sent: false };
+    const p = people.get(r.employee.id) ?? { name: r.employee.name, needsForm: false, sent: false, off: Boolean(r.off) };
     if (r.template) p.needsForm = true;
     if (r.report) p.sent = true;
     people.set(r.employee.id, p);
   }
   for (const p of people.values()) p.done = p.sent || !p.needsForm;
-  const expected = people.size;
-  const submitted = [...people.values()].filter((p) => p.done).length;
-  const missing = [...people.values()].filter((p) => !p.done).map((p) => p.name.split(" ")[0]);
+  const working = [...people.values()].filter((p) => !p.off || p.sent);
+  const expected = working.length;
+  if (expected === 0) return null;
+  const submitted = working.filter((p) => p.done).length;
+  const missing = working.filter((p) => !p.done).map((p) => p.name.split(" ")[0]);
 
   return (
     <Card

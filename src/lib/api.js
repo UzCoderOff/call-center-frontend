@@ -113,6 +113,32 @@ export const api = {
 
   // --- money from clients (developer + accounts with "Moliya") ---
   finance: (month) => request(`/finance${qs({ month })}`),
+  // --- Natijalar (each person's month at work) ---
+  performance: (month) => request(`/performance${qs({ month })}`),
+  performanceExportUrl: (month) => `${BASE}/performance/export${qs({ month })}`,
+  financeExportUrl: (month) => `${BASE}/finance/export${qs({ month })}`,
+  // --- days off: holidays and days away ---
+  holidays: (year) => request(`/holidays${qs({ year })}`),
+  holidayReview: () => request("/holidays/review"),
+  addHoliday: (payload) => request("/holidays", { method: "POST", body: payload }),
+  updateHoliday: (id, payload) => request(`/holidays/${id}`, { method: "PATCH", body: payload }),
+  deleteHoliday: (id) => request(`/holidays/${id}`, { method: "DELETE" }),
+  absences: (params) => request(`/absences${qs(params)}`),
+  absenceSummary: () => request("/absences/summary"),
+  addAbsence: (payload) => request("/absences", { method: "POST", body: payload }),
+  decideAbsence: (id, status) => request(`/absences/${id}`, { method: "PATCH", body: { status } }),
+  deleteAbsence: (id) => request(`/absences/${id}`, { method: "DELETE" }),
+  // --- kassa: cash in people's hands ---
+  cash: () => request("/cash"),
+  myCash: () => request("/cash/me"),
+  addHandover: (payload) => request("/cash/handovers", { method: "POST", body: payload }),
+  deleteHandover: (id) => request(`/cash/handovers/${id}`, { method: "DELETE" }),
+  // --- a contract's payment schedule ---
+  setInstallments: (caseId, items) => request(`/client-cases/${caseId}/installments`, { method: "PUT", body: { items } }),
+  employeePerformance: (id, month) => request(`/performance/${id}${qs({ month })}`),
+  employeeCosts: (id) => request(`/performance/${id}/costs`),
+  setEmployeeCost: (id, payload) => request(`/performance/${id}/costs`, { method: "PUT", body: payload }),
+  deleteEmployeeCost: (id, costId) => request(`/performance/${id}/costs/${costId}`, { method: "DELETE" }),
 
   revokeDevice: (employeeId, deviceId) => request(`/employees/${employeeId}/devices/${deviceId}`, { method: "DELETE" }),
 

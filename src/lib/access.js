@@ -41,6 +41,16 @@ export function canSeeFinance(user) {
   return Boolean(user?.finance);
 }
 
+// Natijalar (performance): managers see everyone; a staff member their own.
+export function canSeePerformance(user) {
+  return isManager(user) || Boolean(user.employee);
+}
+
+// Days off: staff ask for theirs; managers approve and see everyone's.
+export function canSeeDaysOff(user) {
+  return isManager(user) || Boolean(user.employee);
+}
+
 export function canManageClients(user) {
   return isManager(user);
 }

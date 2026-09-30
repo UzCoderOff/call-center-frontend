@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { SelectField, Switch } from "../ui/Field";
+import styles from "./WorkPattern.module.css";
 import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
 import { useI18n } from "../../i18n";
@@ -84,6 +85,34 @@ export function ReportModeFields({ value, onChange, templates }) {
 // The job settings of one person: office, position, "collect calls",
 // the daily report (automatic, a form, or both). Picking a position fills in the rest
 // from its preset (it can still be changed for this one person).
+// When someone works: the weekdays (pressed = a working day) and whether
+// public holidays are days off for them. Office staff usually Mon–Sat with
+// holidays off; call-center staff, on their own phone, every day.
+export function WorkPatternFields({ workDays, holidaysOff, onChange }) {
+  const { t } = useI18n();
+  const days = t("time.weekdaysShort");
+  const pattern = workDays || "123456";
+  function toggle(d) {
+    const next = pattern.includes(d) ? pattern.replace(d, "") : [...pattern, d].sort().join("");
+    if (next) onChange({ workDays: next, holidaysOff });
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <span style={{ fontSize: 13, color: "var(--text-2)" }}>{t("work.workDays")}</span>
+        <div className={styles.days} role="group" aria-label={t("work.workDays")}>
+          {["1", "2", "3", "4", "5", "6", "7"].map((d) => (
+            <button key={d} type="button" className={styles.day} aria-pressed={pattern.includes(d)} onClick={() => toggle(d)}>
+              {Array.isArray(days) ? days[Number(d) % 7] : d}
+            </button>
+          ))}
+        </div>
+      </div>
+      <Switch label={t("work.holidaysOff")} hint={t("work.holidaysOffHint")} checked={holidaysOff !== false} onChange={(v) => onChange({ workDays: pattern, holidaysOff: v })} />
+    </div>
+  );
+}
+
 export default function WorkSettingsFields({ value, onChange, options }) {
   const { t } = useI18n();
   const set = (patch) => onChange({ ...value, ...patch });
@@ -99,6 +128,8 @@ export default function WorkSettingsFields({ value, onChange, options }) {
             alsoForm: position.alsoForm,
             calendarAccess: position.calendarAccess,
             reportTemplateId: position.reportTemplate?.id ?? "",
+            workDays: position.workDays,
+            holidaysOff: position.holidaysOff,
           }
         : { positionId: "" }
     );
@@ -141,6 +172,7 @@ export default function WorkSettingsFields({ value, onChange, options }) {
         checked={Boolean(value.collectCalls)}
         onChange={(v) => set({ collectCalls: v })}
       />
+      <WorkPatternFields workDays={value.workDays} holidaysOff={value.holidaysOff} onChange={set} />
     </>
   );
 }
@@ -156,5 +188,7 @@ export function workPayload(value) {
     autoReport: Boolean(value.autoReport),
     alsoForm: Boolean(value.autoReport && value.alsoForm),
     calendarAccess: value.calendarAccess || "none",
+    workDays: value.workDays || "123456",
+    holidaysOff: value.holidaysOff !== false,
   };
 }

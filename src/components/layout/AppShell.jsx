@@ -4,7 +4,7 @@ import styles from "./AppShell.module.css";
 import Icon from "../ui/Icon";
 import { Avatar } from "../ui/Misc";
 import { useAuth, isManagerRole } from "../../hooks/useAuth";
-import { canSeeCalendar, canSeeCalls, canSeeClients, canSeeFinance, canSeeReports } from "../../lib/access";
+import { canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeFinance, canSeePerformance, canSeeReports } from "../../lib/access";
 import { useI18n } from "../../i18n";
 
 // Navigation is one list, rendered twice: a sidebar on wide screens and an
@@ -19,7 +19,9 @@ export function navItems(user) {
     ...(canSeeFinance(user) ? [{ to: "/finance", icon: "cash", label: "nav.finance" }] : []),
     ...(canSeeCalendar(user) ? [{ to: "/calendar", icon: "calendar", label: "nav.calendar" }] : []),
     ...(canSeeReports(user) ? [{ to: "/reports", icon: "clipboard", label: "nav.reports" }] : []),
+    ...(canSeePerformance(user) ? [{ to: "/performance", icon: "barChart", label: "nav.performance" }] : []),
     { to: "/tasks", icon: "checkCircle", label: "nav.tasks" },
+    ...(canSeeDaysOff(user) ? [{ to: "/days-off", icon: "coffee", label: "nav.daysOff" }] : []),
     ...(manager ? [{ to: "/team", icon: "users", label: "nav.team" }] : []),
     ...(manager ? [{ to: "/settings", icon: "settings", label: "nav.settings", sidebarOnly: true }] : []),
     { to: "/materials", icon: "book", label: "nav.materials" },
