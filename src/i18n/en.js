@@ -642,6 +642,17 @@ const en = {
     office: "Office",
     position: "Position",
     none: "—",
+    kind: "What Natijalar measures them on",
+    kinds: {
+      auto: "Decide from their settings",
+      client: "Works with clients",
+      office: "Office staff",
+    },
+    kindHints: {
+      auto: "From their settings: calls collected with the automatic report alone, or booking consultations — client work; a report form — office staff.",
+      client: "Measured on calls, bookings, consultations and contracts.",
+      office: "Measured on the numbers in their daily report form. If their calls are collected, the calls still show on their page, but aren't the goal. Needs a report form (with collected calls: “Automatic + form”).",
+    },
     noOffice: "No office",
     noPosition: "No position",
     noCalls: "Calls aren't collected from this person.",
@@ -1498,6 +1509,7 @@ const en = {
       client: "People who work with clients (call center, booking consultations) are measured on calls, bookings, consultations and contracts.",
       office: "Office staff (translation, insurance, documents…) are measured on the numbers in their own daily report — e.g. “Documents translated” added up over the month.",
       targets: "Targets are set on each person's page with “Set a target”: what (e.g. documents translated) and how much per month. Without a target, only the results show.",
+      kind: "The developer can choose each person's group: Team → the person → Work settings → “What Natijalar measures them on”. E.g. someone whose phone is monitored but whose job is the office work — “Office staff”.",
       days: "“Needed by today” — the monthly target spread over the person's working days; days off, holidays (for office staff) and approved days away don't count.",
     },
     groups: {

@@ -163,6 +163,7 @@ function WorkCard({ employee, onChange }) {
         )}
       </KeyValue>
       <KeyValue label={t("work.workDays")}>{workPatternLine(employee, t)}</KeyValue>
+      <KeyValue label={t("work.kind")}>{t(`work.kinds.${employee.workKind || "auto"}`)}</KeyValue>
       {editing && <EditWorkSheet employee={employee} onClose={() => setEditing(false)} onSaved={onChange} />}
     </Card>
   );
@@ -189,6 +190,7 @@ function EditWorkSheet({ employee, onClose, onSaved }) {
     autoReport: employee.autoReport,
     alsoForm: employee.alsoForm,
     calendarAccess: employee.calendarAccess,
+    workKind: employee.workKind || "auto",
     workDays: employee.workDays,
     holidaysOff: employee.holidaysOff,
   });

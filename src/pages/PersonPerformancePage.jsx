@@ -65,7 +65,7 @@ export default function PersonPerformancePage() {
             {p.workDays.away.length > 0 && <AwayNote away={p.workDays.away} />}
 
             <Plan p={p} manager={manager} onChanged={state.reload} />
-            {p.work.client && <ClientWork p={p} />}
+            {(p.work.client || p.work.clientActivity) && <ClientWork p={p} />}
             {p.work.office && p.office.length > 0 && <OfficeWork p={p} />}
             {p.calls && <Calls p={p} />}
             <div className={styles.columns}>
@@ -254,7 +254,7 @@ function Money({ p, onChanged }) {
       }
     >
       <div className={styles.facts}>
-        {p.work.client &&
+        {(p.work.client || p.work.clientActivity) &&
           (p.finance ? (
             <Fact label={t("perf.m.brought")} value={fmt.number(m.brought.total)} note={t("perf.m.broughtSplit", { consultation: fmt.number(m.brought.consultation), contract: fmt.number(m.brought.contract) })} />
           ) : (
@@ -433,9 +433,9 @@ function DaysTable({ p, fmt }) {
           <th>{t("perf.col.date")}</th>
           {p.calls && <th>{t("perf.col.answered")}</th>}
           {p.calls && <th>{t("perf.col.missed")}</th>}
-          {p.work.client && <th>{t("perf.col.booked")}</th>}
-          {p.work.client && <th>{t("perf.col.consultations")}</th>}
-          {p.work.client && <th>{t("perf.col.contracts")}</th>}
+          {(p.work.client || p.work.clientActivity) && <th>{t("perf.col.booked")}</th>}
+          {(p.work.client || p.work.clientActivity) && <th>{t("perf.col.consultations")}</th>}
+          {(p.work.client || p.work.clientActivity) && <th>{t("perf.col.contracts")}</th>}
           {office.map((m) => (
             <th key={m.key}>{text(m).label}</th>
           ))}
@@ -447,9 +447,9 @@ function DaysTable({ p, fmt }) {
             <td>{fmt.isoDateLong(d.date)}</td>
             {p.calls && <td>{d.answered}</td>}
             {p.calls && <td>{d.missed}</td>}
-            {p.work.client && <td>{d.booked}</td>}
-            {p.work.client && <td>{d.consultations}</td>}
-            {p.work.client && <td>{d.contracts}</td>}
+            {(p.work.client || p.work.clientActivity) && <td>{d.booked}</td>}
+            {(p.work.client || p.work.clientActivity) && <td>{d.consultations}</td>}
+            {(p.work.client || p.work.clientActivity) && <td>{d.contracts}</td>}
             {office.map((m) => (
               <td key={m.key}>{d.measures?.[m.key] ? fmt.number(d.measures[m.key]) : "—"}</td>
             ))}

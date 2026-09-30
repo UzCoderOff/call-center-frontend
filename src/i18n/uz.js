@@ -645,6 +645,17 @@ const uz = {
     office: "Filial",
     position: "Lavozim",
     none: "—",
+    kind: "Natijalarda nima boʻyicha baholanadi",
+    kinds: {
+      auto: "Oʻzi aniqlansin",
+      client: "Mijozlar bilan ishlaydi",
+      office: "Ofis xodimi",
+    },
+    kindHints: {
+      auto: "Sozlamalariga qarab: qoʻngʻiroqlari yigʻilib, faqat avtomatik hisobot boʻlsa yoki konsultatsiyaga yozsa — mijozlar bilan ishlaydi; hisobot shakli boʻlsa — ofis xodimi.",
+      client: "Qoʻngʻiroqlar, kalendarga yozganlari, konsultatsiyalar va shartnomalar boʻyicha baholanadi.",
+      office: "Kunlik hisobot shaklidagi raqamlar boʻyicha baholanadi. Qoʻngʻiroqlari yigʻilsa ham — ular sahifasida koʻrinadi, lekin asosiy maqsad emas. Hisobot shakli kerak (qoʻngʻiroqlari yigʻilsa — «Avtomatik + shakl»).",
+    },
     noOffice: "Filialsiz",
     noPosition: "Lavozimsiz",
     noCalls: "Bu xodimdan qoʻngʻiroqlar yigʻilmaydi.",
@@ -1501,6 +1512,7 @@ const uz = {
       client: "Mijozlar bilan ishlaydiganlar (call-markaz, konsultatsiyaga yozadiganlar) — qoʻngʻiroqlar, kalendarga yozganlari, konsultatsiyalar va shartnomalar boʻyicha oʻlchanadi.",
       office: "Ofis xodimlari (tarjima, sugʻurta, hujjatlar…) — oʻz kunlik hisobotidagi raqamlar boʻyicha: masalan, «Tarjima qilingan hujjatlar soni» oy davomida qoʻshib boriladi.",
       targets: "Reja har bir xodimning sahifasida «Reja qoʻyish» orqali qoʻyiladi: nimani (masalan, tarjimalar soni) va oyiga qancha. Reja qoʻyilmagan boʻlsa — faqat natija koʻrinadi.",
+      kind: "Xodim qaysi guruhda boʻlishini dasturchi oʻzi tanlashi mumkin: Jamoa → xodim → Ish sozlamalari → «Natijalarda nima boʻyicha baholanadi». Masalan, telefoni kuzatiladigan, lekin asosiy ishi ofisda boʻlgan xodim — «Ofis xodimi».",
       days: "«Bugungacha kerak» — oylik reja xodimning ish kunlariga boʻlinadi; dam olish kunlari, bayramlar (ofis uchun) va tasdiqlangan dam olishlar hisobga olinmaydi.",
     },
     groups: {

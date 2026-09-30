@@ -62,6 +62,7 @@ export default function PerformancePage() {
                     <li>{t("perf.intro.client")}</li>
                     <li>{t("perf.intro.office")}</li>
                     <li>{t("perf.intro.targets")}</li>
+                    <li>{t("perf.intro.kind")}</li>
                     <li>{t("perf.intro.days")}</li>
                   </ul>
                 </details>

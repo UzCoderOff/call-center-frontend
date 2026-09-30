@@ -173,6 +173,13 @@ export default function WorkSettingsFields({ value, onChange, options }) {
         onChange={(v) => set({ collectCalls: v })}
       />
       <WorkPatternFields workDays={value.workDays} holidaysOff={value.holidaysOff} onChange={set} />
+      <SelectField label={t("work.kind")} hint={t(`work.kindHints.${value.workKind || "auto"}`)} value={value.workKind || "auto"} onChange={(e) => set({ workKind: e.target.value })}>
+        {["auto", "client", "office"].map((k) => (
+          <option key={k} value={k}>
+            {t(`work.kinds.${k}`)}
+          </option>
+        ))}
+      </SelectField>
     </>
   );
 }
@@ -188,6 +195,7 @@ export function workPayload(value) {
     autoReport: Boolean(value.autoReport),
     alsoForm: Boolean(value.autoReport && value.alsoForm),
     calendarAccess: value.calendarAccess || "none",
+    workKind: value.workKind || "auto",
     workDays: value.workDays || "123456",
     holidaysOff: value.holidaysOff !== false,
   };
