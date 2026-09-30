@@ -35,7 +35,8 @@ export default function CallRow({ call, showEmployee = false, showCallButton = f
   const typeLabel = t(`callType.${call.callType}`);
   // A number that belongs to a client shows the client's name (the call-type
   // icon still says incoming/outgoing).
-  const client = compact ? null : call.client;
+  // Someone else's client shows as just the number.
+  const client = compact || call.client?.restricted ? null : call.client;
   const title = compact ? typeLabel : client?.name || fmt.phone(call.phoneNumber);
   const parts = client
     ? [fmt.phone(call.phoneNumber), showEmployee && call.employee?.name, when].filter(Boolean)

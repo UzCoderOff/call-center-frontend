@@ -13,7 +13,7 @@ import { BulkSheet, ClientSheet } from "../components/clients/ClientSheets";
 import Icon from "../components/ui/Icon";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
-import { canManageClients, canSeeFinance, isLawyer } from "../lib/access";
+import { canBookAppointments, canManageClients, canSeeFinance, isLawyer } from "../lib/access";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
@@ -237,7 +237,9 @@ export default function ClientsPage() {
                     ? t("clients.emptyContracts")
                     : lawyer
                       ? t("lawyer.noCases")
-                      : t("clients.empty")
+                      : manager
+                        ? t("clients.empty")
+                        : t("clients.emptyMine")
               }
             />
           ) : (
@@ -356,7 +358,7 @@ export default function ClientsPage() {
             setCreating(false);
             update({ new: null, phone: null, name: null });
           }}
-          onSaved={(client) => navigate(`/clients/${client.id}`)}
+          onSaved={(client) => navigate(`/clients/${client.id}${canBookAppointments(user) ? "?ask=book" : ""}`)}
         />
       )}
     </div>

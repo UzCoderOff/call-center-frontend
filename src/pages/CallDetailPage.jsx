@@ -87,7 +87,9 @@ export default function CallDetailPage() {
                   </KeyValue>
                   {canSeeClients(user) && (
                     <KeyValue label={t("callDetail.client")}>
-                      {call.client ? (
+                      {call.client?.restricted ? (
+                        <span>{call.client.operator ? t("clients.othersClientOf", { operator: call.client.operator }) : t("clients.othersClient")}</span>
+                      ) : call.client ? (
                         <Link to={`/clients/${call.client.id}`} className={styles.employeeLink}>
                           {call.client.name}
                           <Icon name="chevronRight" size={15} />

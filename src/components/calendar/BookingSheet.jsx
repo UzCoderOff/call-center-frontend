@@ -47,7 +47,7 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
 
   async function submit(e) {
     e.preventDefault();
-    if (feeReceived && !clientPhone.trim()) return setError(t("calendar.feeNeedsPhone"));
+    if (feeReceived && !clientPhone.trim() && !prefill?.clientId) return setError(t("calendar.feeNeedsPhone"));
     if (feeReceived && !Number(feeAmount)) return setError(t("payments.amountRequired"));
     setBusy(true);
     setError("");
@@ -61,6 +61,7 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
         matter: matter.trim() || null,
         notes: notes.trim() || null,
         callLogId: prefill?.callId || undefined,
+        clientId: prefill?.clientId || undefined,
         ...(feeReceived ? { feeReceived: true, feeAmount: Number(feeAmount), feeMethod } : {}),
       });
       onBooked(appointment);

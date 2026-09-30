@@ -172,7 +172,14 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
         {editing && <TextField label={t("clients.email")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />}
         <TextAreaField label={t("clients.notes")} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
 
-        {duplicate && (
+        {duplicate?.restricted && (
+          <div className={styles.duplicate}>
+            <span style={{ flex: "1 1 200px" }}>
+              {duplicate.operator ? t("clients.phoneExistsOtherOf", { operator: duplicate.operator }) : t("clients.phoneExistsOther")}
+            </span>
+          </div>
+        )}
+        {duplicate && !duplicate.restricted && (
           <div className={styles.duplicate}>
             <span style={{ flex: "1 1 200px" }}>{t("clients.phoneExists", { name: duplicate.name })}</span>
             <Button size="small" to={`/clients/${duplicate.id}`} onClick={onClose}>
@@ -444,7 +451,10 @@ export function LinkSheet({ client, onClose, onSaved }) {
       });
       onSaved();
     } catch (err) {
-      setError(t("clients.saveFailed", { reason: err.code || "?" }));
+      // The number is another operator's client: say whose, not "failed".
+      const other = err.code === "phone_exists" ? err.body?.client : null;
+      if (other?.restricted) setError(other.operator ? t("clients.phoneExistsOtherOf", { operator: other.operator }) : t("clients.phoneExistsOther"));
+      else setError(t("clients.saveFailed", { reason: err.code || "?" }));
     } finally {
       setBusy(false);
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import styles from "../components/calendar/Calendar.module.css";
 import pageStyles from "./Pages.module.css";
 import Button from "../components/ui/Button";
@@ -62,9 +62,16 @@ function CalendarView({ calendars, initialId, onCalendarChanged }) {
   const asked = params.get("day") || params.get("week");
   const weekStart = weekStartOf(asked || today);
   const day = asked && weekStartOf(asked) === weekStart && params.get("day") ? asked : weekStart === weekStartOf(today) ? today : weekStart;
-  const prefill = params.get("phone") || params.get("name")
-    ? { phone: params.get("phone") || "", name: params.get("name") || "", callId: Number(params.get("callId")) || null }
+  const prefill = params.get("phone") || params.get("name") || params.get("clientId")
+    ? {
+        phone: params.get("phone") || "",
+        name: params.get("name") || "",
+        callId: Number(params.get("callId")) || null,
+        // Booking from the client's page: that client's consultation.
+        clientId: Number(params.get("clientId")) || null,
+      }
     : null;
+  const navigate = useNavigate();
 
   const state = useAsync(() => api.calendarWeek(calendar.id, weekStart), [calendar.id, weekStart]);
   const [booking, setBooking] = useState(null); // slot
@@ -144,12 +151,12 @@ function CalendarView({ calendars, initialId, onCalendarChanged }) {
           <Banner
             icon="phone"
             action={
-              <Button size="small" variant="plain" icon="x" onClick={() => update({ phone: null, callId: null, name: null })}>
+              <Button size="small" variant="plain" icon="x" onClick={() => update({ phone: null, callId: null, name: null, clientId: null })}>
                 {t("common.close")}
               </Button>
             }
           >
-            {t("calendar.fromCall", { who: [prefill.name, prefill.phone && fmt.phone(prefill.phone)].filter(Boolean).join(", ") })}
+            {t(prefill.clientId ? "calendar.forClient" : "calendar.fromCall", { who: [prefill.name, prefill.phone && fmt.phone(prefill.phone)].filter(Boolean).join(", ") })}
           </Banner>
         </div>
       )}
@@ -226,9 +233,11 @@ function CalendarView({ calendars, initialId, onCalendarChanged }) {
                 onClose={() => setBooking(null)}
                 onBooked={() => {
                   setBooking(null);
+                  // Booked from the client's page: back to the client.
+                  if (prefill?.clientId) return navigate(`/clients/${prefill.clientId}`);
                   setFlash(t("calendar.bookedNow"));
                   setBookings((n) => n + 1);
-                  if (prefill) update({ phone: null, callId: null, name: null });
+                  if (prefill) update({ phone: null, callId: null, name: null, clientId: null });
                   state.reload();
                 }}
               />

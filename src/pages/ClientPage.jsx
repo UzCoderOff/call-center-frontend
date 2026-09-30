@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import styles from "../components/clients/Clients.module.css";
 import pageStyles from "./Pages.module.css";
 import Card from "../components/ui/Card";
@@ -17,6 +17,7 @@ import { telHref } from "../lib/format";
 import { useI18n } from "../i18n";
 import { saveFailed } from "../lib/saveFailed";
 import { TaskSheet } from "../components/tasks/TaskParts";
+import { canBookAppointments } from "../lib/access";
 
 // One client: contact details, the next call, their cases (status, court
 // stage, money), connected people, and a timeline of everything — notes,
@@ -39,6 +40,17 @@ function ClientView({ client, reload, goBack }) {
   const navigate = useNavigate();
   const [sheet, setSheet] = useState(null); // { type, ...props }
   const close = () => setSheet(null);
+  // A consultation is usually a visit to the lawyer: offer to book it (it's
+  // optional — "Hozir emas" just closes the offer).
+  const [params, setParams] = useSearchParams();
+  const mayBook = canBookAppointments(user) && !client.archivedAt && !client.asLawyer;
+  const askBook = mayBook && params.get("ask") === "book";
+  const bookUrl = `/calendar?${new URLSearchParams({ clientId: client.id, name: client.name, ...(client.phones[0] ? { phone: client.phones[0].phone } : {}) })}`;
+  const dismissAsk = () => {
+    const next = new URLSearchParams(params);
+    next.delete("ask");
+    setParams(next, { replace: true });
+  };
   const saved = () => {
     setSheet(null);
     reload();
@@ -83,6 +95,11 @@ function ClientView({ client, reload, goBack }) {
                 {t("common.call")}
               </Button>
             )}
+            {mayBook && (
+              <Button icon="calendar" to={bookUrl}>
+                {t("clients.bookConsultation")}
+              </Button>
+            )}
             {client.canManage && (
               <Button icon="checkCircle" onClick={() => setSheet({ type: "task" })}>
                 {t("tasks.giveForClient")}
@@ -97,6 +114,26 @@ function ClientView({ client, reload, goBack }) {
         }
       />
 
+      {askBook && (
+        <div className={pageStyles.bannerSpace}>
+          <Banner
+            icon="calendar"
+            action={
+              <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Button size="small" variant="primary" to={bookUrl}>
+                  {t("clients.askBookYes")}
+                </Button>
+                <Button size="small" onClick={dismissAsk}>
+                  {t("clients.askBookNo")}
+                </Button>
+              </span>
+            }
+          >
+            <strong>{t("clients.askBookTitle")}</strong>
+            <div className={pageStyles.bannerDetail}>{t("clients.askBookText")}</div>
+          </Banner>
+        </div>
+      )}
       {client.archivedAt && (
         <div className={pageStyles.bannerSpace}>
           <Banner
@@ -178,7 +215,20 @@ function ClientView({ client, reload, goBack }) {
 
       {sheet?.type === "client" && <ClientSheet client={client} onClose={close} onSaved={saved} />}
       {sheet?.type === "nextCall" && <NextCallSheet client={client} onClose={close} onSaved={saved} />}
-      {sheet?.type === "case" && <CaseSheet clientId={client.id} item={sheet.item} canManage={client.canManage} finance={client.finance} onClose={close} onSaved={saved} />}
+      {sheet?.type === "case" && (
+        <CaseSheet
+          clientId={client.id}
+          item={sheet.item}
+          canManage={client.canManage}
+          finance={client.finance}
+          onClose={close}
+          onSaved={(result) => {
+            saved();
+            // A new consultation: offer to book the visit too.
+            if (!sheet.item && result?.status === "consultation" && mayBook) setParams({ ask: "book" }, { replace: true });
+          }}
+        />
+      )}
       {sheet?.type === "payment" && <PaymentSheet clientId={client.id} cases={client.cases} caseId={sheet.caseId} finance={client.finance} onClose={close} onSaved={saved} />}
       {sheet?.type === "link" && <LinkSheet client={client} onClose={close} onSaved={saved} />}
       {sheet?.type === "merge" && <MergeSheet client={client} onClose={close} onSaved={saved} />}
@@ -356,6 +406,11 @@ function Connections({ client, onAdd, onChanged }) {
       ) : (
         client.links.map((l) => (
           <div key={l.id} className={styles.link}>
+            {l.other.restricted ? (
+              <span className={styles.linkMain}>
+                <span className={styles.linkName}>{t("clients.othersClient")}</span>
+              </span>
+            ) : (
             <Link to={`/clients/${l.other.id}`} className={styles.linkMain}>
               <span className={styles.chip}>
                 {t(`links.kinds.${LINK_LABEL(l)}`)}
@@ -369,6 +424,7 @@ function Connections({ client, onAdd, onChanged }) {
                 {[l.other.phone && fmt.phone(l.other.phone), l.other.status && t(`cases.statuses.${l.other.status}`)].filter(Boolean).join(" · ")}
               </span>
             </Link>
+            )}
             <button type="button" className={styles.iconButton} onClick={() => remove(l)} aria-label={t("links.remove")}>
               <Icon name="x" size={15} />
             </button>

@@ -111,6 +111,18 @@ function FreeRow({ slot, canBook, onBook }) {
 function AppointmentItem({ appointment: a, onOpen }) {
   const { t } = useI18n();
   const booker = bookerName(a);
+  // Someone else's booking (their client): only that the time is taken.
+  if (a.masked) {
+    return (
+      <div className={`${styles.row} ${styles.rowAppt} ${a.status === "cancelled" ? styles.rowCancelled : ""}`}>
+        <Time start={a.start} end={a.end} />
+        <span className={styles.rowMain}>
+          <span className={styles.rowTitle}>{t("calendar.busyTaken")}</span>
+          <span className={styles.rowSub}>{t("calendar.busyTakenHint")}</span>
+        </span>
+      </div>
+    );
+  }
   return (
     <button
       type="button"
