@@ -12,7 +12,8 @@ import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 import { TelegramOverview } from "../components/telegram/TelegramCard";
-import { ReportModeFields, WorkPatternFields, reportModeOf } from "../components/team/WorkSettingsFields";
+import { CallCenterSection, StrikeRulesSection } from "../components/settings/CallCenterRules";
+import { JobField, ReportModeFields, WorkPatternFields, reportModeOf } from "../components/team/WorkSettingsFields";
 
 // "Avtomatik + Kunlik shakl", "Kunlik shakl", "Avtomatik", "Hisobot yoʻq".
 export function reportSummary(x, t) {
@@ -43,6 +44,8 @@ export default function SettingsPage() {
         <Offices canEdit={canEdit} />
         <Positions canEdit={canEdit} />
         <Templates canEdit={canEdit} />
+        <CallCenterSection canEdit={canEdit} />
+        <StrikeRulesSection canEdit={canEdit} />
         <TelegramOverview />
         <AuditLog />
       </div>
@@ -312,6 +315,7 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
     reportTemplateId: position?.reportTemplate?.id ?? "",
   });
   const [calendarAccess, setCalendarAccess] = useState(position?.calendarAccess ?? "none");
+  const [job, setJob] = useState(position?.job ?? "other");
   const [pattern, setPattern] = useState({ workDays: position?.workDays ?? "123456", holidaysOff: position?.holidaysOff ?? true });
   const [targetConsultations, setTargetConsultations] = useState(position?.targetConsultations ?? "");
   const [targetContracts, setTargetContracts] = useState(position?.targetContracts ?? "");
@@ -329,6 +333,7 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
       autoReport: report.autoReport,
       alsoForm: Boolean(report.autoReport && report.alsoForm),
       calendarAccess,
+      job,
       workDays: pattern.workDays,
       holidaysOff: pattern.holidaysOff,
       reportTemplateId: report.reportTemplateId || null,
@@ -362,6 +367,7 @@ function PositionSheet({ position, templates, onClose, onSaved }) {
     <Sheet title={position ? t("settings.editPosition") : t("settings.newPosition")} onClose={onClose}>
       <form onSubmit={save} className={pageStyles.formStack}>
         <TextField label={t("settings.positionName")} value={name} onChange={(e) => setName(e.target.value)} required />
+        <JobField value={job} onChange={setJob} />
         <SelectField
           label={t("settings.calendarAccess")}
           hint={t("settings.calendarAccessHint")}

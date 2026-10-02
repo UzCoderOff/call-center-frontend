@@ -6,6 +6,7 @@ import Segmented from "../components/ui/Segmented";
 import { SearchField, SelectField } from "../components/ui/Field";
 import { AsyncBoundary, EmptyState, PageHeader } from "../components/ui/Misc";
 import { CallList } from "../components/calls/CallRow";
+import JobToggles, { useCallJobs } from "../components/calls/JobToggles";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -13,7 +14,7 @@ import { rangeFor } from "../lib/format";
 import { useI18n } from "../i18n";
 
 const PAGE_SIZE = 30;
-const PERIODS = ["today", "7d", "30d", "90d"];
+const PERIODS = ["today", "7d", "month", "lastMonth", "30d", "90d"];
 
 // One local day, "YYYY-MM-DD" -> { from, to } in epoch ms.
 function dayRange(iso) {
@@ -25,7 +26,7 @@ function dayRange(iso) {
 // dashboard's tiles and chart can link straight to the calls behind a
 // number, and the back button returns to the same filtered list.
 //   view    all | answered | missed | needsCallback
-//   period  today | 7d | 30d | 90d (none = all time), or date=YYYY-MM-DD
+//   period  today | 7d | month | lastMonth | 30d | 90d (none = all time), or date=YYYY-MM-DD
 //   sort    longest (default: newest first)
 export default function CallsPage() {
   const { user } = useAuth();
@@ -69,6 +70,9 @@ export default function CallsPage() {
   }, [search]);
 
   const employees = useAsync(() => (isManager ? api.employees() : Promise.resolve([])), [isManager]);
+  // Whose phones (managers): the call center unless more are switched on.
+  const [jobs, setJobs] = useCallJobs();
+  const phonesByJob = (employees.data || []).filter((e) => e.active && e.collectCalls).reduce((m, e) => ({ ...m, [e.job || "other"]: (m[e.job || "other"] || 0) + 1 }), {});
 
   const talkMatters = view === "all" || view === "answered";
   const state = useAsync(() => {
@@ -79,6 +83,7 @@ export default function CallsPage() {
       callType: talkMatters && type ? type : undefined,
       hasRecording: rec || undefined,
       employeeId: employeeId || undefined,
+      jobs: isManager && !employeeId ? jobs.join(",") : undefined,
       phone: q || undefined,
       from: range.from,
       to: range.to,
@@ -86,7 +91,7 @@ export default function CallsPage() {
       page,
       pageSize: PAGE_SIZE,
     });
-  }, [view, type, rec, employeeId, q, date, period, sort, page]);
+  }, [view, type, rec, employeeId, q, date, period, sort, page, jobs.join(",")]);
 
   const hasFilters = Boolean(type || rec || employeeId || q || period || date || sort);
 
@@ -108,6 +113,7 @@ export default function CallsPage() {
             { value: "needsCallback", label: t("calls.viewNeedsCallback") },
           ]}
         />
+        {isManager && !employeeId && <JobToggles value={jobs} onChange={(next) => (setJobs(next), update({}))} counts={employees.data ? phonesByJob : null} />}
 
         <div className={styles.filters}>
           <SearchField
@@ -160,11 +166,13 @@ export default function CallsPage() {
               onChange={(e) => update({ employeeId: e.target.value })}
             >
               <option value="">{t("calls.allEmployees")}</option>
-              {(employees.data || []).map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
-              ))}
+              {(employees.data || [])
+                .filter((e) => e.collectCalls || e.active)
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
             </SelectField>
           )}
         </div>

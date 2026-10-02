@@ -16,15 +16,17 @@ export default function Segmented({ options, value, onChange, label, full = fals
   return (
     <div className={`${styles.scroller} ${full ? styles.full : ""} ${wrap ? styles.wrap : ""}`}>
       <div className={`${styles.segmented} ${styles[size]}`} role="radiogroup" aria-label={label} onKeyDown={onKeyDown}>
-        {options.map((o) => {
+        {options.map((o, i) => {
           const selected = o.value === value;
+          // Nothing chosen yet: the first one takes the keyboard focus.
+          const focusable = selected || (i === 0 && !options.some((x) => x.value === value));
           return (
             <button
               key={o.value}
               type="button"
               role="radio"
               aria-checked={selected}
-              tabIndex={selected ? 0 : -1}
+              tabIndex={focusable ? 0 : -1}
               className={`${styles.item} ${selected ? styles.selected : ""}`}
               onClick={() => onChange(o.value)}
             >

@@ -5,7 +5,8 @@ import Sheet from "../ui/Sheet";
 import Button from "../ui/Button";
 import Icon from "../ui/Icon";
 import { MoneyField, SelectField, TextAreaField, TextField } from "../ui/Field";
-import { LEGAL_STAGES, SOURCES, STATUSES } from "./parts";
+import { SOURCES, STATUSES } from "./parts";
+import { LOST_REASONS } from "./ClientWork";
 import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
 import { todayIso } from "../../lib/format";
@@ -203,39 +204,94 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
 }
 
 // -------------------------------------------------------------- case
+// A new case, or the details of one. Each person sees the fields that are
+// theirs to change (the server checks the same — item.permissions.role):
+//   managers     everything: what, number, court, status, its dates, the
+//                contract amount (Moliya), operator, lawyer
+//   lawyer       what, number, court, status, when it closed
+//   coordinator  number, court
+//   operator     the consultation: what, status up to the contract, when it
+//                started, number, lawyer
+// Only what changed is sent. The stage history and key dates are on the
+// case itself (CaseWork.jsx), not here.
+const OPERATOR_STATUSES = ["consultation", "call_again", "contract", "declined"];
+const CASE_FIELDS = {
+  manager: ["matter", "number", "court", "status", "startDate", "consultationDate", "contractDate", "closedDate", "lawyer", "operatorId", "lostReason", "lostNote"],
+  lawyer: ["matter", "number", "court", "status", "closedDate", "lostReason", "lostNote"],
+  coordinator: ["number", "court"],
+  operator: ["matter", "number", "status", "startDate", "lawyer", "lostReason", "lostNote"],
+};
+
 export function CaseSheet({ clientId, item, canManage, finance = false, onClose, onSaved }) {
   const { t } = useI18n();
   const editing = Boolean(item);
+  const role = editing ? item.permissions?.role || (canManage ? "manager" : "operator") : canManage ? "manager" : "operator";
+  const may = (field) => (CASE_FIELDS[role] || []).includes(field);
   const [matter, setMatter] = useState(item?.matter || "");
   const [number, setNumber] = useState(item?.number || "");
+  const [court, setCourt] = useState(item?.court || "");
   const [lawyer, setLawyer] = useState({ lawyerId: item?.lawyerId ?? null, lawyer: item?.lawyer || "" });
   const [status, setStatus] = useState(item?.status || "consultation");
-  const [legalStage, setLegalStage] = useState(item?.legalStage || "");
   const [startDate, setStartDate] = useState(item?.startDate || todayIso());
+  const [consultationDate, setConsultationDate] = useState(item?.consultationDate || "");
+  const [contractDate, setContractDate] = useState(item?.contractDate || "");
+  const [closedDate, setClosedDate] = useState(item?.closedDate || "");
   const [amount, setAmount] = useState(item?.contractAmount ? String(item.contractAmount) : "");
   const [operatorId, setOperatorId] = useState(item?.operator?.id ? String(item.operator.id) : "");
+  const [lostReason, setLostReason] = useState(item?.lostReason || "");
+  const [lostNote, setLostNote] = useState(item?.lostNote || "");
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
   const employees = useAsync(() => (canManage ? api.employees() : Promise.resolve([])), [canManage]);
-  const hasContract = status === "contract" || status === "done";
+  const statuses = role === "operator" ? OPERATOR_STATUSES : STATUSES;
+  const closed = status === "done" || status === "declined";
 
   async function save() {
+    // Didn't continue: why (it's what shows where clients are lost).
+    if (status === "declined" && may("lostReason") && !lostReason) return setError(t("clientWork.pickReason"));
     setBusy("save");
     setError("");
-    const payload = {
+    const values = {
+      lostReason: status === "declined" ? lostReason || null : undefined,
+      lostNote: status === "declined" ? lostNote || null : undefined,
       matter,
       number,
-      lawyer: lawyer.lawyer,
-      lawyerId: lawyer.lawyerId,
+      court,
       status,
-      legalStage: hasContract ? legalStage || null : null,
-      startDate,
-      // Only people who see money set the contract amount (the server
-      // ignores it from anyone else, so it can't be wiped by accident).
-      ...(finance ? { contractAmount: amount ? Number(amount) : null } : {}),
-      ...(canManage ? { operatorId: operatorId ? Number(operatorId) : null } : {}),
+      startDate: startDate || null,
+      consultationDate: consultationDate || null,
+      contractDate: contractDate || null,
+      closedDate: closedDate || null,
+      operatorId: operatorId ? Number(operatorId) : null,
     };
+    const before = {
+      matter: item?.matter || "",
+      number: item?.number || "",
+      court: item?.court || "",
+      status: item?.status || "consultation",
+      startDate: item?.startDate || null,
+      consultationDate: item?.consultationDate || null,
+      contractDate: item?.contractDate || null,
+      closedDate: item?.closedDate || null,
+      operatorId: item?.operator?.id ?? null,
+      lostReason: item?.lostReason ?? null,
+      lostNote: item?.lostNote ?? null,
+    };
+    const payload = {};
+    for (const [key, value] of Object.entries(values)) {
+      if (!may(key) || value === undefined) continue;
+      if (!editing || value !== before[key]) payload[key] = value;
+    }
+    if (may("lawyer") && (!editing || lawyer.lawyerId !== (item?.lawyerId ?? null) || lawyer.lawyer !== (item?.lawyer || ""))) {
+      payload.lawyer = lawyer.lawyer;
+      payload.lawyerId = lawyer.lawyerId;
+    }
+    // Only people who see money set the contract amount (the server ignores
+    // it from anyone else, so it can't be wiped by accident).
+    if (finance && (!editing || String(item?.contractAmount ?? "") !== amount)) payload.contractAmount = amount ? Number(amount) : null;
+    if (!editing && !payload.startDate) payload.startDate = todayIso();
     try {
+      if (editing && Object.keys(payload).length === 0) return onSaved(item);
       onSaved(editing ? await api.updateCase(item.id, payload) : await api.addCase(clientId, payload));
     } catch (err) {
       setError(t("clients.saveFailed", { reason: err.code || "?" }));
@@ -259,32 +315,44 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
   return (
     <Sheet title={editing ? t("cases.edit") : t("cases.new")} onClose={onClose}>
       <div className={pageStyles.formStack}>
-        <TextField label={t("cases.matter")} placeholder={t("cases.matterPlaceholder")} value={matter} onChange={(e) => setMatter(e.target.value)} />
+        {may("matter") && <TextField label={t("cases.matter")} placeholder={t("cases.matterPlaceholder")} value={matter} onChange={(e) => setMatter(e.target.value)} />}
         <div className={styles.twoCol}>
-          <SelectField label={t("cases.status")} value={status} onChange={(e) => setStatus(e.target.value)}>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(`cases.statuses.${s}`)}
-              </option>
-            ))}
-          </SelectField>
-          {hasContract ? (
-            <SelectField label={t("cases.legalStage")} value={legalStage} onChange={(e) => setLegalStage(e.target.value)}>
-              <option value="">{t("cases.noStage")}</option>
-              {LEGAL_STAGES.map((s) => (
+          {may("number") && <TextField label={t("cases.number")} value={number} onChange={(e) => setNumber(e.target.value)} />}
+          {may("status") && (
+            <SelectField label={t("cases.status")} value={status} onChange={(e) => setStatus(e.target.value)}>
+              {statuses.map((s) => (
                 <option key={s} value={s}>
-                  {t(`cases.stages.${s}`)}
+                  {t(`cases.statuses.${s}`)}
                 </option>
               ))}
             </SelectField>
-          ) : (
-            <TextField label={t("cases.startDate")} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           )}
         </div>
-        <LawyerField value={lawyer} onChange={setLawyer} />
-        <TextField label={t("cases.number")} value={number} onChange={(e) => setNumber(e.target.value)} />
+        {status === "declined" && may("lostReason") && (
+          <>
+            <SelectField label={t("clientWork.lostReason")} value={lostReason} onChange={(e) => setLostReason(e.target.value)}>
+              <option value="">{t("clientWork.pickReason")}</option>
+              {LOST_REASONS.map((r) => (
+                <option key={r} value={r}>
+                  {t(`clientWork.lost.${r}`)}
+                </option>
+              ))}
+            </SelectField>
+            <TextField label={t("clientWork.lostNote")} value={lostNote} onChange={(e) => setLostNote(e.target.value)} />
+          </>
+        )}
+        {may("court") && <TextField label={t("caseWork.court")} placeholder={t("caseWork.courtPlaceholder")} value={court} onChange={(e) => setCourt(e.target.value)} />}
+        {may("lawyer") && <LawyerField value={lawyer} onChange={setLawyer} />}
+        {(may("startDate") || may("consultationDate") || may("contractDate") || may("closedDate")) && (
+          <div className={styles.twoCol}>
+            {may("startDate") && <TextField label={t("caseWork.milestones.start")} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />}
+            {may("consultationDate") && editing && <TextField label={t("caseWork.milestones.consultation")} type="date" value={consultationDate} onChange={(e) => setConsultationDate(e.target.value)} />}
+            {may("contractDate") && editing && <TextField label={t("caseWork.milestones.contract")} type="date" value={contractDate} onChange={(e) => setContractDate(e.target.value)} />}
+            {may("closedDate") && editing && closed && <TextField label={t("caseWork.milestones.closed")} type="date" value={closedDate} onChange={(e) => setClosedDate(e.target.value)} />}
+          </div>
+        )}
         {finance && <MoneyField label={t("cases.contractAmount")} value={amount} onChange={setAmount} />}
-        {canManage && (
+        {may("operatorId") && canManage && (
           <SelectField label={t("cases.operator")} value={operatorId} onChange={(e) => setOperatorId(e.target.value)}>
             <option value="">{t("cases.noOperator")}</option>
             {(employees.data || [])
@@ -296,6 +364,7 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
               ))}
           </SelectField>
         )}
+        {editing && role === "manager" && <p className={pageStyles.note}>{t("caseWork.editHint")}</p>}
         <ErrorLine text={error} />
         <div className={pageStyles.formActions}>
           {editing && canManage && (
@@ -593,19 +662,20 @@ export function MergeSheet({ client, onClose, onSaved }) {
 // --------------------------------------------------------------- bulk
 // Many clients at once: who their operator or lawyer is, or "didn't
 // continue" for their consultations. kind: "operator" | "lawyer" | "declined".
-export function BulkSheet({ kind, count, operators, lawyers, onApply, onClose }) {
+export function BulkSheet({ kind, count, operators, lawyers, coordinators = [], onApply, onClose }) {
   const { t } = useI18n();
   const [choice, setChoice] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const options = kind === "operator" ? operators : kind === "lawyer" ? lawyers : [];
+  const options = kind === "operator" ? operators : kind === "lawyer" ? lawyers : kind === "coordinator" ? coordinators : [];
+  const field = { operator: "operatorId", lawyer: "lawyerId", coordinator: "coordinatorId" }[kind];
 
   async function apply() {
     if (kind !== "declined" && !choice) return setError(t("bulk.pickFirst"));
     setBusy(true);
     setError("");
     try {
-      await onApply(kind === "operator" ? { operatorId: Number(choice) } : kind === "lawyer" ? { lawyerId: Number(choice) } : { status: "declined" });
+      await onApply(field ? { [field]: Number(choice) } : { status: "declined" });
     } catch (err) {
       setError(t("clients.saveFailed", { reason: err.code || "?" }));
       setBusy(false);
@@ -617,7 +687,7 @@ export function BulkSheet({ kind, count, operators, lawyers, onApply, onClose })
       <div className={pageStyles.formStack}>
         <p className={pageStyles.note}>{t(`bulk.${kind}Hint`, { count })}</p>
         {kind !== "declined" && (
-          <SelectField label={t(kind === "operator" ? "cases.operator" : "cases.lawyer")} value={choice} onChange={(e) => setChoice(e.target.value)}>
+          <SelectField label={t(`cases.${kind}`)} value={choice} onChange={(e) => setChoice(e.target.value)}>
             <option value="">{t("bulk.choose")}</option>
             {options.map((o) => (
               <option key={o.id} value={o.id}>

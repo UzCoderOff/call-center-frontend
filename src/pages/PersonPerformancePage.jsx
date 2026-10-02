@@ -12,6 +12,7 @@ import DailyChart from "../components/charts/DailyChart";
 import { BurnUpChart, MeasureMonthsChart } from "../components/performance/charts";
 import { MeasureRow, TargetSheet, useMeasureText, useMeasureValue } from "../components/performance/Measures";
 import HowCounted from "../components/performance/HowCounted";
+import { StrikesCard } from "../components/performance/Strikes";
 import { shiftMonth, useMonthLabel } from "../components/finance/parts";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
@@ -65,9 +66,11 @@ export default function PersonPerformancePage() {
             {p.workDays.away.length > 0 && <AwayNote away={p.workDays.away} />}
 
             <Plan p={p} manager={manager} onChanged={state.reload} />
+            {p.coordinator && <CoordinatorWork p={p} />}
             {(p.work.client || p.work.clientActivity) && <ClientWork p={p} />}
             {p.work.office && p.office.length > 0 && <OfficeWork p={p} />}
             {p.calls && <Calls p={p} />}
+            {p.strikes && <StrikesCard employeeId={p.employee.id} month={p.month} summary={p.strikes} manager={manager} onChanged={state.reload} />}
             <div className={styles.columns}>
               <Money p={p} onChanged={state.reload} />
               <Discipline p={p} />
@@ -128,6 +131,7 @@ function Plan({ p, manager, onChanged }) {
       {editing && (
         <TargetSheet
           employeeId={p.employee.id}
+          name={p.employee.name}
           month={p.month}
           onClose={() => setEditing(false)}
           onSaved={onChanged}
@@ -175,6 +179,23 @@ function ClientWork({ p }) {
       <div className={styles.columns} style={{ marginTop: 18 }}>
         <BurnUpChart dates={dates} perDay={new Map(p.days.map((d) => [d.date, d.consultations]))} workDates={p.workDates} target={p.consultations.target} tone="s1" label={t("perf.measure.consultations")} />
         <BurnUpChart dates={dates} perDay={new Map(p.days.map((d) => [d.date, d.contracts]))} workDates={p.workDates} target={p.contracts.target} tone="s2" label={t("perf.measure.contracts")} />
+      </div>
+    </Card>
+  );
+}
+
+// Coordinator work: the cases handed to them since the contract — how many
+// they look after, the money collected on them this month, what's overdue
+// today.
+function CoordinatorWork({ p }) {
+  const { t, fmt } = useI18n();
+  const c = p.coordinator;
+  return (
+    <Card title={t("perf.coordTitle")} subtitle={t("perf.coordSubtitle")}>
+      <div className={styles.facts}>
+        <Fact label={t("perf.measure.cases")} value={fmt.number(c.cases)} note={c.finished ? t("perf.coord.finished", { n: c.finished }) : null} />
+        {c.collected != null && <Fact label={t("perf.measure.collected")} value={fmt.number(c.collected)} note={t("perf.coord.payments", { n: c.payments })} />}
+        {c.overdue != null && <Fact label={t("perf.coord.overdue")} value={fmt.number(c.overdue)} note={t("perf.coord.overdueCases", { n: c.overdueCases })} />}
       </div>
     </Card>
   );
@@ -241,6 +262,7 @@ function Money({ p, onChanged }) {
   const { t, fmt } = useI18n();
   const [editing, setEditing] = useState(false);
   const m = p.money;
+  const income = p.metrics.find((x) => x.key === "income");
   return (
     <Card
       title={p.finance ? t("perf.moneyTitle") : t("perf.feesTitle")}
@@ -254,6 +276,7 @@ function Money({ p, onChanged }) {
       }
     >
       <div className={styles.facts}>
+        {p.finance && m.income != null && <Fact label={t("perf.m.income")} value={fmt.number(m.income)} note={t("perf.m.incomeSplit", { clients: fmt.number(m.brought.total), reports: fmt.number(m.reportIncome || 0) })} />}
         {(p.work.client || p.work.clientActivity) &&
           (p.finance ? (
             <Fact label={t("perf.m.brought")} value={fmt.number(m.brought.total)} note={t("perf.m.broughtSplit", { consultation: fmt.number(m.brought.consultation), contract: fmt.number(m.brought.contract) })} />
@@ -276,6 +299,12 @@ function Money({ p, onChanged }) {
           </>
         )}
       </div>
+      {p.finance && m.unmarked > 0 && <p className={styles.missing}>{t("perf.m.unmarked", { amount: fmt.money(m.unmarked) })}</p>}
+      {p.finance && income?.target != null && (
+        <div style={{ marginTop: 18 }}>
+          <BurnUpChart dates={monthDates(p.month)} perDay={new Map(p.days.map((d) => [d.date, d.income || 0]))} workDates={p.workDates} target={income.target} tone="s3" label={t("perf.measure.income")} money />
+        </div>
+      )}
       {editing && (
         <CostSheet
           employeeId={p.employee.id}
@@ -404,7 +433,7 @@ function History({ p, monthLabel }) {
   const { t } = useI18n();
   const text = useMeasureText();
   const show = useMeasureValue();
-  const inHistory = (m) => !m.builtin || ["consultations", "contracts", "fees"].includes(m.key);
+  const inHistory = (m) => !m.builtin || ["consultations", "contracts", "fees"].includes(m.key) || (m.key === "income" && p.finance);
   const options = p.metrics.filter(inHistory);
   const [picked, setPicked] = useState(options[0]?.key);
   const chosen = options.find((m) => m.key === picked) || options[0];

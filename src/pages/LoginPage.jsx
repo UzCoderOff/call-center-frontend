@@ -54,7 +54,7 @@ function WebLogin() {
     }
   }
 
-  const otherLang = LANGUAGES.find((l) => l.code !== lang);
+  const otherLangs = LANGUAGES.filter((l) => l.code !== lang);
 
   return (
     <main className={styles.page}>
@@ -97,10 +97,14 @@ function WebLogin() {
           </Button>
         </form>
 
-        {otherLang && (
-          <button type="button" className={styles.lang} onClick={() => setLang(otherLang.code)}>
-            {otherLang.label}
-          </button>
+        {otherLangs.length > 0 && (
+          <div className={styles.langs}>
+            {otherLangs.map((l) => (
+              <button key={l.code} type="button" className={styles.lang} onClick={() => setLang(l.code)}>
+                {l.label}
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </main>

@@ -245,6 +245,34 @@ const FILLED = {
       <rect x="14" y="4" width="4" height="16" rx="1.2" />
     </>
   ),
+  micOff: (
+    <>
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
+      <path d="M3 3l18 18" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
+  hardDrive: (
+    <>
+      <path d="M22 12H2" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11zM6 16h.01M10 16h.01" />
+    </>
+  ),
+  arrowUp: <path d="M12 19V5M5 12l7-7 7 7" />,
+  arrowDown: <path d="M12 5v14M19 12l-7 7-7-7" />,
+  target: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </>
+  ),
 };
 
 export default function Icon({ name, size = 20, strokeWidth = 1.8, className, title }) {

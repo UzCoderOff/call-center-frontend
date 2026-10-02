@@ -8,7 +8,7 @@ import { List, ListRow, ListSectionHeader } from "../components/ui/List";
 import { AsyncBoundary, Avatar, EmptyState, KeyValue, PageHeader } from "../components/ui/Misc";
 import CredentialsView from "../components/team/CredentialsView";
 import WorkSettingsFields, { useOrgOptions, workPayload } from "../components/team/WorkSettingsFields";
-import { SyncBadge, isSyncProblem, syncLine } from "../components/SyncStatus";
+import { RecordingBadge, SyncBadge, isRecordingProblem, isSyncProblem, syncLine } from "../components/SyncStatus";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -78,13 +78,14 @@ function StaffByOffice({ employees }) {
                 to={`/team/${e.id}`}
                 leading={<Avatar name={e.name} size={40} />}
                 title={e.name}
-                subtitle={[e.position?.name, e.phoneNumber && fmt.phone(e.phoneNumber), e.collectCalls && syncLine(e.sync, t, fmt)]
+                subtitle={[t(`work.jobs.${e.job || "other"}`), e.position?.name, e.phoneNumber && fmt.phone(e.phoneNumber), e.collectCalls && syncLine(e.sync, t, fmt)]
                   .filter(Boolean)
                   .join(" · ")}
                 trailing={
                   <>
                     {!e.active && <Badge tone="neutral">{t("team.inactive")}</Badge>}
                     {e.active && e.collectCalls && isSyncProblem(e.sync) && <SyncBadge sync={e.sync} />}
+                    {e.active && e.collectCalls && isRecordingProblem(e.sync?.recordings) && <RecordingBadge recordings={e.sync.recordings} />}
                     {e.passwordStatus?.mustChangePassword && (
                       <Badge tone="warning" icon="key">
                         {t("team.tempPassword")}
@@ -105,7 +106,7 @@ function CreateEmployeeSheet({ onClose, onCreated }) {
   const { t } = useI18n();
   const options = useOrgOptions();
   const [form, setForm] = useState({ name: "", phoneNumber: "", username: "" });
-  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, autoReport: false, alsoForm: false, calendarAccess: "none", workKind: "auto", workDays: "123456", holidaysOff: true });
+  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, autoReport: false, alsoForm: false, calendarAccess: "none", job: "call_center", workDays: "123456", holidaysOff: true });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(null);

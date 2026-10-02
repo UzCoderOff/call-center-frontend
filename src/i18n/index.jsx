@@ -1,13 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import uz from "./uz";
+import ru from "./ru";
 import en from "./en";
 import { readPref, writePref } from "../lib/prefs";
 import * as f from "../lib/format";
 
 // Uzbek is the default for everyone. Adding a language (e.g. Uzbek
-// Cyrillic or Russian) is: copy en.js, translate it, and add it here.
+// Cyrillic) is: copy uz.js, translate it, and add it here (dates per
+// language: lib/format.js).
 export const LANGUAGES = [
   { code: "uz", label: "Oʻzbekcha", dict: uz },
+  { code: "ru", label: "Русский", dict: ru },
   { code: "en", label: "English", dict: en },
 ];
 const DICTS = Object.fromEntries(LANGUAGES.map((l) => [l.code, l.dict]));

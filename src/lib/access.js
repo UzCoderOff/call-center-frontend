@@ -27,11 +27,17 @@ export function canBookAppointments(user) {
   return isManager(user) || user.employee?.calendarAccess === "book";
 }
 
+// What a staff member does (Employee.job): "call_center" | "coordinator" |
+// "office" | "other". Their home page and tools follow it.
+export const jobOf = (user) => user?.employee?.job || "other";
+export const isCoordinator = (user) => jobOf(user) === "coordinator";
+export const isCallCenter = (user) => jobOf(user) === "call_center";
+
 // The clients database: managers, and staff who deal with clients
-// (call-center staff and anyone who books appointments); a lawyer sees their
-// own clients.
+// (call-center staff, anyone who books appointments, coordinators); a lawyer
+// sees their own clients.
 export function canSeeClients(user) {
-  return isManager(user) || isLawyer(user) || Boolean(user.employee?.collectCalls) || user.employee?.calendarAccess === "book";
+  return isManager(user) || isLawyer(user) || Boolean(user.employee?.collectCalls) || user.employee?.calendarAccess === "book" || isCoordinator(user);
 }
 
 // Money from clients — contract amounts, payments, debts: the developer, and

@@ -44,12 +44,16 @@ export default function AutoReportNumbers({ day }) {
       title: t("autoReport.callsTitle"),
       rows: [
         [t("autoReport.total"), fmt.number(c.total)],
+        // Different people, however many times they called (older reports: none).
+        ...(c.numbers != null ? [[t("autoReport.numbers"), fmt.number(c.numbers)]] : []),
         [t("autoReport.answered"), `${fmt.number(c.answered)} (${t("autoReport.inOut", { incoming: c.incoming, outgoing: c.outgoing })})`],
         [t("autoReport.missed"), fmt.number(c.missed)],
         [t("autoReport.reached"), fmt.number(c.reached)],
         // Shown as a warning while any are left.
         [t("autoReport.needsCallback"), fmt.number(c.needsCallback), c.needsCallback > 0],
         [t("autoReport.talk"), c.talkSeconds > 0 ? fmt.duration(c.talkSeconds) : "—"],
+        // Late call-backs that day — only when there were some.
+        ...(day.strikes > 0 ? [[t("autoReport.strikes"), fmt.number(day.strikes), true]] : []),
       ],
     });
   }
@@ -60,6 +64,7 @@ export default function AutoReportNumbers({ day }) {
       [t("autoReport.newClients"), fmt.number(day.newClients)],
       [t("autoReport.consultations"), fmt.number(day.consultations)],
       [t("autoReport.contracts"), fmt.number(day.contracts)],
+      ...(day.followUpsDone != null ? [[t("autoReport.followUpsDone"), fmt.number(day.followUpsDone)]] : []),
       // Only for people who see client money — the server leaves it out
       // for everyone else.
       ...(day.payments ? [[t("autoReport.payments"), day.payments.count > 0 ? `${day.payments.count} · ${fmt.money(day.payments.amount)}` : "0"]] : []),

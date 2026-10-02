@@ -13,23 +13,37 @@ import { BulkSheet, ClientSheet } from "../components/clients/ClientSheets";
 import Icon from "../components/ui/Icon";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
-import { canBookAppointments, canManageClients, canSeeFinance, isLawyer } from "../lib/access";
+import { canBookAppointments, canManageClients, canSeeFinance, isCoordinator, isLawyer } from "../lib/access";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
-// Two sections, so the cases that are going on aren't buried under one-off
-// consultations: "Mijozlar" — clients with a contract (or a finished case) —
-// and "Konsultatsiyalar" — everyone else. A search looks in both.
-const SECTIONS = ["clients", "consultations"];
+// Sections, so the cases that are going on aren't buried under one-off
+// consultations — each person gets the ones that fit their work:
+//   managers      Mijozlar (contracts) · Konsultatsiyalar · Tayinlash kerak
+//                 (contracts without a coordinator or lawyer)
+//   coordinator   the cases handed to them · consultations they took
+//   lawyer        their cases
+//   call center   their consultations · "Natijalarim": clients who signed
+//                 thanks to them (name, number and dates only)
+// A search looks in all of them.
+function sectionsFor(user) {
+  if (canManageClients(user)) return ["clients", "consultations", "unassigned"];
+  if (isLawyer(user) || isCoordinator(user)) return ["clients", "consultations"];
+  return ["consultations", "results"];
+}
 // The quick filters of each section. Managers also get old consultations
 // that went nowhere (to close them in one go) and the archive.
 const FILTERS = {
   clients: { staff: ["all", "callToday", "debt", "active"], manager: ["all", "callToday", "debt", "active", "archived"], lawyer: ["all", "active", "debt"] },
   consultations: { staff: ["all", "callToday", "active"], manager: ["all", "callToday", "active", "stale", "archived"], lawyer: ["all", "active"] },
+  results: { staff: ["all"], manager: ["all"], lawyer: ["all"] },
+  unassigned: { staff: ["all"], manager: ["all"], lawyer: ["all"] },
 };
 const SECTION_STATUSES = {
   clients: ["contract", "done"],
   consultations: ["consultation", "call_again", "declined"],
+  results: ["contract", "done"],
+  unassigned: ["contract"],
 };
 
 // The clients database: search by name / phone / case number (either
@@ -45,11 +59,13 @@ export default function ClientsPage() {
   const [params, setParams] = useSearchParams();
 
   const q = params.get("q") || "";
-  const section = SECTIONS.includes(params.get("section")) ? params.get("section") : "clients";
+  const sections = sectionsFor(user);
+  const section = sections.includes(params.get("section")) ? params.get("section") : sections[0];
+  const coordinator = isCoordinator(user);
   // Searching: every client, whatever their section.
   const searching = Boolean(q);
-  // "Owes money" only for people who see money.
-  const filters = FILTERS[section][manager ? "manager" : lawyer ? "lawyer" : "staff"].filter((f) => f !== "debt" || canSeeFinance(user));
+  // "Owes money" only for people who see money (a coordinator: on their cases).
+  const filters = FILTERS[section][manager ? "manager" : lawyer ? "lawyer" : "staff"].filter((f) => f !== "debt" || canSeeFinance(user) || coordinator);
   const filter = filters.includes(params.get("filter")) ? params.get("filter") : "all";
   const status = params.get("status") || "";
   const operatorId = params.get("operatorId") || "";
@@ -71,7 +87,7 @@ export default function ClientsPage() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [allMatching, setAllMatching] = useState(false);
-  const [bulk, setBulk] = useState(null); // "operator" | "lawyer" | "declined"
+  const [bulk, setBulk] = useState(null); // "operator" | "lawyer" | "coordinator" | "declined"
   const [bulkDone, setBulkDone] = useState("");
   const [now] = useState(() => Date.now());
   const [endOfToday] = useState(() => new Date().setHours(23, 59, 59, 999));
@@ -128,6 +144,7 @@ export default function ClientsPage() {
 
   const employees = useAsync(() => (manager ? api.employees() : Promise.resolve([])), [manager]);
   const lawyers = useAsync(() => (manager ? api.clientLawyers() : Promise.resolve(null)), [manager]);
+  const coordinators = useAsync(() => (manager ? api.clientCoordinators() : Promise.resolve(null)), [manager]);
   const state = useAsync(() => api.clients(query({ page })), [q, section, filter, status, operatorId, lawyerId, page]);
   // The section counts stay from the last list that had them (searching
   // doesn't send a section).
@@ -157,7 +174,7 @@ export default function ClientsPage() {
                 </Button>
               </>
             )}
-            {!lawyer && (
+            {!lawyer && !coordinator && (
               <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
                 {t("clients.add")}
               </Button>
@@ -167,28 +184,28 @@ export default function ClientsPage() {
       />
 
       <div className={styles.toolbar}>
-        {!lawyer && <TargetsCard manager={manager} />}
+        {!lawyer && !coordinator && <TargetsCard manager={manager} />}
         <Segmented
           full
           value={searching ? null : section}
-          onChange={(v) => update({ section: v === "clients" ? "" : v, filter: "", status: "", q: "" })}
+          onChange={(v) => update({ section: v === sections[0] ? "" : v, filter: "", status: "", q: "" })}
           label={t("clients.sectionsLabel")}
-          options={SECTIONS.map((sec) => ({
-            value: sec,
-            label: counts ? `${t(`clients.sections.${sec}`)} · ${fmt.number(counts[sec])}` : t(`clients.sections.${sec}`),
-          }))}
+          options={sections.map((sec) => {
+            const name = t(`clients.sections.${coordinator && sec === "clients" ? "mine" : sec}`);
+            return { value: sec, label: counts && counts[sec] != null ? `${name} · ${fmt.number(counts[sec])}` : name };
+          })}
         />
         <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("clients.search")} aria-label={t("clients.search")} />
         {searching && <p className={styles.count} style={{ margin: 0 }}>{t("clients.searchingAll")}</p>}
-        <Segmented
+        {filters.length > 1 && <Segmented
           full
           wrap
           value={filter}
           onChange={(v) => update({ filter: v })}
           label={t("clients.title")}
           options={filters.map((f) => ({ value: f, label: t(`clients.filters.${f}`) }))}
-        />
-        <div className={styles.filters}>
+        />}
+        {(searching || !["results", "unassigned"].includes(section)) && <div className={styles.filters}>
           <SelectField aria-label={t("cases.status")} value={status} onChange={(e) => update({ status: e.target.value })}>
             <option value="">{t("clients.anyStatus")}</option>
             {statuses.map((s) => (
@@ -221,7 +238,7 @@ export default function ClientsPage() {
               ))}
             </SelectField>
           )}
-        </div>
+        </div>}
       </div>
 
       {bulkDone && <p className={styles.count}>{bulkDone}</p>}
@@ -270,11 +287,11 @@ export default function ClientsPage() {
                     </Button>
                   )}
                   <div className={styles.bulkActions}>
-                    {["operator", "lawyer", "declined"].map((kind) => (
+                    {["operator", "coordinator", "lawyer", "declined"].map((kind) => (
                       <Button
                         key={kind}
                         size="small"
-                        icon={kind === "operator" ? "user" : kind === "lawyer" ? "briefcase" : "minusCircle"}
+                        icon={kind === "operator" ? "user" : kind === "lawyer" ? "briefcase" : kind === "coordinator" ? "users" : "minusCircle"}
                         disabled={!allMatching && selected.size === 0}
                         onClick={() => setBulk(kind)}
                       >
@@ -284,8 +301,30 @@ export default function ClientsPage() {
                   </div>
                 </div>
               )}
+              {section === "results" && !searching && <p className={styles.count}>{t("clients.resultsNote")}</p>}
               <List>
                 {data.clients.map((c) => {
+                  // A client who signed thanks to them: who and when, nothing more.
+                  if (c.result) {
+                    const signed = c.signed?.[0];
+                    return (
+                      <ListRow
+                        key={c.id}
+                        to={`/clients/${c.id}`}
+                        leading={<Avatar name={c.name} size={40} />}
+                        title={c.name}
+                        subtitle={[c.phone && fmt.phone(c.phone), signed?.coordinator && t("clients.coordinatorIs", { name: signed.coordinator })].filter(Boolean).join(" · ")}
+                        footer={
+                          <span className={styles.rowBadges}>
+                            <Badge tone="good" icon="checkCircle">
+                              {signed?.contractDate ? t("clients.signedOn", { date: fmt.isoDateLong(signed.contractDate) }) : t("cases.statuses.contract")}
+                            </Badge>
+                            {signed?.consultationDate && <Badge tone="neutral">{t("clients.consultedOn", { date: fmt.isoDateLong(signed.consultationDate) })}</Badge>}
+                          </span>
+                        }
+                      />
+                    );
+                  }
                   const k = c.latestCase;
                   const callAt = c.nextCallAt ? new Date(c.nextCallAt).getTime() : null;
                   const dueToday = callAt && callAt < endOfToday;
@@ -316,6 +355,17 @@ export default function ClientsPage() {
                             </Badge>
                           )}
                           {c.debt > 0 && <Badge tone="warning">{t("clients.debt", { amount: fmt.money(c.debt) })}</Badge>}
+                          {manager && k?.status === "contract" && !k.coordinator && (
+                            <Badge tone="critical" icon="alertCircle">
+                              {t("clients.noCoordinator")}
+                            </Badge>
+                          )}
+                          {manager && k?.status === "contract" && !k.lawyerId && (
+                            <Badge tone="critical" icon="alertCircle">
+                              {t("clients.noLawyer")}
+                            </Badge>
+                          )}
+                          {!manager && k?.coordinator && k.coordinator.id !== user.employee?.id && <Badge tone="neutral">{t("clients.coordinatorIs", { name: k.coordinator.name })}</Badge>}
                         </span>
                       }
                     />
@@ -346,6 +396,7 @@ export default function ClientsPage() {
           count={allMatching ? state.data?.pagination.total ?? 0 : selected.size}
           operators={(employees.data || []).filter((e) => e.active && (e.collectCalls || e.calendarAccess === "book"))}
           lawyers={lawyers.data?.accounts || []}
+          coordinators={[...(coordinators.data?.coordinators || []), ...(coordinators.data?.others || [])]}
           onApply={applyBulk}
           onClose={() => setBulk(null)}
         />

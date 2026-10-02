@@ -1,9 +1,11 @@
 import Segmented from "../ui/Segmented";
 import { useI18n } from "../../i18n";
 
-const RANGE_KEYS = ["today", "7d", "30d", "90d"];
+const RANGE_KEYS = ["today", "7d", "month", "lastMonth", "90d"];
 
 // The date-range presets that scope every number below them on a page.
+// "This month" (from the 1st) is the default on Home: a new month starts
+// from zero.
 export default function RangePicker({ value, onChange }) {
   const { t } = useI18n();
   return (

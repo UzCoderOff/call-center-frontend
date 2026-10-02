@@ -17,7 +17,7 @@ export function isSameDay(a, b) {
 
 export function formatNumber(n, lang) {
   const value = Math.round(n || 0);
-  const grouped = String(Math.abs(value)).replace(/\B(?=(\d{3})+(?!\d))/g, lang === "uz" ? " " : ",");
+  const grouped = String(Math.abs(value)).replace(/\B(?=(\d{3})+(?!\d))/g, lang === "en" ? "," : " ");
   return value < 0 ? `−${grouped}` : grouped;
 }
 
@@ -61,13 +61,15 @@ export function formatTime(ms) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-// "26-sentabr" / "Sep 26" (+ year when it isn't the current one)
+// "26-sentabr" / "26 сентября" / "Sep 26" (+ year when it isn't the current one)
 export function formatDate(ms, lang, time) {
   if (!ms) return "—";
   const d = new Date(ms);
   const sameYear = d.getFullYear() === new Date().getFullYear();
   const month = time.months[d.getMonth()];
   if (lang === "uz") return `${d.getDate()}-${month}${sameYear ? "" : ` ${d.getFullYear()}-yil`}`;
+  // Russian: the day, then the month in the genitive ("2 октября").
+  if (lang === "ru") return `${d.getDate()} ${(time.monthsGenitive || time.months)[d.getMonth()]}${sameYear ? "" : ` ${d.getFullYear()} г.`}`;
   return `${month} ${d.getDate()}${sameYear ? "" : `, ${d.getFullYear()}`}`;
 }
 
@@ -90,10 +92,10 @@ export function formatDayHeader(ms, lang, time) {
   return `${time.weekdays[new Date(ms).getDay()]}, ${formatDate(ms, lang, time)}`;
 }
 
-// Chart axis: "2026-09-24" -> "24.09" / "Sep 24"
+// Chart axis: "2026-09-24" -> "24.09" (Uzbek, Russian) / "Sep 24"
 export function formatAxisDate(isoDate, lang, time) {
   const [, m, d] = isoDate.split("-").map(Number);
-  return lang === "uz" ? `${pad2(d)}.${pad2(m)}` : `${time.months[m - 1]} ${d}`;
+  return lang === "uz" || lang === "ru" ? `${pad2(d)}.${pad2(m)}` : `${time.months[m - 1]} ${d}`;
 }
 
 export function formatIsoDateLong(isoDate, lang, time) {
@@ -170,10 +172,47 @@ export function formatWeekRange(weekStart, lang, time) {
   return `${formatIsoDateLong(weekStart, lang, time)} – ${formatIsoDateLong(shiftIso(weekStart, 6), lang, time)}`;
 }
 
+// The 1st of the month `shift` months from the one `ms` is in, 00:00 local.
+function monthStart(ms, shift = 0) {
+  const d = new Date(ms);
+  return new Date(d.getFullYear(), d.getMonth() + shift, 1).getTime();
+}
+
+const PRESET_DAYS = { "7d": 7, "30d": 30, "90d": 90 };
+
 // Epoch-ms range for a dashboard preset, in the viewer's local time.
+// "month": from the 1st of this month until now (a new month starts from
+// zero); "lastMonth": all of last month.
 export function rangeFor(key) {
   const now = Date.now();
   if (key === "today") return { from: startOfDay(now), to: now };
-  const days = { "7d": 7, "30d": 30, "90d": 90 }[key] || 7;
+  if (key === "month") return { from: monthStart(now), to: now };
+  if (key === "lastMonth") return { from: monthStart(now, -1), to: monthStart(now) - 1 };
+  const days = PRESET_DAYS[key] || 7;
   return { from: startOfDay(now - (days - 1) * 86400000), to: now };
+}
+
+// What a preset is compared with: the same stretch one step back —
+// yesterday until this time, the same days of last month (2 October →
+// 1–2 September, up to this time), the month before last, the 7 days
+// before…
+export function previousRange(key) {
+  const r = rangeFor(key);
+  if (key === "today") return { from: r.from - 86400000, to: r.to - 86400000 };
+  if (key === "month") {
+    const now = new Date(r.to);
+    // 31 March → the end of February.
+    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    const to = new Date(now.getFullYear(), now.getMonth() - 1, Math.min(now.getDate(), lastDay), now.getHours(), now.getMinutes(), now.getSeconds());
+    return { from: monthStart(r.from, -1), to: to.getTime() };
+  }
+  if (key === "lastMonth") return { from: monthStart(r.from, -1), to: r.from - 1 };
+  const span = (PRESET_DAYS[key] || 7) * 86400000;
+  return { from: r.from - span, to: r.to - span };
+}
+
+// A range plus the one to compare it with, for /dashboard.
+export function rangeWithPrevious(key) {
+  const prev = previousRange(key);
+  return { ...rangeFor(key), prevFrom: prev.from, prevTo: prev.to };
 }

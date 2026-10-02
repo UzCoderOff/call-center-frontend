@@ -1,0 +1,75 @@
+/* Settings → the call center and the late call-back rule. */
+
+.tile {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.footnote {
+  margin: 6px 16px 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 479px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+.groupActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.people {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 46vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--separator);
+  border-bottom: 1px solid var(--separator);
+}
+
+.people li {
+  padding: 4px 0;
+  border-top: 1px solid var(--separator);
+}
+
+.people li:first-child {
+  border-top: none;
+}
+
+.how {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.how summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.how ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  line-height: 1.45;
+}

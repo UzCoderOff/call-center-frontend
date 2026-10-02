@@ -13,14 +13,14 @@ import CredentialsView from "../components/team/CredentialsView";
 import WorkSettingsFields, { useOrgOptions, workPayload } from "../components/team/WorkSettingsFields";
 import StatsOverview from "../components/stats/StatsOverview";
 import RangePicker from "../components/stats/RangePicker";
-import { SyncBadge } from "../components/SyncStatus";
+import { RecordingBadge, SyncBadge } from "../components/SyncStatus";
 import { ReportHistory } from "./ReportsPage";
 import { AutoReportHistory } from "../components/reports/AutoReport";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { useBack } from "../hooks/useBack";
 import { api } from "../lib/api";
-import { rangeFor } from "../lib/format";
+import { rangeWithPrevious } from "../lib/format";
 import { useI18n } from "../i18n";
 import { reportSummary } from "./SettingsPage";
 
@@ -88,15 +88,15 @@ export default function EmployeeDetailPage() {
 
 function CallsSection({ employee }) {
   const { t } = useI18n();
-  const [range, setRange] = useState("30d");
-  const stats = useAsync(() => api.dashboard({ ...rangeFor(range), employeeId: employee.id }), [employee.id, range]);
+  const [range, setRange] = useState("month");
+  const stats = useAsync(() => api.dashboard({ ...rangeWithPrevious(range), employeeId: employee.id }), [employee.id, range]);
   return (
     <>
       <div className={pageStyles.rangePicker}>
         <RangePicker value={range} onChange={setRange} />
       </div>
       <AsyncBoundary state={stats}>
-        {(data) => <StatsOverview data={data} range={range} callsLink={`employeeId=${employee.id}`} />}
+        {(data) => <StatsOverview data={data} range={range} callsLink={`employeeId=${employee.id}`} money />}
       </AsyncBoundary>
       <div className={styles.linkRow}>
         <Button to={`/calls?employeeId=${employee.id}`} icon="phone">
@@ -163,7 +163,7 @@ function WorkCard({ employee, onChange }) {
         )}
       </KeyValue>
       <KeyValue label={t("work.workDays")}>{workPatternLine(employee, t)}</KeyValue>
-      <KeyValue label={t("work.kind")}>{t(`work.kinds.${employee.workKind || "auto"}`)}</KeyValue>
+      <KeyValue label={t("work.job")}>{t(`work.jobs.${employee.job || "other"}`)}</KeyValue>
       {editing && <EditWorkSheet employee={employee} onClose={() => setEditing(false)} onSaved={onChange} />}
     </Card>
   );
@@ -190,7 +190,7 @@ function EditWorkSheet({ employee, onClose, onSaved }) {
     autoReport: employee.autoReport,
     alsoForm: employee.alsoForm,
     calendarAccess: employee.calendarAccess,
-    workKind: employee.workKind || "auto",
+    job: employee.job || "other",
     workDays: employee.workDays,
     holidaysOff: employee.holidaysOff,
   });
@@ -236,6 +236,21 @@ function SyncCard({ employee }) {
   return (
     <Card title={t("sync.title")} action={<SyncBadge sync={sync} />}>
       <KeyValue label={t("sync.lastSuccess")}>{sync?.lastSyncAt ? fmt.dateTime(new Date(sync.lastSyncAt).getTime()) : "—"}</KeyValue>
+      {sync?.recordings && (
+        <KeyValue label={t("recordings.label")}>
+          <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <RecordingBadge recordings={sync.recordings} />
+            <span className={pageStyles.note} style={{ margin: 0 }}>
+              {[
+                sync.recordings.calls7d ? t("recordings.detail", { calls: sync.recordings.calls7d, recorded: sync.recordings.recorded7d }) : null,
+                sync.recordings.lastRecordingAt ? t("recordings.lastAt", { when: fmt.relative(sync.recordings.lastRecordingAt) }) : t("recordings.never"),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </span>
+        </KeyValue>
+      )}
       {sync?.lastError && (
         <KeyValue label={t("sync.lastError")}>
           <span className={styles.errorText}>

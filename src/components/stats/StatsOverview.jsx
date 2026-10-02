@@ -7,6 +7,7 @@ import { List } from "../ui/List";
 import CallRow from "../calls/CallRow";
 import DailyChart from "../charts/DailyChart";
 import FollowUpMeter from "../charts/FollowUpMeter";
+import FunnelCard from "./Funnel";
 import { formatPercent } from "../../lib/format";
 import { useI18n } from "../../i18n";
 
@@ -21,16 +22,24 @@ function callsUrl(range, callsLink, extra = {}) {
 // The stat block shared by the dashboard (company or self) and an
 // employee's page: headline tiles (each opens its calls), missed-call
 // follow-up, the "call these people back" list, and calls per day (each day
-// opens its calls).
-export default function StatsOverview({ data, range, showEmployee, callsLink }) {
+// opens its calls). Under the tiles: from calls to contracts, by people
+// (`money`: with the estimate of what was lost — managers).
+export default function StatsOverview({ data, range, showEmployee, callsLink, money = false }) {
   const { t, fmt } = useI18n();
   const s = data.totals;
   const link = (extra) => callsUrl(range, callsLink, extra);
+  // Against the same stretch before (the same days of last month…).
+  const prev = data.previous?.totalCalls;
+  const change = prev > 0 ? Math.round(((s.totalCalls - prev) / prev) * 100) : null;
+  const versus =
+    prev == null
+      ? undefined
+      : `${change == null ? "" : change > 0 ? `↑ ${change}% · ` : change < 0 ? `↓ ${Math.abs(change)}% · ` : "= · "}${t(`dashboard.vs.${range}`, { n: fmt.number(prev) })}`;
 
   return (
     <div className={styles.stack}>
       <div className={styles.tiles}>
-        <StatTile label={t("dashboard.totalCalls")} value={fmt.number(s.totalCalls)} to={link()} />
+        <StatTile label={t("dashboard.totalCalls")} value={fmt.number(s.totalCalls)} sub={versus} to={link()} />
         <StatTile
           label={t("dashboard.answered")}
           dot="var(--series-answered)"
@@ -52,6 +61,8 @@ export default function StatsOverview({ data, range, showEmployee, callsLink }) 
           to={link({ view: "answered", sort: "longest" })}
         />
       </div>
+
+      <FunnelCard funnel={data.funnel} money={money} />
 
       <div className={styles.twoCol}>
         <Card title={t("followUp.title")}>

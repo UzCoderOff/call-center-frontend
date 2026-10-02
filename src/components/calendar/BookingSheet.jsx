@@ -35,8 +35,10 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
   const [clientPhone, setClientPhone] = useState(prefill?.phone || "");
   const [matter, setMatter] = useState("");
   const [notes, setNotes] = useState("");
-  // In the office, or an online (video/phone) consultation.
-  const [format, setFormat] = useState("office");
+  // In the office, or an online (video/phone) consultation — chosen each
+  // time, nothing picked in advance (so it's never left on a default by
+  // mistake).
+  const [format, setFormat] = useState(null);
   // "Fee received": the consultation fee was paid now — it's recorded on the
   // client with the booking. Lawyers don't record payments.
   const { user } = useAuth();
@@ -49,6 +51,7 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
 
   async function submit(e) {
     e.preventDefault();
+    if (!format) return setError(t("calendar.format.pick"));
     if (feeReceived && !clientPhone.trim() && !prefill?.clientId) return setError(t("calendar.feeNeedsPhone"));
     if (feeReceived && !Number(feeAmount)) return setError(t("payments.amountRequired"));
     setBusy(true);
@@ -100,7 +103,7 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
           </div>
         )}
         <div className={pageStyles.formStack} style={{ gap: 6 }}>
-          <span className={pageStyles.note}>{t("calendar.format.label")}</span>
+          <span className={pageStyles.note}>{t("calendar.format.label")}{!format ? ` — ${t("calendar.format.choose")}` : ""}</span>
           <Segmented
             full
             value={format}

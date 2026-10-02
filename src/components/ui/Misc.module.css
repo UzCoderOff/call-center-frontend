@@ -289,6 +289,12 @@
 .banner_warning .bannerIcon {
   color: var(--warning-text);
 }
+.banner_critical {
+  background: var(--critical-soft);
+}
+.banner_critical .bannerIcon {
+  color: var(--critical-text);
+}
 
 @media (max-width: 599px) {
   .banner {

@@ -55,7 +55,7 @@ export function BrandMark({ size = 28 }) {
         </linearGradient>
       </defs>
       <rect width="108" height="108" rx="25" fill={`url(#${gradient})`} />
-      <g transform="translate(54 54) scale(1.35) translate(-54 -54)" fill="var(--on-accent)">
+      <g transform="translate(54 54) scale(1.35) translate(-54 -54)" fill="var(--on-brand)">
         <path d="M36,35a5,5 0,0 1,10 0V64H69a5,5 0,0 1,0 10H41a5,5 0,0 1,-5 -5Z" />
         <path fillOpacity="0.72" d="M55,36h14a3,3 0,0 1,0 6H55a3,3 0,0 1,0 -6ZM55,48h14a3,3 0,0 1,0 6H55a3,3 0,0 1,0 -6Z" />
       </g>

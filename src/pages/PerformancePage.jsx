@@ -30,9 +30,11 @@ export default function PerformancePage() {
       <AsyncBoundary state={state}>
         {(data) => {
           if (data.mineOnly) return <Navigate to={`/performance/${data.rows[0]?.employee.id}${month ? `?month=${month}` : ""}`} replace />;
+          // By job (Team → person): call center, coordinators, office, the rest.
           const client = data.rows.filter((r) => r.work.client);
-          const office = data.rows.filter((r) => !r.work.client && r.work.office);
-          const other = data.rows.filter((r) => !r.work.client && !r.work.office);
+          const coordinators = data.rows.filter((r) => !r.work.client && r.work.coordinator);
+          const office = data.rows.filter((r) => !r.work.client && !r.work.coordinator && r.work.office);
+          const other = data.rows.filter((r) => !r.work.client && !r.work.coordinator && !r.work.office);
           const q = data.month === data.current ? "" : `?month=${data.month}`;
           return (
             <div className={pageStyles.stack}>
@@ -60,6 +62,7 @@ export default function PerformancePage() {
                   <summary>{t("perf.intro.title")}</summary>
                   <ul>
                     <li>{t("perf.intro.client")}</li>
+                    <li>{t("perf.intro.coordinator")}</li>
                     <li>{t("perf.intro.office")}</li>
                     <li>{t("perf.intro.targets")}</li>
                     <li>{t("perf.intro.kind")}</li>
@@ -70,6 +73,7 @@ export default function PerformancePage() {
 
               {[
                 { key: "client", rows: client },
+                { key: "coordinator", rows: coordinators },
                 { key: "office", rows: office },
                 { key: "other", rows: other },
               ]

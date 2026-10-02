@@ -82,6 +82,45 @@ function qs(params = {}) {
 
 const tzOffset = () => -new Date().getTimezoneOffset();
 
+// Sends a file in pieces (see the backend's routes/materials.js — client
+// files work the same way), calling onProgress(0..1). A piece that fails is
+// sent again, up to 3 times. paths: { start, piece, finish } — the upload id
+// is added to piece and finish.
+async function uploadInPieces(paths, file, startBody, onProgress = () => {}) {
+  const { uploadId, chunkBytes } = await request(paths.start, { method: "POST", body: startBody });
+  let offset = 0;
+  let failures = 0;
+  while (offset < file.size) {
+    const piece = file.slice(offset, offset + chunkBytes);
+    let res;
+    try {
+      res = await fetch(`${BASE}${paths.piece}/${uploadId}?offset=${offset}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/octet-stream" },
+        credentials: "same-origin",
+        body: piece,
+      });
+    } catch {
+      res = null;
+    }
+    const data = res ? await res.json().catch(() => null) : null;
+    if (res?.ok || res?.status === 409) {
+      // 409: the server already has more (a retried piece) — go on from there.
+      offset = data?.received ?? offset;
+      failures = 0;
+      onProgress(offset / file.size);
+      continue;
+    }
+    if (res?.status === 401 && unauthorizedHandler) unauthorizedHandler();
+    if (!res || res.status >= 500) {
+      failures += 1;
+      if (failures <= 3) continue;
+    }
+    throw new ApiError(data?.error || (res ? `http_${res.status}` : "network_error"), res?.status ?? 0, data);
+  }
+  return request(`${paths.finish}/${uploadId}/finish`, { method: "POST" });
+}
+
 export const api = {
   // --- auth ---
   login: (username, password) => request("/auth/login", { method: "POST", body: { username, password } }),
@@ -91,8 +130,8 @@ export const api = {
     request("/auth/change-password", { method: "POST", body: { currentPassword, newPassword } }),
 
   // --- dashboard ---
-  dashboard: ({ from, to, employeeId } = {}) =>
-    request(`/dashboard${qs({ from, to, employeeId, tzOffset: tzOffset() })}`),
+  dashboard: ({ from, to, prevFrom, prevTo, employeeId, jobs } = {}) =>
+    request(`/dashboard${qs({ from, to, prevFrom, prevTo, employeeId, jobs, tzOffset: tzOffset() })}`),
 
   // --- employees ---
   employees: () => request("/employees"),
@@ -139,6 +178,7 @@ export const api = {
   employeeCosts: (id) => request(`/performance/${id}/costs`),
   employeeTargets: (id, month) => request(`/performance/${id}/targets${qs({ month })}`),
   setTarget: (id, payload) => request(`/performance/${id}/targets`, { method: "PUT", body: payload }),
+  setTargets: (id, payload) => request(`/performance/${id}/targets/many`, { method: "PUT", body: payload }),
   deleteTarget: (id, targetId) => request(`/performance/${id}/targets/${targetId}`, { method: "DELETE" }),
   setEmployeeCost: (id, payload) => request(`/performance/${id}/costs`, { method: "PUT", body: payload }),
   deleteEmployeeCost: (id, costId) => request(`/performance/${id}/costs/${costId}`, { method: "DELETE" }),
@@ -219,8 +259,21 @@ export const api = {
   deleteCase: (id) => request(`/client-cases/${id}`, { method: "DELETE" }),
   addPayment: (clientId, payload) => request(`/clients/${clientId}/payments`, { method: "POST", body: payload }),
   deletePayment: (id) => request(`/client-payments/${id}`, { method: "DELETE" }),
-  addNote: (clientId, text) => request(`/clients/${clientId}/notes`, { method: "POST", body: { text } }),
+  addNote: (clientId, text, caseId, channel) => request(`/clients/${clientId}/notes`, { method: "POST", body: { text, ...(caseId ? { caseId } : {}), ...(channel ? { channel } : {}) } }),
+  updateNote: (id, text) => request(`/client-notes/${id}`, { method: "PATCH", body: { text } }),
   deleteNote: (id) => request(`/client-notes/${id}`, { method: "DELETE" }),
+  // A case's history: stages with dates, and key dates (hearings, deadlines).
+  addStage: (caseId, payload) => request(`/client-cases/${caseId}/stages`, { method: "POST", body: payload }),
+  updateStage: (id, payload) => request(`/client-stages/${id}`, { method: "PATCH", body: payload }),
+  deleteStage: (id) => request(`/client-stages/${id}`, { method: "DELETE" }),
+  addKeyDate: (caseId, payload) => request(`/client-cases/${caseId}/dates`, { method: "POST", body: payload }),
+  updateKeyDate: (id, payload) => request(`/client-dates/${id}`, { method: "PATCH", body: payload }),
+  deleteKeyDate: (id) => request(`/client-dates/${id}`, { method: "DELETE" }),
+  // My cases (coordinator, lawyer; managers: every open contract), or the
+  // contracts still without a coordinator or lawyer (managers).
+  cases: (view = "mine") => request(`/client-cases${qs({ view })}`),
+  upcomingDates: (days) => request(`/client-cases/upcoming${qs({ days })}`),
+  clientCoordinators: () => request("/clients/coordinators"),
   addLink: (clientId, payload) => request(`/clients/${clientId}/links`, { method: "POST", body: payload }),
   deleteLink: (id) => request(`/client-links/${id}`, { method: "DELETE" }),
   importClients: (rows) => request("/clients/import", { method: "POST", body: { rows } }),
@@ -240,45 +293,33 @@ export const api = {
   materialReaders: (id) => request(`/materials/${id}/readers`),
   deleteMaterialFile: (fileId) => request(`/materials/files/${fileId}`, { method: "DELETE" }),
   materialFileUrl: (fileId, { download = false } = {}) => `${BASE}/materials/files/${fileId}${download ? "?download=1" : ""}`,
-  // Sends a file in pieces (see the backend's routes/materials.js), calling
-  // onProgress(0..1). A piece that fails is sent again, up to 3 times.
-  uploadMaterialFile: async (materialId, file, onProgress = () => {}) => {
-    const { uploadId, chunkBytes } = await request(`/materials/${materialId}/uploads`, {
-      method: "POST",
-      body: { name: file.name, size: file.size },
-    });
-    let offset = 0;
-    let failures = 0;
-    while (offset < file.size) {
-      const piece = file.slice(offset, offset + chunkBytes);
-      let res;
-      try {
-        res = await fetch(`${BASE}/materials/uploads/${uploadId}?offset=${offset}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/octet-stream" },
-          credentials: "same-origin",
-          body: piece,
-        });
-      } catch {
-        res = null;
-      }
-      const data = res ? await res.json().catch(() => null) : null;
-      if (res?.ok || res?.status === 409) {
-        // 409: the server already has more (a retried piece) — go on from there.
-        offset = data?.received ?? offset;
-        failures = 0;
-        onProgress(offset / file.size);
-        continue;
-      }
-      if (res?.status === 401 && unauthorizedHandler) unauthorizedHandler();
-      if (!res || res.status >= 500) {
-        failures += 1;
-        if (failures <= 3) continue;
-      }
-      throw new ApiError(data?.error || (res ? `http_${res.status}` : "network_error"), res?.status ?? 0, data);
-    }
-    return request(`/materials/uploads/${uploadId}/finish`, { method: "POST" });
-  },
+  uploadMaterialFile: (materialId, file, onProgress) =>
+    uploadInPieces({ start: `/materials/${materialId}/uploads`, piece: "/materials/uploads", finish: "/materials/uploads" }, file, { name: file.name, size: file.size }, onProgress),
+
+
+  // --- a client's connected people, follow-ups, files ---
+  addContact: (clientId, payload) => request(`/clients/${clientId}/contacts`, { method: "POST", body: payload }),
+  updateContact: (id, payload) => request(`/client-contacts/${id}`, { method: "PATCH", body: payload }),
+  deleteContact: (id) => request(`/client-contacts/${id}`, { method: "DELETE" }),
+  addFollowUp: (clientId, payload) => request(`/clients/${clientId}/follow-ups`, { method: "POST", body: payload }),
+  updateFollowUp: (id, payload) => request(`/client-follow-ups/${id}`, { method: "PATCH", body: payload }),
+  closeFollowUp: (id, payload) => request(`/client-follow-ups/${id}/close`, { method: "POST", body: payload }),
+  followUps: (view = "today", scope) => request(`/client-follow-ups${qs({ view, scope })}`),
+  noNextStep: () => request("/client-follow-ups/no-next-step"),
+  clientFileUrl: (id, { download = false } = {}) => `${BASE}/client-files/${id}${download ? "?download=1" : ""}`,
+  updateClientFile: (id, payload) => request(`/client-files/${id}`, { method: "PATCH", body: payload }),
+  deleteClientFile: (id) => request(`/client-files/${id}`, { method: "DELETE" }),
+  uploadClientFile: (clientId, file, meta, onProgress) =>
+    uploadInPieces({ start: `/clients/${clientId}/files/uploads`, piece: "/client-files/uploads", finish: "/client-files/uploads" }, file, { name: file.name, size: file.size, ...meta }, onProgress),
+
+  // --- the call center's rules, strikes ---
+  strikeRules: () => request("/rules/strikes"),
+  saveStrikeRules: (payload) => request("/rules/strikes", { method: "PUT", body: payload }),
+  callCenterRules: () => request("/rules/call-center"),
+  saveCallCenter: (payload) => request("/rules/call-center", { method: "PUT", body: payload }),
+  strikes: (params) => request(`/strikes${qs(params || {})}`),
+  cancelStrike: (id, reason) => request(`/strikes/${id}/cancel`, { method: "POST", body: { reason } }),
+  restoreStrike: (id) => request(`/strikes/${id}/restore`, { method: "POST" }),
 
   // --- Telegram ---
   telegramMe: () => request("/telegram/me"),

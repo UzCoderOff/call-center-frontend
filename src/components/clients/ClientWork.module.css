@@ -1,0 +1,207 @@
+/* Next steps, connected people, files on the client's page. */
+
+.steps,
+.contacts,
+.files,
+.closedList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--separator);
+}
+
+.step:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.stepIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.late .stepIcon {
+  background: var(--critical-soft);
+  color: var(--critical-text);
+}
+
+.stepMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stepHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.stepWho {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stepNote {
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.stepBy {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.stepActions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+@media (max-width: 599px) {
+  .step {
+    flex-wrap: wrap;
+  }
+
+  .stepActions {
+    width: 100%;
+    justify-content: flex-start;
+    padding-left: 46px;
+  }
+}
+
+.history {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.history summary {
+  cursor: pointer;
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.closedList {
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.closedList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+.declineBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--critical-soft);
+}
+
+/* Connected people */
+.contact {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--separator);
+}
+
+.contact:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.contactMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contactName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.contactRel {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.contactPhone {
+  font-size: 14px;
+  color: var(--accent);
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Files */
+.file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--separator);
+}
+
+.file:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.fileMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.fileMain:hover .fileName {
+  color: var(--accent);
+}
+
+.fileName {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

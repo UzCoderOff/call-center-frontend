@@ -113,6 +113,25 @@ export function WorkPatternFields({ workDays, holidaysOff, onChange }) {
   );
 }
 
+// What a person does — the first thing to set: it decides their home page,
+// whether their missed calls go on the call-back list, whether Calls and
+// Home count them with the call center, and what Natijalar measures.
+export const JOBS = ["call_center", "coordinator", "office", "other"];
+
+export function JobField({ value, onChange }) {
+  const { t } = useI18n();
+  const job = value || "other";
+  return (
+    <SelectField label={t("work.job")} hint={t(`work.jobHints.${job}`)} value={job} onChange={(e) => onChange(e.target.value)}>
+      {JOBS.map((j) => (
+        <option key={j} value={j}>
+          {t(`work.jobs.${j}`)}
+        </option>
+      ))}
+    </SelectField>
+  );
+}
+
 export default function WorkSettingsFields({ value, onChange, options }) {
   const { t } = useI18n();
   const set = (patch) => onChange({ ...value, ...patch });
@@ -130,6 +149,7 @@ export default function WorkSettingsFields({ value, onChange, options }) {
             reportTemplateId: position.reportTemplate?.id ?? "",
             workDays: position.workDays,
             holidaysOff: position.holidaysOff,
+            job: position.job || value.job,
           }
         : { positionId: "" }
     );
@@ -137,6 +157,7 @@ export default function WorkSettingsFields({ value, onChange, options }) {
 
   return (
     <>
+      <JobField value={value.job} onChange={(job) => set({ job })} />
       <SelectField label={t("work.office")} value={value.officeId ?? ""} onChange={(e) => set({ officeId: e.target.value })}>
         <option value="">{t("work.noOffice")}</option>
         {options.offices.map((o) => (
@@ -173,13 +194,6 @@ export default function WorkSettingsFields({ value, onChange, options }) {
         onChange={(v) => set({ collectCalls: v })}
       />
       <WorkPatternFields workDays={value.workDays} holidaysOff={value.holidaysOff} onChange={set} />
-      <SelectField label={t("work.kind")} hint={t(`work.kindHints.${value.workKind || "auto"}`)} value={value.workKind || "auto"} onChange={(e) => set({ workKind: e.target.value })}>
-        {["auto", "client", "office"].map((k) => (
-          <option key={k} value={k}>
-            {t(`work.kinds.${k}`)}
-          </option>
-        ))}
-      </SelectField>
     </>
   );
 }
@@ -195,7 +209,7 @@ export function workPayload(value) {
     autoReport: Boolean(value.autoReport),
     alsoForm: Boolean(value.autoReport && value.alsoForm),
     calendarAccess: value.calendarAccess || "none",
-    workKind: value.workKind || "auto",
+    job: value.job || "other",
     workDays: value.workDays || "123456",
     holidaysOff: value.holidaysOff !== false,
   };

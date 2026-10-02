@@ -519,3 +519,197 @@
   top: 0;
   background: var(--surface);
 }
+
+/* ------------------------------------------------ overview: the month at a glance */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "main spark"
+    "share share";
+  gap: 18px 24px;
+  padding: 22px 24px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.heroMain {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.heroLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.heroValue {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 6vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.heroDelta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.up {
+  color: var(--good-text);
+}
+
+.down {
+  color: var(--critical-text);
+}
+
+.heroNet {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.heroShare {
+  grid-area: share;
+  padding-top: 16px;
+  border-top: 1px solid var(--separator);
+}
+
+/* The last six months as small columns; this month in the accent. */
+.spark {
+  grid-area: spark;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 92px;
+}
+
+.sparkCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.sparkTrack {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  width: 20px;
+}
+
+.sparkBar {
+  display: block;
+  width: 100%;
+  border-radius: 4px 4px 2px 2px;
+  background: var(--fill-strong);
+}
+
+.sparkNow {
+  background: var(--accent);
+}
+
+/* Whole month names: Uzbek "Iyun" / "Iyul" can't be cut short. */
+.sparkLabel {
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+@media (max-width: 599px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "main"
+      "spark"
+      "share";
+    padding: 18px;
+  }
+
+  .spark {
+    justify-content: space-between;
+    height: 76px;
+  }
+
+  .sparkTrack {
+    width: 26px;
+  }
+}
+
+/* Debts, new contracts, consultations — each opens its tab. */
+.keyTiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.attention {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* A card that opens on tap. */
+section.foldCard {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.fold summary {
+  list-style: none;
+}
+
+.fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.foldSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+  cursor: pointer;
+}
+
+.foldText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.foldTitle {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.foldSub {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.foldIcon {
+  flex: none;
+  color: var(--text-3);
+  transition: transform 0.2s ease;
+}
+
+.fold[open] .foldIcon {
+  transform: rotate(180deg);
+}
+
+.foldBody {
+  padding-bottom: 18px;
+}

@@ -23,15 +23,20 @@ function topRoundedRect(x, y, w, h) {
 // ------------------------------------------------------- burn-up
 const PLOT_H = 170;
 const TOP = 10;
-const AXIS_W = 34;
+const AXIS_W_COUNT = 34;
+const AXIS_W_MONEY = 52;
 const AXIS_H = 22;
 
 // The month so far: the running total of what was done (series color) and
 // where the plan says it should be each day (neutral), with a crosshair and a
 // table view. dates: every day of the month; perDay: date -> count (up to
-// today); workDates: the working days (the plan spreads over them).
-export function BurnUpChart({ dates, perDay, workDates, target, tone = "s1", label }) {
+// today); workDates: the working days (the plan spreads over them). money:
+// soʻm (the axis in millions).
+export function BurnUpChart({ dates, perDay, workDates, target, tone = "s1", label, money = false }) {
   const { t, fmt } = useI18n();
+  const AXIS_W = money ? AXIS_W_MONEY : AXIS_W_COUNT;
+  const show = (v) => (money ? fmt.money(Math.round(v)) : v);
+  const tickText = (v) => (money && v >= 1_000_000 ? `${fmt.number(Math.round((v / 1_000_000) * 10) / 10)} ${t("perf.chart.mln")}` : fmt.number(v));
   const [ref, width] = useElementWidth();
   const [view, setView] = useState("chart");
   const [active, setActive] = useState(null);
@@ -80,7 +85,7 @@ export function BurnUpChart({ dates, perDay, workDates, target, tone = "s1", lab
           {plan && (
             <span className={styles.legendItem}>
               <i className={`${styles.lineKey} ${styles.planKey}`} />
-              {t("perf.chart.plan", { target })}
+              {t("perf.chart.plan", { target: money ? fmt.money(target) : target })}
             </span>
           )}
         </div>
@@ -114,11 +119,11 @@ export function BurnUpChart({ dates, perDay, workDates, target, tone = "s1", lab
                 .map(({ d, i }) => (
                   <tr key={d}>
                     <td>{fmt.isoDateLong(d)}</td>
-                    <td>{perDay.get(d)}</td>
+                    <td>{show(perDay.get(d))}</td>
                     <td>
-                      <strong>{actual[i]}</strong>
+                      <strong>{show(actual[i])}</strong>
                     </td>
-                    {plan && <td>{Math.round(plan[i])}</td>}
+                    {plan && <td>{show(Math.round(plan[i]))}</td>}
                   </tr>
                 ))}
             </tbody>
@@ -149,7 +154,7 @@ export function BurnUpChart({ dates, perDay, workDates, target, tone = "s1", lab
                 <g key={v}>
                   <line x1={AXIS_W} x2={width - 8} y1={y(v)} y2={y(v)} className={v === 0 ? styles.baseline : styles.grid} />
                   <text x={AXIS_W - 8} y={y(v)} dy="0.35em" textAnchor="end" className={styles.tick}>
-                    {fmt.number(v)}
+                    {tickText(v)}
                   </text>
                 </g>
               ))}
@@ -171,13 +176,13 @@ export function BurnUpChart({ dates, perDay, workDates, target, tone = "s1", lab
               <div className={styles.tooltipTitle}>{fmt.isoDateLong(dates[active])}</div>
               <div className={styles.tooltipRow}>
                 <i className={`${styles.key} ${styles[tone]}`} />
-                <strong>{actual[active] ?? "—"}</strong>
+                <strong>{actual[active] != null ? show(actual[active]) : "—"}</strong>
                 <span>{t("perf.chart.soFar")}</span>
               </div>
               {plan && (
                 <div className={styles.tooltipRow}>
                   <i className={`${styles.key} ${styles.planKeyBg}`} />
-                  <strong>{Math.round(plan[active])}</strong>
+                  <strong>{show(Math.round(plan[active]))}</strong>
                   <span>{t("perf.chart.planSoFar")}</span>
                 </div>
               )}

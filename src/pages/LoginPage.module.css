@@ -57,6 +57,12 @@
   color: var(--critical-text);
 }
 
+.langs {
+  align-self: center;
+  display: flex;
+  gap: 4px;
+}
+
 .lang {
   align-self: center;
   padding: 6px 12px;
