@@ -6,7 +6,7 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Icon from "../components/ui/Icon";
 import Segmented from "../components/ui/Segmented";
-import { SelectField, TextAreaField } from "../components/ui/Field";
+import { SelectField, TextAreaField, TextField } from "../components/ui/Field";
 import { AsyncBoundary, Banner, EmptyState, KeyValue, PageHeader } from "../components/ui/Misc";
 import { personName } from "../components/clients/parts";
 import CasePanel from "../components/clients/CaseWork";
@@ -330,6 +330,7 @@ function ClientView({ client, reload, goBack }) {
             <KeyValue label={t("clients.idLabel")}>#{client.id}</KeyValue>
             {client.createdBy && <KeyValue label={t("clients.addedBy")}>{personName(client.createdBy)}</KeyValue>}
             {client.notes && <p className={pageStyles.note} style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{client.notes}</p>}
+            <KeepOutOfArchive client={client} onChanged={reload} />
           </Card>
           <ContactsCard client={client} onChanged={reload} />
           <Activity client={client} userId={user.id} onChanged={reload} />
@@ -441,12 +442,84 @@ function Connections({ client, onAdd, onChanged }) {
   );
 }
 
+// ------------------------------------------------------- automatic archive
+// A consultation that goes quiet goes to the archive by itself (backend:
+// services/clientArchive.js). "Arxivga tushmasin" keeps it out until a date:
+// we may still work with them.
+const CONTRACT = ["contract", "done"];
+const KEEP_FOR = [
+  ["2w", 14],
+  ["1m", 30],
+  ["3m", 91],
+];
+
+function KeepOutOfArchive({ client, onChanged }) {
+  const { t, fmt } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState("");
+  const [busy, setBusy] = useState(false);
+  const consulting = !client.archivedAt && !client.cases.some((k) => CONTRACT.includes(k.status)) && !client.results?.length;
+  if (!consulting || !client.canEdit) return null;
+  const kept = client.keepUntil && new Date(client.keepUntil).getTime() > Date.now() ? client.keepUntil : null;
+
+  async function save(until) {
+    setBusy(true);
+    try {
+      await api.updateClient(client.id, { keepUntil: until });
+      setOpen(false);
+      onChanged();
+    } catch (err) {
+      saveFailed(err, t);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const inDays = (n) => {
+    const d = new Date(Date.now() + n * 86400000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  return (
+    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+      <KeyValue label={t("clients.keep.label")}>{kept ? t("clients.keep.until", { date: fmt.date(new Date(kept).getTime()) }) : t("clients.keep.auto")}</KeyValue>
+      {open ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          {KEEP_FOR.map(([key, days]) => (
+            <Button key={key} size="small" busy={busy} onClick={() => save(inDays(days))}>
+              {t(`clients.keep.for.${key}`)}
+            </Button>
+          ))}
+          <TextField type="date" label={t("clients.keep.date")} value={date} min={inDays(1)} onChange={(e) => setDate(e.target.value)} />
+          <Button size="small" variant="primary" disabled={!date} busy={busy} onClick={() => save(date)}>
+            {t("common.save")}
+          </Button>
+          <Button size="small" variant="plain" onClick={() => setOpen(false)}>
+            {t("common.cancel")}
+          </Button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <Button size="small" icon="clock" onClick={() => setOpen(true)}>
+            {kept ? t("clients.keep.change") : t("clients.keep.button")}
+          </Button>
+          {kept && (
+            <Button size="small" variant="plain" busy={busy} onClick={() => save(null)}>
+              {t("clients.keep.off")}
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ------------------------------------------------------------ activity
-const CALL_ICON = { incoming: "phoneIncoming", outgoing: "phoneOutgoing" };
+const CALL_ICON ={ incoming: "phoneIncoming", outgoing: "phoneOutgoing" };
 const EVENT_ICON = {
   import: "upload",
   note: "note",
   archive: "minusCircle",
+  keep: "clock",
   restore: "refresh",
   merge: "link",
   status: "checkCircle",
@@ -493,7 +566,9 @@ function useEventText() {
       case "case":
         return t("clients.events.case", { text: e.text || "—" });
       case "archive":
-        return t("clients.events.archive");
+        return d.auto ? t("clients.events.archiveAuto", { days: d.days }) : t("clients.events.archive");
+      case "keep":
+        return d.until ? t("clients.events.keep", { date: fmt.isoDateLong(d.until) }) : t("clients.events.keepOff");
       case "restore":
         return t("clients.events.restore");
       case "merge":
@@ -545,7 +620,7 @@ function Activity({ client, userId, onChanged }) {
       const at = new Date(e.createdAt).getTime();
       out.push({
         key: `e${e.id}`,
-        group: e.kind === "note" || e.kind === "follow_up" ? "notes" : ["import", "archive", "restore", "merge", "contact"].includes(e.kind) ? "client" : "case",
+        group: e.kind === "note" || e.kind === "follow_up" ? "notes" : ["import", "archive", "keep", "restore", "merge", "contact"].includes(e.kind) ? "client" : "case",
         at,
         icon: e.kind === "note" && e.data?.channel ? CHANNEL_ICON[e.data.channel] : EVENT_ICON[e.kind] || "briefcase",
         title: e.kind === "note" && e.data?.channel ? `${t(`clientWork.channels.${e.data.channel}`)}: ${e.text}` : eventText(e),

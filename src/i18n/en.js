@@ -355,6 +355,14 @@ const en = {
     teamReportsAll: "Everyone has sent their report.",
   },
   reports: {
+    enterFor: {
+      title: "Report: {name}",
+      hint: "The “{form}” report for {date}. The report will show that you entered it.",
+      save: "Enter",
+      enteredBy: "Entered by",
+      entered: "entered by the developer",
+      tap: "tap to enter it",
+    },
     addRow: "Add row",
     removeRow: "Remove row",
     modeDay: "Daily",
@@ -865,6 +873,20 @@ const en = {
     notCollecting: "This phone's calls aren't collected",
   },
   clients: {
+    keep: {
+      label: "Archive",
+      auto: "Goes to the archive by itself if nothing happens for a while",
+      until: "Kept out of the archive until {date}",
+      button: "Keep out of the archive",
+      change: "Change the date",
+      off: "Remove",
+      date: "Until",
+      for: {
+        "2w": "2 weeks",
+        "1m": "1 month",
+        "3m": "3 months",
+      },
+    },
     sectionsLabel: "Section",
     sections: {
       clients: "Clients",
@@ -963,6 +985,9 @@ const en = {
     timelineEmpty: "Nothing yet.",
     showAll: "Show all ({count})",
     events: {
+      archiveAuto: "Archived: nothing happened for {days} days (automatic)",
+      keep: "Kept out of the archive until {date}",
+      keepOff: "“Keep out of the archive” removed",
       archive: "Archived",
       restore: "Restored from the archive",
       merge: "Merged: {name}",
@@ -2430,6 +2455,14 @@ const en = {
     reasonRequired: "Write the reason.",
   },
   rules: {
+    archive: {
+      title: "Old consultations",
+      on: "Nothing for {days} days — to the archive",
+      off: "Automatic archive is off",
+      enabled: "Automatic archive",
+      days: "After how many days",
+      hint: "A client without a contract with nothing happening for {days} days (calls, notes, appointments, payments…) goes to the archive by itself. Never: anyone with an appointment or a planned call ahead, or marked “Keep out of the archive”. The archive is Clients → Archive; booked again, they come back by themselves.",
+    },
     callCenter: {
       title: "Call center",
       count: "In the call center: {count} people",

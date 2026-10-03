@@ -11,6 +11,7 @@ import Segmented from "../components/ui/Segmented";
 import { List, ListRow, ListSectionHeader } from "../components/ui/List";
 import { AsyncBoundary, Avatar, EmptyState, PageHeader } from "../components/ui/Misc";
 import ReportForm from "../components/reports/ReportForm";
+import EnterReportSheet from "../components/reports/EnterReportSheet";
 import ReportAnswers, { ReportStatusBadge } from "../components/reports/ReportAnswers";
 import AutoReportNumbers, { AutoBadge, AutoReportHistory, autoLine } from "../components/reports/AutoReport";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
@@ -123,7 +124,7 @@ function ManagerReports() {
       </div>
 
       <AsyncBoundary state={state}>
-        {(data) => data && <DayView data={data} />}
+        {(data) => data && <DayView data={data} onChanged={state.reload} />}
       </AsyncBoundary>
         </>
       )}
@@ -245,8 +246,12 @@ function PeopleTable({ people }) {
   );
 }
 
-function DayView({ data }) {
+function DayView({ data, onChanged }) {
   const { t } = useI18n();
+  const { user } = useAuth();
+  // The developer can fill in a report someone missed (any day up to today).
+  const canEnter = user.role === "DEVELOPER";
+  const [entering, setEntering] = useState(null); // the row
   if (data.rows.length === 0) return <EmptyState icon="users" text={t("reports.nobodyExpected")} />;
 
   // Group people by office, offices alphabetically, "no office" last.
@@ -285,9 +290,11 @@ function DayView({ data }) {
                 <ListRow
                   key={row.report ? `report-${row.report.id}` : `form-${row.employee.id}`}
                   to={row.report ? `/reports/${row.report.id}` : undefined}
+                  onClick={!row.report && canEnter ? () => setEntering(row) : undefined}
+                  chevron={!row.report && canEnter ? true : undefined}
                   leading={<Avatar name={row.employee.name} size={40} />}
                   title={row.employee.name}
-                  subtitle={row.template.name}
+                  subtitle={[row.template.name, row.report?.entered && t("reports.enterFor.entered"), !row.report && canEnter && t("reports.enterFor.tap")].filter(Boolean).join(" · ")}
                   trailing={
                     // Not a working day for them: no report expected.
                     !row.report && row.off ? (
@@ -304,6 +311,18 @@ function DayView({ data }) {
           </List>
         </section>
       ))}
+      {entering && (
+        <EnterReportSheet
+          employeeId={entering.employee.id}
+          employeeName={entering.employee.name}
+          date={data.date}
+          onClose={() => setEntering(null)}
+          onSaved={() => {
+            setEntering(null);
+            onChanged();
+          }}
+        />
+      )}
     </div>
   );
 }
