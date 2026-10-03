@@ -321,6 +321,11 @@ export const api = {
   cancelStrike: (id, reason) => request(`/strikes/${id}/cancel`, { method: "POST", body: { reason } }),
   restoreStrike: (id) => request(`/strikes/${id}/restore`, { method: "POST" }),
 
+  // --- Ledger's own phone line ---
+  pbxStatus: () => request("/pbx/status"),
+  savePbxSettings: (payload) => request("/pbx/settings", { method: "PUT", body: payload }),
+  pbxSoftphone: (employeeId) => request(`/pbx/extensions/${employeeId}/softphone`, { method: "POST" }),
+
   // --- Telegram ---
   telegramMe: () => request("/telegram/me"),
   telegramLink: () => request("/telegram/link", { method: "POST" }),

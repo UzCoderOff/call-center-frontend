@@ -13,7 +13,7 @@ import { BulkSheet, ClientSheet } from "../components/clients/ClientSheets";
 import Icon from "../components/ui/Icon";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
-import { canBookAppointments, canManageClients, canSeeFinance, isCoordinator, isLawyer } from "../lib/access";
+import { canBookAppointments, canManageClients, canSeeFinance, isCallCenter, isCoordinator, isLawyer, takesCalls } from "../lib/access";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
@@ -28,7 +28,9 @@ import { useI18n } from "../i18n";
 // A search looks in all of them.
 function sectionsFor(user) {
   if (canManageClients(user)) return ["clients", "consultations", "unassigned"];
-  if (isLawyer(user) || isCoordinator(user)) return ["clients", "consultations"];
+  if (isLawyer(user)) return ["clients", "consultations"];
+  // A coordinator who is also call center sees their consultations' results too.
+  if (isCoordinator(user)) return isCallCenter(user) ? ["clients", "consultations", "results"] : ["clients", "consultations"];
   return ["consultations", "results"];
 }
 // The quick filters of each section. Managers also get old consultations
@@ -219,7 +221,7 @@ export default function ClientsPage() {
               <option value="">{t("clients.anyOperator")}</option>
               <option value="none">{t("clients.noOperatorFilter")}</option>
               {(employees.data || [])
-                .filter((e) => e.active && e.collectCalls)
+                .filter((e) => e.active && takesCalls(e))
                 .map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name}
@@ -394,7 +396,7 @@ export default function ClientsPage() {
         <BulkSheet
           kind={bulk}
           count={allMatching ? state.data?.pagination.total ?? 0 : selected.size}
-          operators={(employees.data || []).filter((e) => e.active && (e.collectCalls || e.calendarAccess === "book"))}
+          operators={(employees.data || []).filter((e) => e.active && (takesCalls(e) || e.calendarAccess === "book"))}
           lawyers={lawyers.data?.accounts || []}
           coordinators={[...(coordinators.data?.coordinators || []), ...(coordinators.data?.others || [])]}
           onApply={applyBulk}

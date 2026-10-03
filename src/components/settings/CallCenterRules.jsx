@@ -23,6 +23,10 @@ const fromTime = (s) => {
   return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
 };
 
+// Their jobs (the main one first) and whether the call center is one of them.
+const jobsOfPerson = (p) => (p.jobs?.length ? p.jobs : [p.job || "other"]);
+const inCallCenter = (p) => jobsOfPerson(p).includes("call_center");
+
 export function CallCenterSection({ canEdit }) {
   const { t } = useI18n();
   const state = useAsync(() => api.callCenterRules(), []);
@@ -33,7 +37,7 @@ export function CallCenterSection({ canEdit }) {
       <ListSectionHeader>{t("rules.callCenter.title")}</ListSectionHeader>
       <AsyncBoundary state={state}>
         {(data) => {
-          const members = data.people.filter((p) => p.job === "call_center");
+          const members = data.people.filter(inCallCenter);
           return (
             <List inset={64}>
               <ListRow
@@ -69,17 +73,18 @@ function CallCenterSheet({ data, canEdit, onClose, onSaved }) {
   const { t } = useI18n();
   const [by, setBy] = useState("");
   const [pick, setPick] = useState("");
-  const [chosen, setChosen] = useState(() => new Set(data.people.filter((p) => p.job === "call_center").map((p) => p.id)));
+  const [chosen, setChosen] = useState(() => new Set(data.people.filter(inCallCenter).map((p) => p.id)));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const groups = { position: data.positions, office: data.offices, template: data.templates };
   const field = { position: "positionId", office: "officeId", template: "reportTemplateId" };
   const shown = by && pick ? data.people.filter((p) => String(p[field[by]] ?? "") === pick) : data.people;
-  const was = new Set(data.people.filter((p) => p.job === "call_center").map((p) => p.id));
+  const was = new Set(data.people.filter(inCallCenter).map((p) => p.id));
   const add = [...chosen].filter((id) => !was.has(id));
   const remove = [...was].filter((id) => !chosen.has(id));
-  const moving = data.people.filter((p) => add.includes(p.id) && p.job === "coordinator");
+  // Coordinators keep that job too: they'll have both.
+  const moving = data.people.filter((p) => add.includes(p.id) && jobsOfPerson(p).includes("coordinator"));
 
   function toggle(id, on) {
     const next = new Set(chosen);
@@ -152,7 +157,7 @@ function CallCenterSheet({ data, canEdit, onClose, onSaved }) {
             <li key={p.id}>
               <Switch
                 label={p.name}
-                hint={[p.position?.name, p.office?.name, p.job !== "call_center" ? t(`work.jobs.${p.job || "other"}`) : null, p.collectCalls ? null : t("rules.callCenter.notMonitored")].filter(Boolean).join(" · ")}
+                hint={[p.position?.name, p.office?.name, jobsOfPerson(p).filter((j) => j !== "call_center").map((j) => t(`work.jobs.${j}`)).join(" + ") || null, p.collectCalls || p.pbxCalling ? null : t("rules.callCenter.notMonitored")].filter(Boolean).join(" · ")}
                 checked={chosen.has(p.id)}
                 onChange={(on) => toggle(p.id, on)}
                 disabled={!canEdit}
@@ -161,7 +166,7 @@ function CallCenterSheet({ data, canEdit, onClose, onSaved }) {
           ))}
           {shown.length === 0 && <li className={pageStyles.note}>{t("rules.callCenter.nobodyHere")}</li>}
         </ul>
-        {moving.length > 0 && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{t("rules.callCenter.coordWarning", { names: moving.map((p) => p.name).join(", ") })}</p>}
+        {moving.length > 0 && <p className={pageStyles.message}>{t("rules.callCenter.coordWarning", { names: moving.map((p) => p.name).join(", ") })}</p>}
         {(add.length > 0 || remove.length > 0) && <p className={pageStyles.note}>{t("rules.callCenter.changes", { add: add.length, remove: remove.length })}</p>}
         {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
         <div className={pageStyles.formActions}>

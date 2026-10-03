@@ -13,7 +13,7 @@ import { readSpreadsheet } from "../lib/sheets";
 import { FIELDS, findHeader, guessField, guessLawyer, guessMapping, searchable, toClientRow } from "../lib/clientImport";
 import { useI18n } from "../i18n";
 import { useAuth } from "../hooks/useAuth";
-import { canSeeFinance } from "../lib/access";
+import { canSeeFinance, takesCalls } from "../lib/access";
 
 const BATCH = 200;
 
@@ -50,7 +50,7 @@ export default function ClientImportPage() {
   const fileInput = useRef(null);
   const employees = useAsync(() => api.employees(), []);
   // Whose sheet it is: people who work with clients (take calls or book).
-  const operators = (employees.data || []).filter((e) => e.active && (e.collectCalls || e.calendarAccess === "book"));
+  const operators = (employees.data || []).filter((e) => e.active && (takesCalls(e) || e.calendarAccess === "book"));
   const lawyerList = useAsync(() => api.clientLawyers(), []);
   const accounts = useMemo(() => lawyerList.data?.accounts || [], [lawyerList.data]);
   // Which account each lawyer name in the file means: an account id, or ""

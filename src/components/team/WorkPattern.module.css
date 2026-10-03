@@ -28,3 +28,8 @@
   box-shadow: var(--focus-ring);
   outline: none;
 }
+
+/* The same toggles for a person's jobs (Team → person): wider labels. */
+.job {
+  padding: 7px 12px;
+}

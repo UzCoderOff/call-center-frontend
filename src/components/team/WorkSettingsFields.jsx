@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { SelectField, Switch } from "../ui/Field";
 import styles from "./WorkPattern.module.css";
+import fieldStyles from "../ui/Field.module.css";
 import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
 import { useI18n } from "../../i18n";
@@ -115,20 +116,42 @@ export function WorkPatternFields({ workDays, holidaysOff, onChange }) {
 
 // What a person does — the first thing to set: it decides their home page,
 // whether their missed calls go on the call-back list, whether Calls and
-// Home count them with the call center, and what Natijalar measures.
+// Home count them with the call center, and what Natijalar measures. Someone
+// can do more than one; the first one chosen is the main one (their home
+// page). None chosen = "other".
 export const JOBS = ["call_center", "coordinator", "office", "other"];
+const CHOOSABLE = JOBS.filter((j) => j !== "other");
 
+// Someone's jobs, the main one first: `jobs` from the server, or the single
+// `job` (older data).
+export const jobsOf = (x) => (Array.isArray(x?.jobs) && x.jobs.length ? x.jobs : [x?.job || "other"]);
+// A position's preset jobs (Position.job + Position.extraJobs, as stored).
+export const positionJobs = (p) => [p?.job || "other", ...String(p?.extraJobs || "").split(",").filter(Boolean)];
+
+// value: their jobs, the main one first. onChange gets the new list.
 export function JobField({ value, onChange }) {
   const { t } = useI18n();
-  const job = value || "other";
+  const chosen = (Array.isArray(value) ? value : [value]).filter((j) => CHOOSABLE.includes(j));
+  const toggle = (job) => {
+    const next = chosen.includes(job) ? chosen.filter((j) => j !== job) : [...chosen, job];
+    onChange(next.length ? next : ["other"]);
+  };
   return (
-    <SelectField label={t("work.job")} hint={t(`work.jobHints.${job}`)} value={job} onChange={(e) => onChange(e.target.value)}>
-      {JOBS.map((j) => (
-        <option key={j} value={j}>
-          {t(`work.jobs.${j}`)}
-        </option>
-      ))}
-    </SelectField>
+    <div className={fieldStyles.field}>
+      <span className={fieldStyles.label}>{t("work.job")}</span>
+      <div className={styles.days} role="group" aria-label={t("work.job")}>
+        {CHOOSABLE.map((j) => (
+          <button key={j} type="button" className={`${styles.day} ${styles.job}`} aria-pressed={chosen.includes(j)} onClick={() => toggle(j)}>
+            {t(`work.jobs.${j}`)}
+            {chosen.length > 1 && chosen[0] === j ? ` · ${t("work.mainJob")}` : ""}
+          </button>
+        ))}
+      </div>
+      <span className={fieldStyles.hint}>
+        {/* One job: what it means. Several: their single-job notes would contradict each other. */}
+        {chosen.length > 1 ? t("work.jobsHint") : `${t(`work.jobHints.${chosen[0] || "other"}`)} ${t("work.jobsHint")}`}
+      </span>
+    </div>
   );
 }
 
@@ -149,7 +172,7 @@ export default function WorkSettingsFields({ value, onChange, options }) {
             reportTemplateId: position.reportTemplate?.id ?? "",
             workDays: position.workDays,
             holidaysOff: position.holidaysOff,
-            job: position.job || value.job,
+            jobs: position.job ? positionJobs(position) : jobsOf(value),
           }
         : { positionId: "" }
     );
@@ -157,7 +180,7 @@ export default function WorkSettingsFields({ value, onChange, options }) {
 
   return (
     <>
-      <JobField value={value.job} onChange={(job) => set({ job })} />
+      <JobField value={jobsOf(value)} onChange={(jobs) => set({ jobs })} />
       <SelectField label={t("work.office")} value={value.officeId ?? ""} onChange={(e) => set({ officeId: e.target.value })}>
         <option value="">{t("work.noOffice")}</option>
         {options.offices.map((o) => (
@@ -193,6 +216,10 @@ export default function WorkSettingsFields({ value, onChange, options }) {
         checked={Boolean(value.collectCalls)}
         onChange={(v) => set({ collectCalls: v })}
       />
+      <Switch label={t("work.pbxCalling")} hint={t("work.pbxCallingHint")} checked={Boolean(value.pbxCalling)} onChange={(v) => set({ pbxCalling: v })} />
+      {value.pbxCalling && (
+        <Switch label={t("work.canCallOut")} hint={t("work.canCallOutHint")} checked={value.canCallOut !== false} onChange={(v) => set({ canCallOut: v })} />
+      )}
       <WorkPatternFields workDays={value.workDays} holidaysOff={value.holidaysOff} onChange={set} />
     </>
   );
@@ -206,10 +233,13 @@ export function workPayload(value) {
     positionId: id(value.positionId),
     reportTemplateId: id(value.reportTemplateId),
     collectCalls: Boolean(value.collectCalls),
+    // Ledger's phone line: a phone ID, and whether they may call outside.
+    pbxCalling: Boolean(value.pbxCalling),
+    ...(value.pbxCalling ? { canCallOut: value.canCallOut !== false } : {}),
     autoReport: Boolean(value.autoReport),
     alsoForm: Boolean(value.autoReport && value.alsoForm),
     calendarAccess: value.calendarAccess || "none",
-    job: value.job || "other",
+    jobs: jobsOf(value),
     workDays: value.workDays || "123456",
     holidaysOff: value.holidaysOff !== false,
   };

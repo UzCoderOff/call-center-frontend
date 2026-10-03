@@ -16,7 +16,7 @@ import { MeasureRow } from "../components/performance/Measures";
 import perfStyles from "../components/performance/Performance.module.css";
 import { callBridge, hasBridge } from "../lib/appBridge";
 import { AttentionCard, LawyerCalendarCard, MyAppointmentsCard } from "../components/calendar/CalendarCards";
-import { canBookAppointments, canSeeClients, isCallCenter, isCoordinator, isLawyer } from "../lib/access";
+import { canBookAppointments, canSeeClients, isCallCenter, isCoordinator, isLawyer, jobOf, takesCalls } from "../lib/access";
 import { CoordinatorSummary, MyCasesCard, UnassignedCard, UpcomingDatesCard } from "../components/clients/CaseCards";
 import { FollowUpsCard, NoNextStepCard } from "../components/clients/FollowUpCards";
 import { MyStrikesCard, TeamStrikesCard } from "../components/performance/Strikes";
@@ -33,13 +33,15 @@ import { useI18n } from "../i18n";
 // their day and their cases; a coordinator the cases handed to them (money
 // due, dates coming up); call-center staff their call numbers; everyone
 // else (translators, document services…) their daily report. By their job
-// (Team → person), not by whether their phone is monitored.
+// (Team → person), not by whether their phone is monitored. With two jobs,
+// the main one (chosen first) decides.
 export default function DashboardPage() {
   const { user } = useAuth();
   if (isManagerRole(user.role)) return <ManagerHome />;
   if (isLawyer(user)) return <LawyerHome />;
-  if (isCoordinator(user)) return <CoordinatorHome />;
-  if (isCallCenter(user) && user.employee?.collectCalls) return <CallsHome />;
+  const callsHome = isCallCenter(user) && takesCalls(user.employee);
+  if (isCoordinator(user) && !(callsHome && jobOf(user) === "call_center")) return <CoordinatorHome />;
+  if (callsHome) return <CallsHome />;
   return <StaffHome />;
 }
 

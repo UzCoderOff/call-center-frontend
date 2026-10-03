@@ -5,8 +5,12 @@ const isManager = (user) => user.role === "BOSS" || user.role === "DEVELOPER";
 // The firm's other lawyers: their own calendar and their own clients' cases.
 export const isLawyer = (user) => user.role === "LAWYER";
 
+// Whether a staff member has calls at all: synced from their phone
+// (collectCalls) or through Ledger's phone line (pbxCalling).
+export const takesCalls = (employee) => Boolean(employee?.hasCalls ?? (employee?.collectCalls || employee?.pbxCalling));
+
 export function canSeeCalls(user) {
-  return isManager(user) || Boolean(user.employee?.collectCalls);
+  return isManager(user) || takesCalls(user.employee);
 }
 
 export function canSeeReports(user) {
@@ -28,16 +32,19 @@ export function canBookAppointments(user) {
 }
 
 // What a staff member does (Employee.job): "call_center" | "coordinator" |
-// "office" | "other". Their home page and tools follow it.
-export const jobOf = (user) => user?.employee?.job || "other";
-export const isCoordinator = (user) => jobOf(user) === "coordinator";
-export const isCallCenter = (user) => jobOf(user) === "call_center";
+// "office" | "other" — or more than one (employee.jobs, the main one first).
+// Their home page and tools follow it.
+export const jobsOf = (user) => (user?.employee?.jobs?.length ? user.employee.jobs : [user?.employee?.job || "other"]);
+export const jobOf = (user) => jobsOf(user)[0];
+export const hasJob = (user, job) => jobsOf(user).includes(job);
+export const isCoordinator = (user) => hasJob(user, "coordinator");
+export const isCallCenter = (user) => hasJob(user, "call_center");
 
 // The clients database: managers, and staff who deal with clients
 // (call-center staff, anyone who books appointments, coordinators); a lawyer
 // sees their own clients.
 export function canSeeClients(user) {
-  return isManager(user) || isLawyer(user) || Boolean(user.employee?.collectCalls) || user.employee?.calendarAccess === "book" || isCoordinator(user);
+  return isManager(user) || isLawyer(user) || takesCalls(user.employee) || user.employee?.calendarAccess === "book" || isCoordinator(user);
 }
 
 // Money from clients — contract amounts, payments, debts: the developer, and

@@ -10,7 +10,8 @@ import Sheet from "../components/ui/Sheet";
 import { TextField } from "../components/ui/Field";
 import { AsyncBoundary, Avatar, CopyButton, KeyValue, PageHeader } from "../components/ui/Misc";
 import CredentialsView from "../components/team/CredentialsView";
-import WorkSettingsFields, { useOrgOptions, workPayload } from "../components/team/WorkSettingsFields";
+import WorkSettingsFields, { jobsOf, useOrgOptions, workPayload } from "../components/team/WorkSettingsFields";
+import { takesCalls } from "../lib/access";
 import StatsOverview from "../components/stats/StatsOverview";
 import RangePicker from "../components/stats/RangePicker";
 import { RecordingBadge, SyncBadge } from "../components/SyncStatus";
@@ -60,8 +61,8 @@ export default function EmployeeDetailPage() {
           />
 
           <div className={pageStyles.stack}>
-            {e.collectCalls && <CallsSection employee={e} />}
-            {!e.collectCalls && (
+            {takesCalls(e) && <CallsSection employee={e} />}
+            {!takesCalls(e) && (
               <div className={styles.linkRow}>
                 <Button to={`/performance/${e.id}`} icon="barChart">
                   {t("perf.open")}
@@ -162,8 +163,17 @@ function WorkCard({ employee, onChange }) {
           t("common.no")
         )}
       </KeyValue>
+      <KeyValue label={t("work.pbxCalling")}>
+        {employee.pbxCalling && employee.phoneLine ? (
+          <Badge tone="accent" icon="phone">
+            {t("work.phoneId", { ext: employee.phoneLine.ext })}
+          </Badge>
+        ) : (
+          t("common.no")
+        )}
+      </KeyValue>
       <KeyValue label={t("work.workDays")}>{workPatternLine(employee, t)}</KeyValue>
-      <KeyValue label={t("work.job")}>{t(`work.jobs.${employee.job || "other"}`)}</KeyValue>
+      <KeyValue label={t("work.job")}>{jobsOf(employee).map((j) => t(`work.jobs.${j}`)).join(" + ")}</KeyValue>
       {editing && <EditWorkSheet employee={employee} onClose={() => setEditing(false)} onSaved={onChange} />}
     </Card>
   );
@@ -187,10 +197,12 @@ function EditWorkSheet({ employee, onClose, onSaved }) {
     positionId: employee.position?.id ?? "",
     reportTemplateId: employee.reportTemplate?.id ?? "",
     collectCalls: employee.collectCalls,
+    pbxCalling: employee.pbxCalling,
+    canCallOut: employee.phoneLine?.canCallOut ?? true,
     autoReport: employee.autoReport,
     alsoForm: employee.alsoForm,
     calendarAccess: employee.calendarAccess,
-    job: employee.job || "other",
+    jobs: jobsOf(employee),
     workDays: employee.workDays,
     holidaysOff: employee.holidaysOff,
   });

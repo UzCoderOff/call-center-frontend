@@ -38,9 +38,11 @@ export default function CallRow({ call, showEmployee = false, showCallButton = f
   // Someone else's client shows as just the number.
   const client = compact || call.client?.restricted ? null : call.client;
   const title = compact ? typeLabel : client?.name || fmt.phone(call.phoneNumber);
+  // Through Ledger's phone line (not synced from someone's phone).
+  const line = call.source === "pbx" && t("calls.viaLine");
   const parts = client
-    ? [fmt.phone(call.phoneNumber), showEmployee && call.employee?.name, when].filter(Boolean)
-    : [showEmployee && call.employee?.name, !compact && typeLabel, when].filter(Boolean);
+    ? [fmt.phone(call.phoneNumber), showEmployee && call.employee?.name, line, when].filter(Boolean)
+    : [showEmployee && call.employee?.name, !compact && typeLabel, line, when].filter(Boolean);
   const needsCallback = call.followUp === "pending" || call.followUp === "attempted";
   const tel = showCallButton && needsCallback ? telHref(call.phoneNumber) : null;
 

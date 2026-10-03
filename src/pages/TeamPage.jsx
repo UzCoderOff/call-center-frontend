@@ -7,7 +7,7 @@ import { Switch, TextField } from "../components/ui/Field";
 import { List, ListRow, ListSectionHeader } from "../components/ui/List";
 import { AsyncBoundary, Avatar, EmptyState, KeyValue, PageHeader } from "../components/ui/Misc";
 import CredentialsView from "../components/team/CredentialsView";
-import WorkSettingsFields, { useOrgOptions, workPayload } from "../components/team/WorkSettingsFields";
+import WorkSettingsFields, { jobsOf, useOrgOptions, workPayload } from "../components/team/WorkSettingsFields";
 import { RecordingBadge, SyncBadge, isRecordingProblem, isSyncProblem, syncLine } from "../components/SyncStatus";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
@@ -78,7 +78,7 @@ function StaffByOffice({ employees }) {
                 to={`/team/${e.id}`}
                 leading={<Avatar name={e.name} size={40} />}
                 title={e.name}
-                subtitle={[t(`work.jobs.${e.job || "other"}`), e.position?.name, e.phoneNumber && fmt.phone(e.phoneNumber), e.collectCalls && syncLine(e.sync, t, fmt)]
+                subtitle={[jobsOf(e).map((j) => t(`work.jobs.${j}`)).join(" + "), e.position?.name, e.phoneNumber && fmt.phone(e.phoneNumber), e.collectCalls && syncLine(e.sync, t, fmt)]
                   .filter(Boolean)
                   .join(" · ")}
                 trailing={
@@ -106,7 +106,7 @@ function CreateEmployeeSheet({ onClose, onCreated }) {
   const { t } = useI18n();
   const options = useOrgOptions();
   const [form, setForm] = useState({ name: "", phoneNumber: "", username: "" });
-  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, autoReport: false, alsoForm: false, calendarAccess: "none", job: "call_center", workDays: "123456", holidaysOff: true });
+  const [work, setWork] = useState({ officeId: "", positionId: "", reportTemplateId: "", collectCalls: false, autoReport: false, alsoForm: false, calendarAccess: "none", jobs: ["call_center"], workDays: "123456", holidaysOff: true });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(null);

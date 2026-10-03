@@ -8,6 +8,7 @@ import { AsyncBoundary, EmptyState, PageHeader } from "../components/ui/Misc";
 import { CallList } from "../components/calls/CallRow";
 import JobToggles, { useCallJobs } from "../components/calls/JobToggles";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
+import { takesCalls } from "../lib/access";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { rangeFor } from "../lib/format";
@@ -72,7 +73,11 @@ export default function CallsPage() {
   const employees = useAsync(() => (isManager ? api.employees() : Promise.resolve([])), [isManager]);
   // Whose phones (managers): the call center unless more are switched on.
   const [jobs, setJobs] = useCallJobs();
-  const phonesByJob = (employees.data || []).filter((e) => e.active && e.collectCalls).reduce((m, e) => ({ ...m, [e.job || "other"]: (m[e.job || "other"] || 0) + 1 }), {});
+  // Someone with two jobs counts under each of them.
+  const phonesByJob = (employees.data || []).filter((e) => e.active && takesCalls(e)).reduce((m, e) => {
+    for (const j of e.jobs?.length ? e.jobs : [e.job || "other"]) m[j] = (m[j] || 0) + 1;
+    return m;
+  }, {});
 
   const talkMatters = view === "all" || view === "answered";
   const state = useAsync(() => {
