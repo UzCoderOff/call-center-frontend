@@ -61,6 +61,8 @@ function AppPanel() {
   const { t } = useI18n();
   const [started, setStarted] = useState(false);
   const collecting = callBridge("isCollectingCalls") === true;
+  // Calls through Ledger's line (app 3.0+): the setup guide covers them too.
+  const calling = callBridge("canCall") === true;
   return (
     <Card title={t("appPanel.title")}>
       <KeyValue label={t("appPanel.version")}>{callBridge("appVersion") || "—"}</KeyValue>
@@ -79,7 +81,7 @@ function AppPanel() {
             {started ? t("appPanel.syncStarted") : t("appPanel.syncNow")}
           </Button>
         )}
-        {collecting && hasBridge("openSetup") && (
+        {(collecting || calling) && hasBridge("openSetup") && (
           <Button icon="smartphone" onClick={() => callBridge("openSetup")}>
             {t("appPanel.setup")}
           </Button>

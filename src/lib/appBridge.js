@@ -14,6 +14,9 @@
 //   isCollectingCalls() whether this phone syncs calls
 //   canDownload()       true from app 2.2.0: links to files (PDFs, Excel
 //                       exports) download and open in the phone's own apps
+//   canCall()           app 3.0+: this phone calls through Ledger's line
+//   call(number)        call a client's number or a colleague's phone ID
+//                       through the line (tel: links do the same in the app)
 //
 // In a normal browser none of this exists and the portal behaves as a website.
 const bridge = typeof window !== "undefined" ? window.LedgerApp : undefined;
