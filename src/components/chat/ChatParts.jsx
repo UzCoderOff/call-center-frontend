@@ -38,11 +38,14 @@ export function PersonAvatar({ name, size = 30 }) {
 }
 
 // The round picture in front of a chat: the firm for Everyone, a group
-// icon, a client icon, the person's initials for a private chat.
+// icon, a client icon, sparkles for Ledger AI, the person's initials for a
+// private chat.
+export const AI_BACKGROUND = "linear-gradient(135deg, #7c5cff, #4ab4e0)";
 export function ConvIcon({ conv, size = 48 }) {
-  const icon = conv.kind === "everyone" ? "users" : conv.kind === "group" ? "messages" : conv.kind === "client" ? "contact" : null;
+  const icon = conv.kind === "everyone" ? "users" : conv.kind === "group" ? "messages" : conv.kind === "client" ? "contact" : conv.kind === "assistant" ? "sparkles" : null;
   if (!icon) return <PersonAvatar name={conv.title} size={size} />;
-  const background = conv.kind === "everyone" ? "linear-gradient(135deg, var(--brand-start), var(--brand-end))" : conv.kind === "client" ? "#8e99a8" : colorFor(conv.title);
+  const background =
+    conv.kind === "everyone" ? "linear-gradient(135deg, var(--brand-start), var(--brand-end))" : conv.kind === "client" ? "#8e99a8" : conv.kind === "assistant" ? AI_BACKGROUND : colorFor(conv.title);
   return (
     <span className={styles.avatar} style={{ width: size, height: size, background }}>
       <Icon name={icon} size={Math.round(size * 0.44)} />

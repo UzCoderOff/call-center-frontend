@@ -361,6 +361,11 @@ export const api = {
   savePbxSettings: (payload) => request("/pbx/settings", { method: "PUT", body: payload }),
   pbxSoftphone: (employeeId) => request(`/pbx/extensions/${employeeId}/softphone`, { method: "POST" }),
 
+  // --- Ledger AI (developer) ---
+  aiSettings: () => request("/ai/settings"),
+  saveAiSettings: (payload) => request("/ai/settings", { method: "PUT", body: payload }),
+  testAi: () => request("/ai/test", { method: "POST" }),
+
   // --- Telegram ---
   telegramMe: () => request("/telegram/me"),
   telegramLink: () => request("/telegram/link", { method: "POST" }),

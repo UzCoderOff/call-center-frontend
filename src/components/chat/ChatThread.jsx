@@ -3,7 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import styles from "./Chat.module.css";
 import Button from "../ui/Button";
 import Icon from "../ui/Icon";
-import { ConvIcon, EventSheet, GroupSheet, MessageSheet, PersonAvatar, colorFor } from "./ChatParts";
+import { AI_BACKGROUND, ConvIcon, EventSheet, GroupSheet, MessageSheet, PersonAvatar, colorFor } from "./ChatParts";
+import { useAuth } from "../../hooks/useAuth";
+import { canSeeFinance } from "../../lib/access";
 import { markReadHere } from "../../hooks/useChatUnread";
 import { useLive } from "../../hooks/useLive";
 import { api } from "../../lib/api";
@@ -14,13 +16,19 @@ import { useI18n } from "../../i18n";
 // open) and the box to write in, at the bottom. Text, or an event card —
 // everyone in the chat is reminded an hour before and at the start. Your own
 // message: tap it to change or delete it.
+//
+// Ledger AI (kind "assistant", boss and developer): the same chat, but its
+// answers come from the server (services/ai/assistant.js) — dots while it
+// thinks, example questions to start, no events.
 
 // The live updates bring new messages at once; this is only the safety net.
 const FALLBACK_MS = 30 * 1000;
 
 export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) {
   const { t, fmt } = useI18n();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const ai = conv.kind === "assistant";
   const [messages, setMessages] = useState(null);
   const [hasOlder, setHasOlder] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -129,14 +137,14 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
     onActivity?.();
   }
 
-  async function sendText(e) {
+  async function sendText(e, preset) {
     e?.preventDefault();
-    const body = text.trim();
+    const body = (preset ?? text).trim();
     if (!body || sending) return;
     setSending(true);
     try {
       await send({ text: body });
-      setText("");
+      if (preset === undefined) setText("");
       if (inputRef.current) inputRef.current.style.height = "";
       inputRef.current?.focus();
     } catch (err) {
@@ -180,8 +188,17 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
         ? t("chat.membersCount", { count: conv.members?.length || 0 })
         : conv.kind === "client"
           ? t("chat.clientHint")
-          : t("chat.directHint");
-  const showAuthors = conv.kind !== "direct";
+          : ai
+            ? t("chat.aiHint")
+            : t("chat.directHint");
+  const showAuthors = conv.kind !== "direct" && !ai;
+  // Ledger AI is still answering: the last word is ours, from just now.
+  const last = messages?.[messages.length - 1];
+  const thinking = ai && Boolean(last?.mine) && Date.now() - new Date(last.createdAt).getTime() < 3 * 60 * 1000;
+  useLayoutEffect(() => {
+    if (thinking && atBottom()) toBottom();
+  }, [thinking]);
+  const examples = ai ? ["aiEx1", "aiEx2", "aiEx3", canSeeFinance(user) ? "aiEx4" : "aiEx5"].map((k) => t(`chat.${k}`)) : [];
 
   return (
     <div className={styles.thread}>
@@ -238,7 +255,21 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
             {t("chat.older")}
           </Button>
         )}
-        {messages === null ? null : messages.length === 0 ? (
+        {messages === null ? null : messages.length === 0 && ai ? (
+          <div className={styles.emptyThread}>
+            <span className={styles.emptyIcon} style={{ background: AI_BACKGROUND, color: "#fff" }}>
+              <Icon name="sparkles" size={28} />
+            </span>
+            <div className={styles.aiIntro}>{t("chat.aiIntro")}</div>
+            <div className={styles.aiExamples}>
+              {examples.map((q) => (
+                <button key={q} type="button" className={styles.aiExample} disabled={sending} onClick={() => sendText(null, q)}>
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
           <div className={styles.emptyThread}>
             <span className={styles.emptyIcon}>
               <Icon name="message" size={28} />
@@ -254,8 +285,8 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
             const newDay = !prev || new Date(prev.createdAt).toDateString() !== day;
             const sameAsPrev = !newDay && prev && prev.author?.id === m.author?.id && ms - new Date(prev.createdAt).getTime() < 5 * 60 * 1000;
             const sameAsNext = next && next.author?.id === m.author?.id && new Date(next.createdAt).toDateString() === day && new Date(next.createdAt).getTime() - ms < 5 * 60 * 1000;
-            const authorName = m.author?.name || t("chat.someone");
-            const tappable = m.mine && !m.deleted;
+            const authorName = m.author?.name || (ai ? "Ledger AI" : t("chat.someone"));
+            const tappable = m.mine && !m.deleted && !ai;
             return (
               <Fragment key={m.id}>
                 {newDay && <div className={styles.day}>{fmt.dayHeader(ms)}</div>}
@@ -276,7 +307,7 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
                     ) : (
                       <>
                         {m.event && <EventCard event={m.event} />}
-                        {m.text && <span>{m.text}</span>}
+                        {m.text && <span>{ai && !m.mine ? withBold(m.text) : m.text}</span>}
                       </>
                     )}
                     <span className={styles.meta}>
@@ -289,13 +320,24 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
             );
           })
         )}
+        {thinking && (
+          <div className={`${styles.row} ${styles.rowFirst}`}>
+            <div className={`${styles.bubble} ${styles.bubbleLast} ${styles.thinking}`} role="status" aria-label={t("chat.aiThinking")} title={t("chat.aiThinking")}>
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+        )}
       </div>
 
       {conv.canWrite ? (
         <form className={styles.composer} onSubmit={sendText}>
-          <button type="button" className={styles.roundButton} onClick={() => setSheet("event")} aria-label={t("chat.newEvent")} title={t("chat.newEvent")}>
-            <Icon name="calendar" size={20} />
-          </button>
+          {!ai && (
+            <button type="button" className={styles.roundButton} onClick={() => setSheet("event")} aria-label={t("chat.newEvent")} title={t("chat.newEvent")}>
+              <Icon name="calendar" size={20} />
+            </button>
+          )}
           <textarea
             ref={inputRef}
             className={styles.input}
@@ -306,7 +348,7 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
               e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
             }}
             onKeyDown={onKeyDown}
-            placeholder={t("chat.placeholder")}
+            placeholder={ai ? t("chat.aiPlaceholder") : t("chat.placeholder")}
             rows={1}
             maxLength={4000}
           />
@@ -350,6 +392,13 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
       )}
     </div>
   );
+}
+
+// Ledger AI may mark a word **bold** — shown bold, never as HTML.
+function withBold(text) {
+  return text
+    .split(/(\*\*[^*\n]+\*\*)/g)
+    .map((part, i) => (part.length > 4 && part.startsWith("**") && part.endsWith("**") ? <strong key={i}>{part.slice(2, -2)}</strong> : part));
 }
 
 // An event card: the date like a calendar page, what, when, and how soon.

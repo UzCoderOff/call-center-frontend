@@ -14,7 +14,8 @@ export default function ChatList({ list, activeId }) {
   return list.map((conv) => {
     const last = conv.lastMessage;
     const who = last ? (last.mine ? `${t("chat.you")}: ` : conv.kind !== "direct" && last.author ? `${last.author.split(" ")[0]}: ` : "") : "";
-    const preview = last ? `${who}${last.eventTitle ? `📅 ${last.eventTitle}` : last.text}` : t("chat.noMessages");
+    // Ledger AI's **bold** shows as plain text here.
+    const preview = last ? `${who}${last.eventTitle ? `📅 ${last.eventTitle}` : String(last.text || "").replace(/\*\*/g, "")}` : t("chat.noMessages");
     const at = last ? new Date(last.createdAt).getTime() : null;
     const unread = unreadShown(conv);
     return (
