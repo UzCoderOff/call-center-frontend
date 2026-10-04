@@ -13,6 +13,7 @@ import { callBridge } from "../lib/appBridge";
 import { canSeeClients } from "../lib/access";
 import { readPref, writePref } from "../lib/prefs";
 import { useI18n } from "../i18n";
+import { playKeyTone } from "../lib/keyTones";
 
 // Telefon (Qoʻngʻiroqlar → the green keypad button) — only inside the Ledger
 // app, for people who call through the firm's line: a keypad (a client's
@@ -95,6 +96,7 @@ function Keypad() {
   }, [number, digits.length]);
 
   function press(key) {
+    playKeyTone(key);
     if (navigator.vibrate) navigator.vibrate(10);
     setNumber((n) => (n + key).slice(0, 20));
   }
@@ -104,6 +106,7 @@ function Keypad() {
     if (key !== "0") return;
     hold.current = setTimeout(() => {
       hold.current = "done";
+      playKeyTone("+");
       setNumber((n) => `${n}+`.slice(0, 20));
     }, 500);
   }

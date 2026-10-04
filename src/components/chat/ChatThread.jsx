@@ -4,7 +4,8 @@ import styles from "./Chat.module.css";
 import Button from "../ui/Button";
 import Icon from "../ui/Icon";
 import { ConvIcon, EventSheet, GroupSheet, MessageSheet, PersonAvatar, colorFor } from "./ChatParts";
-import { refreshChatUnread } from "../../hooks/useChatUnread";
+import { markReadHere } from "../../hooks/useChatUnread";
+import { useLive } from "../../hooks/useLive";
 import { api } from "../../lib/api";
 import { saveFailed } from "../../lib/saveFailed";
 import { useI18n } from "../../i18n";
@@ -14,7 +15,8 @@ import { useI18n } from "../../i18n";
 // everyone in the chat is reminded an hour before and at the start. Your own
 // message: tap it to change or delete it.
 
-const POLL_MS = 4000;
+// The live updates bring new messages at once; this is only the safety net.
+const FALLBACK_MS = 30 * 1000;
 
 export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) {
   const { t, fmt } = useI18n();
@@ -57,7 +59,25 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
     if (stickRef.current) toBottom();
   }, [messages]);
 
-  // First page, then new ones every few seconds.
+  // What's new since what's on screen: new messages, and edits/deletions.
+  const fetchNew = useCallback(async () => {
+    if (!lastIdRef.current && !sinceRef.current) return;
+    try {
+      const res = await api.chatMessages(conv.id, { after: lastIdRef.current || undefined, since: sinceRef.current || undefined });
+      sinceRef.current = res.serverTime;
+      if (res.messages.length || res.changed.length) {
+        stickRef.current = atBottom();
+        merge(res.messages, res.changed);
+        if (res.messages.length) onActivity?.();
+      }
+    } catch {
+      // Offline for a moment: the next round catches up.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conv.id, merge]);
+
+  // The first page; then new ones the moment the server has them (useLive),
+  // with a slow check as a fallback.
   useEffect(() => {
     let live = true;
     api
@@ -68,32 +88,20 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
         setHasOlder(res.hasOlder);
         stickRef.current = true;
         merge(res.messages);
-        refreshChatUnread();
       })
       .catch(() => live && setMessages([]));
-    const timer = setInterval(async () => {
-      if (document.visibilityState !== "visible") return;
-      try {
-        const res = await api.chatMessages(conv.id, { after: lastIdRef.current || undefined, since: sinceRef.current || undefined });
-        sinceRef.current = res.serverTime;
-        if (res.messages.length || res.changed.length) {
-          stickRef.current = atBottom();
-          merge(res.messages, res.changed);
-          if (res.messages.length) {
-            refreshChatUnread();
-            onActivity?.();
-          }
-        }
-      } catch {
-        // Offline for a moment: the next round catches up.
-      }
-    }, POLL_MS);
+    const timer = setInterval(() => document.visibilityState === "visible" && fetchNew(), FALLBACK_MS);
     return () => {
       live = false;
       clearInterval(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conv.id, merge]);
+  }, [conv.id, merge, fetchNew]);
+  useLive(fetchNew);
+
+  // Read the moment it's on screen — the server hears in the background.
+  useEffect(() => {
+    if (messages?.length) markReadHere(conv.id, messages[messages.length - 1].id);
+  }, [conv.id, messages]);
 
   async function loadOlder() {
     const el = scrollRef.current;

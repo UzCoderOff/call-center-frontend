@@ -8,6 +8,7 @@ import ChatThread from "../components/chat/ChatThread";
 import { DirectSheet, GroupSheet } from "../components/chat/ChatParts";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
+import { useLive } from "../hooks/useLive";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
@@ -40,11 +41,13 @@ export default function ChatPage() {
   const meta = useAsync(() => (convId ? api.chat(convId) : Promise.resolve(null)), [convId]);
   const [creating, setCreating] = useState(null); // "group" | "direct"
 
-  // New messages show up in the list while it's open (quietly — no dimming).
+  // New messages show up in the list the moment the server has them
+  // (useLive), quietly — no dimming; a slow check as a fallback.
   const { setData: setList } = list;
   const refreshList = () => api.chats().then(setList).catch(() => {});
+  useLive(refreshList);
   useEffect(() => {
-    const timer = setInterval(() => api.chats().then(setList).catch(() => {}), 10 * 1000);
+    const timer = setInterval(() => document.visibilityState === "visible" && api.chats().then(setList).catch(() => {}), 60 * 1000);
     return () => clearInterval(timer);
   }, [setList]);
 

@@ -80,7 +80,13 @@ function Routed() {
   // The Ledger app opens a page from a notification without reloading
   // (PortalActivity.openPath).
   useEffect(() => {
-    window.ledgerNavigate = (path) => navigate(path);
+    window.ledgerNavigate = (path) => {
+      try {
+        navigate(path);
+      } catch {
+        window.location.assign(path);
+      }
+    };
     return () => {
       delete window.ledgerNavigate;
     };
