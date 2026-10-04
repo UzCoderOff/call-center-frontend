@@ -359,6 +359,14 @@ const uz = {
     teamReportsAll: "Hamma hisobotini yubordi.",
   },
   reports: {
+    enterFor: {
+      title: "Hisobot: {name}",
+      hint: "{date} kungi «{form}» hisoboti. Siz kiritganingiz hisobotda koʻrinib turadi.",
+      save: "Kiritish",
+      enteredBy: "Kiritgan",
+      entered: "dasturchi kiritgan",
+      tap: "bosing — siz kiritasiz",
+    },
     addRow: "Qator qoʻshish",
     removeRow: "Qatorni oʻchirish",
     modeDay: "Kunlik",
@@ -910,6 +918,20 @@ const uz = {
     notCollecting: "Bu telefondan qoʻngʻiroqlar yigʻilmaydi",
   },
   clients: {
+    keep: {
+      label: "Arxiv",
+      auto: "Uzoq harakatsiz qolsa, oʻzi arxivga tushadi",
+      until: "{date} gacha arxivga tushmaydi",
+      button: "Arxivga tushmasin",
+      change: "Muddatini oʻzgartirish",
+      off: "Bekor qilish",
+      date: "Shu kungacha",
+      for: {
+        "2w": "2 hafta",
+        "1m": "1 oy",
+        "3m": "3 oy",
+      },
+    },
     sectionsLabel: "Boʻlim",
     sections: {
       clients: "Mijozlar",
@@ -1008,6 +1030,9 @@ const uz = {
     timelineEmpty: "Hali hech narsa yoʻq.",
     showAll: "Hammasini koʻrsatish ({count})",
     events: {
+      archiveAuto: "Arxivga tushdi: {days} kun hech narsa boʻlmadi (avtomatik)",
+      keep: "Arxivga tushmasin: {date} gacha",
+      keepOff: "«Arxivga tushmasin» olib tashlandi",
       archive: "Arxivga olindi",
       restore: "Arxivdan qaytarildi",
       merge: "Birlashtirildi: {name}",
@@ -2488,6 +2513,14 @@ const uz = {
     reasonRequired: "Sababini yozing.",
   },
   rules: {
+    archive: {
+      title: "Eski konsultatsiyalar",
+      on: "{days} kun hech narsa boʻlmasa — arxivga",
+      off: "Avtomatik arxiv oʻchiq",
+      enabled: "Avtomatik arxiv",
+      days: "Necha kundan keyin",
+      hint: "Shartnomasiz mijozda {days} kun hech narsa boʻlmasa (qoʻngʻiroq, izoh, uchrashuv, toʻlov…), u oʻzi arxivga tushadi. Uchrashuvi yoki rejalashtirilgan qoʻngʻirogʻi borlar va «Arxivga tushmasin» qilinganlar tushmaydi. Arxivdagilar Mijozlar → Arxivda; qayta yozilsa, oʻzi arxivdan chiqadi.",
+    },
     callCenter: {
       title: "Call-markaz",
       count: "Call-markazda: {count} kishi",

@@ -7,6 +7,7 @@ import { TextAreaField } from "../components/ui/Field";
 import { AsyncBoundary, KeyValue, PageHeader } from "../components/ui/Misc";
 import ReportAnswers, { ReportStatusBadge } from "../components/reports/ReportAnswers";
 import { CallStatsLine } from "./ReportsPage";
+import EnterReportSheet from "../components/reports/EnterReportSheet";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { useBack } from "../hooks/useBack";
@@ -20,6 +21,7 @@ export default function ReportDetailPage() {
   const goBack = useBack("/reports");
   const state = useAsync(() => api.report(id), [id]);
   const isManager = isManagerRole(user.role);
+  const [entering, setEntering] = useState(false);
 
   if (state.error?.status === 404) {
     return <PageHeader back={{ label: t("reports.title"), onClick: goBack }} title={t("reports.notFound")} />;
@@ -29,14 +31,36 @@ export default function ReportDetailPage() {
     <AsyncBoundary state={state}>
       {(report) => {
         const reviewer = report.reviewedBy?.employee?.name || report.reviewedBy?.username;
+        const enteredBy = report.enteredBy?.employee?.name || report.enteredBy?.username;
         return (
           <div>
             <PageHeader
               back={{ label: t("reports.title"), onClick: goBack }}
               title={isManager ? report.employee.name : fmt.isoDateLong(report.date)}
               subtitle={isManager ? `${fmt.isoDateLong(report.date)} · ${report.template.name}` : report.template.name}
-              actions={<ReportStatusBadge report={report} />}
+              actions={
+                <>
+                  <ReportStatusBadge report={report} />
+                  {user.role === "DEVELOPER" && (
+                    <Button size="small" icon="sliders" onClick={() => setEntering(true)}>
+                      {t("reports.edit")}
+                    </Button>
+                  )}
+                </>
+              }
             />
+            {entering && (
+              <EnterReportSheet
+                employeeId={report.employee.id}
+                employeeName={report.employee.name}
+                date={report.date}
+                onClose={() => setEntering(false)}
+                onSaved={() => {
+                  setEntering(false);
+                  state.reload();
+                }}
+              />
+            )}
             <div className={pageStyles.split}>
               <div className={pageStyles.stack}>
                 <Card title={t("reports.answers")}>
@@ -48,6 +72,7 @@ export default function ReportDetailPage() {
                 <Card>
                   {report.employee.office && <KeyValue label={t("work.office")}>{report.employee.office.name}</KeyValue>}
                   <KeyValue label={t("reports.submitted")}>{fmt.dateTime(new Date(report.updatedAt).getTime())}</KeyValue>
+                  {enteredBy && <KeyValue label={t("reports.enterFor.enteredBy")}>{enteredBy}</KeyValue>}
                   {report.reviewedAt && (
                     <KeyValue label={t("reports.reviewed")}>
                       {reviewer} · {fmt.dateTime(new Date(report.reviewedAt).getTime())}

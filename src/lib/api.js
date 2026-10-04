@@ -201,6 +201,9 @@ export const api = {
   autoReport: (params) => request(`/reports/auto${qs(params)}`),
   reports: (params) => request(`/reports${qs(params)}`),
   report: (id) => request(`/reports/${id}`),
+  // The developer fills in a report someone missed.
+  reportFor: (employeeId, date) => request(`/reports/for/${employeeId}/${date}`),
+  saveReportFor: (employeeId, date, answers) => request(`/reports/for/${employeeId}/${date}`, { method: "PUT", body: { answers } }),
   reviewReport: (id, comment) => request(`/reports/${id}/review`, { method: "POST", body: { comment } }),
 
   // --- the lawyer's calendar ---
@@ -314,6 +317,8 @@ export const api = {
 
   // --- the call center's rules, strikes ---
   strikeRules: () => request("/rules/strikes"),
+  clientArchiveRules: () => request("/rules/client-archive"),
+  saveClientArchiveRules: (payload) => request("/rules/client-archive", { method: "PUT", body: payload }),
   saveStrikeRules: (payload) => request("/rules/strikes", { method: "PUT", body: payload }),
   callCenterRules: () => request("/rules/call-center"),
   saveCallCenter: (payload) => request("/rules/call-center", { method: "PUT", body: payload }),

@@ -14,6 +14,7 @@ import { useI18n } from "../i18n";
 import { TelegramOverview } from "../components/telegram/TelegramCard";
 import { CallCenterSection, StrikeRulesSection } from "../components/settings/CallCenterRules";
 import { PhoneLineSection } from "../components/settings/PhoneLine";
+import { ClientArchiveSection } from "../components/settings/ClientArchive";
 import { JobField, ReportModeFields, WorkPatternFields, positionJobs, reportModeOf } from "../components/team/WorkSettingsFields";
 
 // "Avtomatik + Kunlik shakl", "Kunlik shakl", "Avtomatik", "Hisobot yoʻq".
@@ -48,6 +49,7 @@ export default function SettingsPage() {
         <CallCenterSection canEdit={canEdit} />
         <StrikeRulesSection canEdit={canEdit} />
         <PhoneLineSection canEdit={canEdit} />
+        <ClientArchiveSection />
         <TelegramOverview />
         <AuditLog />
       </div>
