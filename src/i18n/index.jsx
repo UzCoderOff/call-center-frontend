@@ -60,6 +60,8 @@ export function I18nProvider({ children }) {
       date: (ms) => f.formatDate(ms, lang, time),
       dateTime: (ms) => f.formatDateTime(ms, lang, time),
       dayHeader: (ms) => f.formatDayHeader(ms, lang, time),
+      // "okt", "окт", "Oct" — a calendar page's month.
+      monthShort: (ms) => String(time.months?.[new Date(ms).getMonth()] || "").slice(0, 3),
       axisDate: (iso) => f.formatAxisDate(iso, lang, time),
       isoDateLong: (iso) => f.formatIsoDateLong(iso, lang, time),
       isoDay: (iso) => f.formatIsoDay(iso, lang, time),

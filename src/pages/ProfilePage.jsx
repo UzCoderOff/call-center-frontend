@@ -13,6 +13,7 @@ import { api } from "../lib/api";
 import { callBridge, hasBridge, inApp } from "../lib/appBridge";
 import { applyTheme, readPref, writePref } from "../lib/prefs";
 import { LANGUAGES, useI18n } from "../i18n";
+import { WebPushStatus } from "../components/WebPushBanner";
 import TelegramCard from "../components/telegram/TelegramCard";
 
 export default function ProfilePage() {
@@ -38,6 +39,11 @@ export default function ProfilePage() {
         </Card>
 
         {inApp && <AppPanel />}
+        {!inApp && (
+          <Card title={t("webPush.title")} subtitle={t("webPush.text")}>
+            <WebPushStatus />
+          </Card>
+        )}
         <TelegramCard />
         {isManagerRole(user.role) && (
           <List>

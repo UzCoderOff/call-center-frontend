@@ -1,0 +1,46 @@
+/* A client's page: the smaller things to do, as a row of round buttons
+   with a word under each (like a phone's contact card). */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -6px 0 20px;
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 72px;
+  padding: 10px 8px 8px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.action:hover {
+  background: var(--fill-hover);
+}
+
+.label {
+  color: var(--text-2);
+}
+
+@media (max-width: 599px) {
+  .row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .action {
+    min-width: 0;
+  }
+}

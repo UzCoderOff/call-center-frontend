@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import styles from "./CallsPage.module.css";
 import Button from "../components/ui/Button";
+import Icon from "../components/ui/Icon";
 import Segmented from "../components/ui/Segmented";
 import { SearchField, SelectField } from "../components/ui/Field";
 import { AsyncBoundary, EmptyState, PageHeader } from "../components/ui/Misc";
@@ -13,6 +14,7 @@ import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { rangeFor } from "../lib/format";
 import { useI18n } from "../i18n";
+import { canCallInApp } from "../lib/appBridge";
 
 const PAGE_SIZE = 30;
 const PERIODS = ["today", "7d", "month", "lastMonth", "30d", "90d"];
@@ -103,6 +105,13 @@ export default function CallsPage() {
   return (
     <div>
       <PageHeader title={t("calls.title")} subtitle={isManager ? t("calls.subtitleCompany") : t("calls.subtitleSelf")} />
+
+      {/* Calling through Ledger's line (the app): the keypad, like a phone's dialer. */}
+      {canCallInApp() && (
+        <Link to="/phone" className={styles.dialButton} aria-label={t("phone.keypad")} title={t("phone.keypad")}>
+          <Icon name="dialpad" size={26} />
+        </Link>
+      )}
 
       <div className={styles.controls}>
         <Segmented

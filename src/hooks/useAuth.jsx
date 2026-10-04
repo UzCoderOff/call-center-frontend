@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { dropWebPush } from "../lib/webPush";
 import { api, ApiError, onUnauthorized } from "../lib/api";
 import { callBridge, inApp } from "../lib/appBridge";
 
@@ -71,6 +72,7 @@ export function AuthProvider({ children }) {
       return;
     }
     try {
+      await dropWebPush();
       await api.logout();
     } finally {
       setUser(null);

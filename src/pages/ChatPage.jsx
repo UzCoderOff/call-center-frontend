@@ -1,102 +1,118 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import styles from "../components/chat/Chat.module.css";
-import Button from "../components/ui/Button";
 import Icon from "../components/ui/Icon";
-import { List, ListRow } from "../components/ui/List";
-import { AsyncBoundary, EmptyState, PageHeader } from "../components/ui/Misc";
-import { ConvIcon, DirectSheet, GroupSheet } from "../components/chat/ChatParts";
+import { AsyncBoundary } from "../components/ui/Misc";
+import ChatList from "../components/chat/ChatList";
+import ChatThread from "../components/chat/ChatThread";
+import { DirectSheet, GroupSheet } from "../components/chat/ChatParts";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
-import { refreshChatUnread } from "../hooks/useChatUnread";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
-// Chat: the Everyone chat on top, then groups, private chats and client
-// chats by their last message. The developer makes groups; the boss and the
-// developer can write to anyone privately.
+// Chat (/chat and /chat/:id). On a computer: the chats on the left, the
+// open one on the right. On a phone: the list, and a chat full screen.
+// The developer makes groups; the boss and the developer can write to
+// anyone privately.
+
+const WIDE = "(min-width: 900px)";
+
+function useWide() {
+  const [wide, setWide] = useState(() => window.matchMedia(WIDE).matches);
+  useEffect(() => {
+    const query = window.matchMedia(WIDE);
+    const onChange = () => setWide(query.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+  return wide;
+}
+
 export default function ChatPage() {
+  const { id } = useParams();
+  const convId = id ? Number(id) : null;
   const { user } = useAuth();
-  const { t, fmt } = useI18n();
+  const { t } = useI18n();
   const navigate = useNavigate();
-  const state = useAsync(() => api.chats(), []);
+  const wide = useWide();
+  const list = useAsync(() => api.chats(), []);
+  const meta = useAsync(() => (convId ? api.chat(convId) : Promise.resolve(null)), [convId]);
   const [creating, setCreating] = useState(null); // "group" | "direct"
 
-  // New messages show up while the list is open (quietly — no dimming).
-  const { setData } = state;
+  // New messages show up in the list while it's open (quietly — no dimming).
+  const { setData: setList } = list;
+  const refreshList = () => api.chats().then(setList).catch(() => {});
   useEffect(() => {
-    const timer = setInterval(() => api.chats().then(setData).catch(() => {}), 10 * 1000);
+    const timer = setInterval(() => api.chats().then(setList).catch(() => {}), 10 * 1000);
     return () => clearInterval(timer);
-  }, [setData]);
-  useEffect(() => {
-    refreshChatUnread();
-  }, [state.data]);
+  }, [setList]);
 
   const developer = user.role === "DEVELOPER";
   const manager = isManagerRole(user.role);
 
   return (
-    <div>
-      <PageHeader
-        title={t("chat.title")}
-        subtitle={t("chat.subtitle")}
-        actions={
-          <>
+    <div className={styles.screen}>
+      {(wide || !convId) && (
+        <section className={styles.listPane} aria-label={t("chat.title")}>
+          <div className={styles.listHead}>
+            <h1 className={styles.listTitle}>{t("chat.title")}</h1>
             {manager && (
-              <Button icon="message" onClick={() => setCreating("direct")}>
-                {t("chat.newDirect")}
-              </Button>
+              <button type="button" className={styles.headButton} onClick={() => setCreating("direct")} title={t("chat.newDirect")} aria-label={t("chat.newDirect")}>
+                <Icon name="edit" size={20} />
+              </button>
             )}
             {developer && (
-              <Button variant="primary" icon="plus" onClick={() => setCreating("group")}>
-                {t("chat.newGroup")}
-              </Button>
+              <button type="button" className={styles.headButton} onClick={() => setCreating("group")} title={t("chat.newGroup")} aria-label={t("chat.newGroup")}>
+                <Icon name="users" size={20} />
+              </button>
             )}
-          </>
-        }
-      />
-      <AsyncBoundary state={state}>
-        {(list) =>
-          list.length === 0 ? (
-            <List>
-              <EmptyState icon="messages" title={t("chat.empty")} />
-            </List>
-          ) : (
-            <List inset={72}>
-              {list.map((conv) => {
-                const last = conv.lastMessage;
-                const preview = last ? `${last.mine ? `${t("chat.you")}: ` : conv.kind !== "direct" && last.author ? `${last.author}: ` : ""}${last.eventTitle ? `📅 ${last.eventTitle}` : last.text}` : t("chat.noMessages");
-                return (
-                  <ListRow
+          </div>
+          <div className={styles.listScroll}>
+            <AsyncBoundary state={list}>{(rows) => <ChatList list={rows} activeId={convId} />}</AsyncBoundary>
+          </div>
+        </section>
+      )}
+
+      {(wide || convId) && (
+        <section className={styles.threadPane}>
+          {convId ? (
+            <AsyncBoundary state={meta}>
+              {(conv) =>
+                conv && (
+                  <ChatThread
                     key={conv.id}
-                    to={`/chat/${conv.id}`}
-                    leading={<ConvIcon conv={conv} />}
-                    title={conv.kind === "everyone" ? t("chat.everyone") : conv.title}
-                    subtitle={preview}
-                    chevron={false}
-                    trailing={
-                      <span className={styles.convMeta}>
-                        {last && <span>{fmt.relative(new Date(last.createdAt).getTime())}</span>}
-                        {conv.unread > 0 ? (
-                          <span className={`${styles.unread} ${conv.muted ? styles.unreadMuted : ""}`}>{conv.unread > 99 ? "99+" : conv.unread}</span>
-                        ) : conv.muted ? (
-                          <Icon name="bellOff" size={14} />
-                        ) : null}
-                      </span>
-                    }
+                    conv={conv}
+                    onConvChanged={(next) => {
+                      meta.setData(next);
+                      refreshList();
+                    }}
+                    onActivity={refreshList}
+                    onGone={() => {
+                      refreshList();
+                      navigate("/chat", { replace: true });
+                    }}
                   />
-                );
-              })}
-            </List>
-          )
-        }
-      </AsyncBoundary>
+                )
+              }
+            </AsyncBoundary>
+          ) : (
+            <div className={styles.placeholder}>
+              <span className={styles.emptyIcon}>
+                <Icon name="messages" size={28} />
+              </span>
+              {t("chat.pick")}
+            </div>
+          )}
+        </section>
+      )}
 
       {creating === "group" && (
         <GroupSheet
           onClose={() => setCreating(null)}
           onSaved={(conv) => {
             setCreating(null);
+            refreshList();
             navigate(`/chat/${conv.id}`);
           }}
         />
@@ -106,6 +122,7 @@ export default function ChatPage() {
           onClose={() => setCreating(null)}
           onOpened={(conv) => {
             setCreating(null);
+            refreshList();
             navigate(`/chat/${conv.id}`);
           }}
         />

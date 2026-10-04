@@ -2645,6 +2645,13 @@ const uz = {
     noNumber: "Raqami yoʻq",
   },
   chat: {
+    back: "Orqaga",
+    more: "Yana",
+    pick: "Chatni tanlang",
+    eventPast: "Oʻtdi",
+    eventNow: "Hozir",
+    eventInMinutes: "{count} daqiqadan keyin",
+    eventInHours: "{count} soatdan keyin",
     title: "Chat",
     subtitle: "Hamma bilan, guruhlarda va mijozlar boʻyicha yozishmalar",
     everyone: "Hamma",
@@ -2695,6 +2702,15 @@ const uz = {
     errEventTime: "Kelajakdagi vaqtni tanlang.",
     saveFailed: "Saqlab boʻlmadi. Qayta urinib koʻring.",
     sendFailed: "Yuborib boʻlmadi. Qayta urinib koʻring.",
+  },
+  webPush: {
+    title: "Bildirishnomalar shu brauzerda",
+    text: "Chat, eslatmalar, javobsiz qoʻngʻiroqlar va boshqa xabarlar shu brauzerga ham kelsin.",
+    enable: "Yoqish",
+    later: "Keyinroq",
+    on: "Yoqilgan — Ledger xabarlari shu brauzerga keladi.",
+    blocked: "Brauzer sozlamalarida bloklangan: manzil satridagi qulf belgisi → Bildirishnomalar → Ruxsat berish.",
+    unsupported: "Bu brauzer bildirishnomalarni qoʻllamaydi.",
   },
 };
 

@@ -9,6 +9,7 @@ import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
+import WorkTabs from "../components/tasks/WorkTabs";
 
 // Vazifalar. Everyone: the tasks given to them. The boss (and the
 // developer): also the ones they gave, and everyone's — and "give a task".
@@ -42,6 +43,7 @@ export default function TasksPage() {
         }
       />
       <div className={pageStyles.stack}>
+        <WorkTabs value="tasks" />
         {manager && (
           <Segmented
             full

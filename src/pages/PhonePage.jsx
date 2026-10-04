@@ -6,7 +6,6 @@ import Segmented from "../components/ui/Segmented";
 import { SearchField } from "../components/ui/Field";
 import { List, ListRow } from "../components/ui/List";
 import { AsyncBoundary, EmptyState, PageHeader } from "../components/ui/Misc";
-import { CallTypeIcon } from "../components/calls/CallRow";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -15,10 +14,11 @@ import { canSeeClients } from "../lib/access";
 import { readPref, writePref } from "../lib/prefs";
 import { useI18n } from "../i18n";
 
-// Telefon — only inside the Ledger app, for people who call through the
-// firm's line: a keypad (a client's number or a colleague's phone ID), the
-// recent calls and the clients, each one tap from a call. The call itself is
-// the app's (window.LedgerApp.call — recorded on the server).
+// Telefon (Qoʻngʻiroqlar → the green keypad button) — only inside the Ledger
+// app, for people who call through the firm's line: a keypad (a client's
+// number, a colleague's phone ID, 600–602 to test the phone) and the
+// clients, each one tap from a call. The call itself is the app's
+// (window.LedgerApp.call — recorded on the server).
 
 const KEYS = [
   ["1", ""],
@@ -46,11 +46,11 @@ export default function PhonePage() {
     setTab(value);
     writePref("phoneTab", value);
   };
-  const shown = tab === "clients" && !clients ? "keypad" : tab;
+  const shown = tab === "clients" && clients ? "clients" : "keypad";
 
   return (
     <div>
-      <PageHeader title={t("phone.title")} />
+      <PageHeader back={{ to: "/calls", label: t("calls.title") }} title={t("phone.title")} />
       <div className={pageStyles.stack}>
         <Segmented
           full
@@ -59,12 +59,10 @@ export default function PhonePage() {
           label={t("phone.title")}
           options={[
             { value: "keypad", label: t("phone.keypad") },
-            { value: "recent", label: t("phone.recent") },
             ...(clients ? [{ value: "clients", label: t("phone.clients") }] : []),
           ]}
         />
         {shown === "keypad" && <Keypad />}
-        {shown === "recent" && <Recent />}
         {shown === "clients" && <Clients />}
       </div>
     </div>
@@ -184,39 +182,6 @@ function CallButton({ number }) {
     <button type="button" className={styles.rowCall} onClick={() => dial(number)} aria-label={`${t("common.call")}: ${fmt.phone(number)}`}>
       <Icon name="phone" size={17} strokeWidth={2} />
     </button>
-  );
-}
-
-// My recent calls, newest first; a tap calls back.
-function Recent() {
-  const { t, fmt } = useI18n();
-  const state = useAsync(() => api.calls({ pageSize: 60, sort: "newest" }), []);
-  return (
-    <AsyncBoundary state={state}>
-      {({ calls }) =>
-        calls.length === 0 ? (
-          <List>
-            <EmptyState icon="phone" title={t("phone.noRecent")} />
-          </List>
-        ) : (
-          <List inset={64}>
-            {calls.map((c) => {
-              const client = c.client?.restricted ? null : c.client;
-              return (
-                <ListRow
-                  key={c.id}
-                  leading={<CallTypeIcon call={c} />}
-                  title={client?.name || fmt.phone(c.phoneNumber) || t("phone.hidden")}
-                  subtitle={[client ? fmt.phone(c.phoneNumber) : t(`callType.${c.callType}`), fmt.relative(Number(c.callTimestampMs))].filter(Boolean).join(" · ")}
-                  chevron={false}
-                  actions={c.phoneNumber ? <CallButton number={c.phoneNumber} /> : undefined}
-                />
-              );
-            })}
-          </List>
-        )
-      }
-    </AsyncBoundary>
   );
 }
 

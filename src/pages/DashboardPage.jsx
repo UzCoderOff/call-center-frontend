@@ -24,6 +24,7 @@ import { ToReadCard } from "../components/materials/parts";
 import { canSeeFinance } from "../lib/access";
 import { MyTasksCard } from "../components/tasks/TaskParts";
 import { MyRemindersCard } from "../components/reminders/ReminderParts";
+import WebPushBanner from "../components/WebPushBanner";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -96,6 +97,7 @@ function ManagerHome() {
     <div>
       <PageHeader title={t("dashboard.titleCompany")} subtitle={fmt.isoDay(todayIso())} />
       <TempPasswordBanner />
+      <WebPushBanner className={styles.bannerSpace} />
       {user.role === "DEVELOPER" && <HolidayReviewBanner />}
       {state.data?.disk?.low && <DiskBanner disk={state.data.disk} />}
       <div className={styles.stack}>
@@ -357,6 +359,7 @@ function CallsHome() {
     <div>
       <PageHeader title={t("dashboard.titleSelf")} subtitle={fmt.isoDay(todayIso())} />
       <TempPasswordBanner />
+      <WebPushBanner className={styles.bannerSpace} />
       {isRecordingProblem(state.data?.sync?.recordings) && <MyRecordingBanner recordings={state.data.sync.recordings} />}
       <div className={styles.stack}>
         {canBookAppointments(user) && <AttentionCard />}
@@ -397,6 +400,7 @@ function LawyerHome() {
     <div>
       <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} />
       <TempPasswordBanner />
+      <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
         <MyTasksCard />
         <MyRemindersCard />
@@ -424,6 +428,7 @@ function CoordinatorHome() {
     <div>
       <PageHeader title={t("home.greeting", { name: firstName })} subtitle={`${fmt.date(today)} · ${t("coord.role")}`} />
       <TempPasswordBanner />
+      <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
         <AsyncBoundary state={cases}>
           {(data) => (
@@ -458,6 +463,7 @@ function StaffHome() {
     <div>
       <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} />
       <TempPasswordBanner />
+      <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
         {canBookAppointments(user) && <AttentionCard />}
         <MyTasksCard />

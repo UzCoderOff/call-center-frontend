@@ -34,8 +34,9 @@ import DaysOffPage from "./pages/DaysOffPage";
 import RemindersPage from "./pages/RemindersPage";
 import PhonePage from "./pages/PhonePage";
 import ChatPage from "./pages/ChatPage";
-import ChatThreadPage, { ClientChatRedirect } from "./pages/ChatThreadPage";
+import { ClientChatRedirect } from "./pages/ChatThreadPage";
 import { canCallInApp } from "./lib/appBridge";
+import { syncWebPush } from "./lib/webPush";
 
 export function Splash() {
   return (
@@ -85,6 +86,21 @@ function Routed() {
     };
   }, [navigate]);
 
+  // Notifications in this browser: keep its subscription current once
+  // signed in (when allowed), and open the page a clicked one is about
+  // (public/sw.js).
+  useEffect(() => {
+    if (status === "authed") syncWebPush().catch(() => {});
+  }, [status]);
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return undefined;
+    const onMessage = (event) => {
+      if (event.data?.type === "ledger-open" && typeof event.data.link === "string") navigate(event.data.link);
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, [navigate]);
+
   return (
     <Routes>
       <Route path="/login" element={status === "authed" ? <Navigate to="/" replace /> : <LoginPage />} />
@@ -113,11 +129,12 @@ function Routed() {
         <Route path="settings/templates/:id" element={guarded(canSeeTeam, <TemplateEditorPage />)} />
         <Route path="finance" element={guarded(canSeeFinance, <FinancePage />)} />
         <Route path="tasks" element={<TasksPage />} />
-        <Route path="reminders" element={<RemindersPage />} />
+        <Route path="tasks/reminders" element={<RemindersPage />} />
+        <Route path="reminders" element={<Navigate to="/tasks/reminders" replace />} />
         <Route path="phone" element={guarded(() => canCallInApp(), <PhonePage />)} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="chat/client/:clientId" element={guarded(canSeeClients, <ClientChatRedirect />)} />
-        <Route path="chat/:id" element={<ChatThreadPage />} />
+        <Route path="chat/:id" element={<ChatPage />} />
         <Route path="performance" element={guarded(canSeePerformance, <PerformancePage />)} />
         <Route path="performance/:id" element={guarded(canSeePerformance, <PersonPerformancePage />)} />
         <Route path="days-off" element={guarded(canSeeDaysOff, <DaysOffPage />)} />

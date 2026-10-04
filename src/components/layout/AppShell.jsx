@@ -6,7 +6,6 @@ import { Avatar } from "../ui/Misc";
 import { useAuth, isManagerRole } from "../../hooks/useAuth";
 import { canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeFinance, canSeePerformance, canSeeReports } from "../../lib/access";
 import { useI18n } from "../../i18n";
-import { canCallInApp } from "../../lib/appBridge";
 import { useChatUnread } from "../../hooks/useChatUnread";
 
 // Navigation is one list, rendered twice: a sidebar on wide screens and an
@@ -16,8 +15,6 @@ export function navItems(user) {
   const manager = isManagerRole(user.role);
   return [
     { to: "/", end: true, icon: "home", label: "nav.home" },
-    // Inside the Ledger app, for people who call through the firm's line.
-    ...(canCallInApp() ? [{ to: "/phone", icon: "dialpad", label: "nav.phone" }] : []),
     { to: "/chat", icon: "message", label: "nav.chat", badge: "chat" },
     ...(canSeeCalls(user) ? [{ to: "/calls", icon: "phone", label: "nav.calls" }] : []),
     ...(canSeeClients(user) ? [{ to: "/clients", icon: "contact", label: "nav.clients" }] : []),
@@ -26,7 +23,6 @@ export function navItems(user) {
     ...(canSeeReports(user) ? [{ to: "/reports", icon: "clipboard", label: "nav.reports" }] : []),
     ...(canSeePerformance(user) ? [{ to: "/performance", icon: "barChart", label: "nav.performance" }] : []),
     { to: "/tasks", icon: "checkCircle", label: "nav.tasks" },
-    { to: "/reminders", icon: "alarm", label: "nav.reminders" },
     ...(canSeeDaysOff(user) ? [{ to: "/days-off", icon: "coffee", label: "nav.daysOff" }] : []),
     ...(manager ? [{ to: "/team", icon: "users", label: "nav.team" }] : []),
     ...(manager ? [{ to: "/settings", icon: "settings", label: "nav.settings", sidebarOnly: true }] : []),

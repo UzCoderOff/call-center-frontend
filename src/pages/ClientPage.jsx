@@ -9,6 +9,7 @@ import Segmented from "../components/ui/Segmented";
 import { SelectField, TextAreaField, TextField } from "../components/ui/Field";
 import { AsyncBoundary, Banner, EmptyState, KeyValue, PageHeader } from "../components/ui/Misc";
 import { ReminderSheet } from "../components/reminders/ReminderParts";
+import QuickActions from "../components/clients/QuickActions";
 import { personName } from "../components/clients/parts";
 import CasePanel from "../components/clients/CaseWork";
 import { CaseSheet, ClientSheet, LinkSheet, MergeSheet, PaymentSheet } from "../components/clients/ClientSheets";
@@ -225,24 +226,16 @@ function ClientView({ client, reload, goBack }) {
                 {t("clients.bookConsultation")}
               </Button>
             )}
-            <Button icon="message" to={`/chat/client/${client.id}`}>
-              {t("chat.clientChat")}
-            </Button>
-            <Button icon="alarm" onClick={() => setSheet({ type: "reminder" })}>
-              {t("reminders.forClient")}
-            </Button>
-            {client.canManage && (
-              <Button icon="checkCircle" onClick={() => setSheet({ type: "task" })}>
-                {t("tasks.giveForClient")}
-              </Button>
-            )}
-            {client.canEdit && (
-              <Button icon="sliders" onClick={() => setSheet({ type: "client" })}>
-                {t("clients.edit")}
-              </Button>
-            )}
           </>
         }
+      />
+      <QuickActions
+        actions={[
+          { icon: "message", label: t("chat.clientChat"), to: `/chat/client/${client.id}` },
+          { icon: "alarm", label: t("reminders.forClient"), onClick: () => setSheet({ type: "reminder" }) },
+          client.canManage && { icon: "checkCircle", label: t("tasks.giveForClient"), onClick: () => setSheet({ type: "task" }) },
+          client.canEdit && { icon: "sliders", label: t("clients.edit"), onClick: () => setSheet({ type: "client" }) },
+        ]}
       />
 
       {askBook && (

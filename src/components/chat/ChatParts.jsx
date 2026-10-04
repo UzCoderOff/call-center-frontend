@@ -20,31 +20,34 @@ const initialsOf = (name) =>
     .map((w) => w[0].toUpperCase())
     .join("") || "?";
 
+// A colour of its own for each name (the same person, the same colour).
+const PALETTE = ["#e17076", "#f59f4a", "#7bc862", "#4ab4e0", "#65aadd", "#a695e7", "#ee7aae", "#3fbbb0"];
+export function colorFor(name) {
+  let h = 0;
+  for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return PALETTE[h % PALETTE.length];
+}
+
+// A round picture with initials.
+export function PersonAvatar({ name, size = 30 }) {
+  return (
+    <span className={styles.avatar} style={{ width: size, height: size, background: colorFor(name), fontSize: Math.round(size * 0.38) }}>
+      {initialsOf(name)}
+    </span>
+  );
+}
+
 // The round picture in front of a chat: the firm for Everyone, a group
 // icon, a client icon, the person's initials for a private chat.
-export function ConvIcon({ conv }) {
-  if (conv.kind === "everyone") {
-    return (
-      <span className={`${styles.convIcon} ${styles.convIconEveryone}`}>
-        <Icon name="users" size={20} />
-      </span>
-    );
-  }
-  if (conv.kind === "group") {
-    return (
-      <span className={styles.convIcon}>
-        <Icon name="messages" size={20} />
-      </span>
-    );
-  }
-  if (conv.kind === "client") {
-    return (
-      <span className={`${styles.convIcon} ${styles.convIconClient}`}>
-        <Icon name="contact" size={20} />
-      </span>
-    );
-  }
-  return <span className={styles.convIcon}>{initialsOf(conv.title)}</span>;
+export function ConvIcon({ conv, size = 48 }) {
+  const icon = conv.kind === "everyone" ? "users" : conv.kind === "group" ? "messages" : conv.kind === "client" ? "contact" : null;
+  if (!icon) return <PersonAvatar name={conv.title} size={size} />;
+  const background = conv.kind === "everyone" ? "linear-gradient(135deg, var(--brand-start), var(--brand-end))" : conv.kind === "client" ? "#8e99a8" : colorFor(conv.title);
+  return (
+    <span className={styles.avatar} style={{ width: size, height: size, background }}>
+      <Icon name={icon} size={Math.round(size * 0.44)} />
+    </span>
+  );
 }
 
 // Everyone else, to tick (a group's members) or to pick one (a private chat).

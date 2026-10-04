@@ -67,3 +67,30 @@
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
+
+/* The keypad button (in the Ledger app, for people who call through the
+   line): green and round at the bottom corner, above the tab bar. */
+.dialButton {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 30px);
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #34c759;
+  box-shadow: 0 8px 22px rgba(52, 199, 89, 0.38);
+  color: #fff;
+}
+
+.dialButton:active {
+  transform: scale(0.96);
+}
+
+@media (min-width: 900px) {
+  .dialButton {
+    bottom: 32px;
+  }
+}

@@ -2629,6 +2629,13 @@ const en = {
     noNumber: "No number",
   },
   chat: {
+    back: "Back",
+    more: "More",
+    pick: "Pick a chat",
+    eventPast: "Over",
+    eventNow: "Now",
+    eventInMinutes: "In {count} min",
+    eventInHours: "In {count} h",
     title: "Chat",
     subtitle: "With everyone, in groups and about clients",
     everyone: "Everyone",
@@ -2679,6 +2686,15 @@ const en = {
     errEventTime: "Pick a time in the future.",
     saveFailed: "Couldn't save. Please try again.",
     sendFailed: "Couldn't send. Please try again.",
+  },
+  webPush: {
+    title: "Notifications in this browser",
+    text: "Chat, reminders, missed calls and other messages come to this browser too.",
+    enable: "Turn on",
+    later: "Later",
+    on: "On — Ledger's messages come to this browser.",
+    blocked: "Blocked in the browser's settings: the lock in the address bar → Notifications → Allow.",
+    unsupported: "This browser doesn't support notifications.",
   },
 };
 

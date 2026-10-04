@@ -234,6 +234,11 @@ export const api = {
   updateReminder: (id, payload) => request(`/reminders/${id}`, { method: "PATCH", body: payload }),
   deleteReminder: (id) => request(`/reminders/${id}`, { method: "DELETE" }),
 
+  // --- notifications in this browser (Web Push) ---
+  webPushKey: () => request("/push/web"),
+  webPushSubscribe: (subscription) => request("/push/web", { method: "POST", body: subscription }),
+  webPushUnsubscribe: (endpoint) => request("/push/web", { method: "DELETE", body: { endpoint } }),
+
   // --- staff chat ---
   chats: () => request("/chat"),
   chatUnread: () => request("/chat/unread"),

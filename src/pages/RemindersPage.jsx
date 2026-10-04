@@ -9,6 +9,7 @@ import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
+import WorkTabs from "../components/tasks/WorkTabs";
 
 // Eslatmalar. Everyone: their own reminders (and the ones set for them).
 // The boss and the developer: also the ones they set for others.
@@ -40,6 +41,7 @@ export default function RemindersPage() {
         }
       />
       <div className={pageStyles.stack}>
+        <WorkTabs value="reminders" />
         {manager && (
           <Segmented
             full
