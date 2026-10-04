@@ -1,0 +1,251 @@
+/* Staff chat: the list of chats and one chat's messages. */
+
+.convIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.convIconEveryone {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.convIconClient {
+  background: var(--fill);
+  color: var(--text-2);
+}
+
+.unread {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.unreadMuted {
+  background: var(--text-3);
+}
+
+.convMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+/* ---------- One chat ---------- */
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 12px;
+}
+
+.older {
+  align-self: center;
+  margin: 4px 0 10px;
+}
+
+.day {
+  align-self: center;
+  margin: 14px 0 8px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  background: var(--fill);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  margin-top: 4px;
+}
+
+.rowMine {
+  justify-content: flex-end;
+}
+
+.bubble {
+  max-width: min(78%, 560px);
+  padding: 8px 12px 6px;
+  border-radius: 18px 18px 18px 6px;
+  background: var(--surface);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+  font-size: 15px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: default;
+}
+
+.mine .bubble,
+.bubble.mine {
+  border-radius: 18px 18px 6px 18px;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+}
+
+.author {
+  margin-bottom: 2px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.time {
+  float: right;
+  margin: 6px 0 0 10px;
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.deleted {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.event {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 220px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.bubble:not(.mine) .event {
+  background: var(--accent-soft);
+}
+
+.eventIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.eventTitle {
+  font-weight: 600;
+}
+
+.eventWhen {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.composer {
+  position: sticky;
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 22px);
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 8px;
+  border-radius: 24px;
+  background: var(--surface-raised);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 900px) {
+  .composer {
+    bottom: 16px;
+  }
+}
+
+.input {
+  flex: 1;
+  min-height: 40px;
+  max-height: 160px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 18px;
+  background: var(--fill);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.35;
+  resize: none;
+  outline: none;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.send {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.readOnly {
+  padding: 12px;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.people {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--separator);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.person input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.personRole {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 13px;
+}

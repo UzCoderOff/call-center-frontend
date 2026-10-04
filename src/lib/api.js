@@ -227,6 +227,29 @@ export const api = {
   updateTask: (id, payload) => request(`/tasks/${id}`, { method: "PATCH", body: payload }),
   deleteTask: (id) => request(`/tasks/${id}`, { method: "DELETE" }),
 
+  // --- reminders (anyone for themselves; the boss and developer for anyone) ---
+  reminders: (params) => request(`/reminders${qs(params)}`),
+  reminderPeople: () => request("/reminders/people"),
+  createReminder: (payload) => request("/reminders", { method: "POST", body: payload }),
+  updateReminder: (id, payload) => request(`/reminders/${id}`, { method: "PATCH", body: payload }),
+  deleteReminder: (id) => request(`/reminders/${id}`, { method: "DELETE" }),
+
+  // --- staff chat ---
+  chats: () => request("/chat"),
+  chatUnread: () => request("/chat/unread"),
+  chatPeople: () => request("/chat/people"),
+  chat: (id) => request(`/chat/${id}`),
+  clientChat: (clientId) => request(`/chat/client/${clientId}`),
+  createGroup: (payload) => request("/chat/groups", { method: "POST", body: payload }),
+  updateGroup: (id, payload) => request(`/chat/${id}`, { method: "PATCH", body: payload }),
+  deleteGroup: (id) => request(`/chat/${id}`, { method: "DELETE" }),
+  directChat: (userId) => request("/chat/direct", { method: "POST", body: { userId } }),
+  muteChat: (id, muted) => request(`/chat/${id}/mute`, { method: "PUT", body: { muted } }),
+  chatMessages: (id, params) => request(`/chat/${id}/messages${qs(params)}`),
+  sendMessage: (id, payload) => request(`/chat/${id}/messages`, { method: "POST", body: payload }),
+  editMessage: (id, mid, text) => request(`/chat/${id}/messages/${mid}`, { method: "PATCH", body: { text } }),
+  deleteMessage: (id, mid) => request(`/chat/${id}/messages/${mid}`, { method: "DELETE" }),
+
   // --- organisation settings ---
   offices: () => request("/offices"),
   createOffice: (payload) => request("/offices", { method: "POST", body: payload }),

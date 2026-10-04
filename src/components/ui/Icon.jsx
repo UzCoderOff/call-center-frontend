@@ -1,6 +1,43 @@
 // Line icons (24×24, stroke = currentColor), adapted from Feather (MIT).
 // Kept inline so there's no icon-font request and they inherit text colour.
 const PATHS = {
+  message: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />,
+  messages: (
+    <>
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </>
+  ),
+  dialpad: (
+    <>
+      <circle cx="6" cy="5" r="1.4" />
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="18" cy="5" r="1.4" />
+      <circle cx="6" cy="11" r="1.4" />
+      <circle cx="12" cy="11" r="1.4" />
+      <circle cx="18" cy="11" r="1.4" />
+      <circle cx="6" cy="17" r="1.4" />
+      <circle cx="12" cy="17" r="1.4" />
+      <circle cx="18" cy="17" r="1.4" />
+      <circle cx="12" cy="22" r="1.4" />
+    </>
+  ),
+  alarm: (
+    <>
+      <circle cx="12" cy="13" r="8" />
+      <path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3" />
+    </>
+  ),
+  backspace: (
+    <>
+      <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+      <path d="m18 9-6 6M12 9l6 6" />
+    </>
+  ),
+  bellOff: (
+    <>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0M18.63 13A17.89 17.89 0 0 1 18 8M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14M18 8a6 6 0 0 0-9.33-5M1 1l22 22" />
+    </>
+  ),
   home: (
     <>
       <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />

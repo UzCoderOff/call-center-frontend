@@ -23,6 +23,7 @@ import { MyStrikesCard, TeamStrikesCard } from "../components/performance/Strike
 import { ToReadCard } from "../components/materials/parts";
 import { canSeeFinance } from "../lib/access";
 import { MyTasksCard } from "../components/tasks/TaskParts";
+import { MyRemindersCard } from "../components/reminders/ReminderParts";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -102,6 +103,7 @@ function ManagerHome() {
         {canSeeFinance(user) && <FinanceCard />}
         <UnassignedCard />
         <MyTasksCard />
+        <MyRemindersCard />
         <UpcomingDatesCard days={7} />
         <LawyerCalendarCard />
         <FollowUpsCard team />
@@ -359,6 +361,7 @@ function CallsHome() {
       <div className={styles.stack}>
         {canBookAppointments(user) && <AttentionCard />}
         <MyTasksCard />
+        <MyRemindersCard />
         <MyPlanCard />
         {canSeeClients(user) && <FollowUpsCard />}
         {canSeeClients(user) && <NoNextStepCard />}
@@ -396,6 +399,7 @@ function LawyerHome() {
       <TempPasswordBanner />
       <div className={styles.stack}>
         <MyTasksCard />
+        <MyRemindersCard />
         <FollowUpsCard />
         {canSeeFinance(user) && <FinanceCard />}
         <UpcomingDatesCard />
@@ -430,6 +434,7 @@ function CoordinatorHome() {
           )}
         </AsyncBoundary>
         <MyTasksCard />
+        <MyRemindersCard />
         <UpcomingDatesCard />
         <FollowUpsCard />
         <MyPlanCard />
@@ -456,6 +461,7 @@ function StaffHome() {
       <div className={styles.stack}>
         {canBookAppointments(user) && <AttentionCard />}
         <MyTasksCard />
+        <MyRemindersCard />
         <MyPlanCard />
         <ToReadCard />
         {hasReport ? (

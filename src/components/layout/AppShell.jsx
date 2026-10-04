@@ -6,6 +6,8 @@ import { Avatar } from "../ui/Misc";
 import { useAuth, isManagerRole } from "../../hooks/useAuth";
 import { canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeFinance, canSeePerformance, canSeeReports } from "../../lib/access";
 import { useI18n } from "../../i18n";
+import { canCallInApp } from "../../lib/appBridge";
+import { useChatUnread } from "../../hooks/useChatUnread";
 
 // Navigation is one list, rendered twice: a sidebar on wide screens and an
 // iOS-style tab bar on phones. New modules are added here once and appear in
@@ -14,6 +16,9 @@ export function navItems(user) {
   const manager = isManagerRole(user.role);
   return [
     { to: "/", end: true, icon: "home", label: "nav.home" },
+    // Inside the Ledger app, for people who call through the firm's line.
+    ...(canCallInApp() ? [{ to: "/phone", icon: "dialpad", label: "nav.phone" }] : []),
+    { to: "/chat", icon: "message", label: "nav.chat", badge: "chat" },
     ...(canSeeCalls(user) ? [{ to: "/calls", icon: "phone", label: "nav.calls" }] : []),
     ...(canSeeClients(user) ? [{ to: "/clients", icon: "contact", label: "nav.clients" }] : []),
     ...(canSeeFinance(user) ? [{ to: "/finance", icon: "cash", label: "nav.finance" }] : []),
@@ -21,6 +26,7 @@ export function navItems(user) {
     ...(canSeeReports(user) ? [{ to: "/reports", icon: "clipboard", label: "nav.reports" }] : []),
     ...(canSeePerformance(user) ? [{ to: "/performance", icon: "barChart", label: "nav.performance" }] : []),
     { to: "/tasks", icon: "checkCircle", label: "nav.tasks" },
+    { to: "/reminders", icon: "alarm", label: "nav.reminders" },
     ...(canSeeDaysOff(user) ? [{ to: "/days-off", icon: "coffee", label: "nav.daysOff" }] : []),
     ...(manager ? [{ to: "/team", icon: "users", label: "nav.team" }] : []),
     ...(manager ? [{ to: "/settings", icon: "settings", label: "nav.settings", sidebarOnly: true }] : []),
@@ -71,6 +77,8 @@ export default function AppShell() {
   const { tabs, overflow } = tabLayout(user);
   const displayName = user.employee?.name || user.username;
   const inOverflow = overflow.some((i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`));
+  const unread = useChatUnread();
+  const badgeFor = (item) => (item.badge === "chat" ? unread : item.to === "/more" && overflow.some((i) => i.badge === "chat") ? unread : 0);
 
   return (
     <div className={styles.shell}>
@@ -93,6 +101,7 @@ export default function AppShell() {
             >
               <Icon name={item.icon} size={19} />
               <span>{t(item.label)}</span>
+              {badgeFor(item) > 0 && <span className={styles.sideBadge}>{badgeFor(item) > 99 ? "99+" : badgeFor(item)}</span>}
             </NavLink>
           ))}
         </nav>
@@ -127,7 +136,10 @@ export default function AppShell() {
               `${styles.tab} ${isActive || (item.to === "/more" && inOverflow) ? styles.active : ""}`
             }
           >
-            <Icon name={item.icon} size={24} strokeWidth={1.7} />
+            <span className={styles.tabIcon}>
+              <Icon name={item.icon} size={24} strokeWidth={1.7} />
+              {badgeFor(item) > 0 && <span className={styles.tabBadge}>{badgeFor(item) > 99 ? "99+" : badgeFor(item)}</span>}
+            </span>
             <span>{t(item.label)}</span>
           </NavLink>
         ))}

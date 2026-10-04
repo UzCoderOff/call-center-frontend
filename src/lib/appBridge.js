@@ -28,6 +28,9 @@ export function hasBridge(method) {
   return Boolean(bridge) && typeof bridge[method] === "function";
 }
 
+// This phone calls through Ledger's line (app 3.0+, calling switched on).
+export const canCallInApp = () => hasBridge("call") && callBridge("canCall") === true;
+
 export function callBridge(method, ...args) {
   try {
     if (bridge && typeof bridge[method] === "function") return bridge[method](...args);

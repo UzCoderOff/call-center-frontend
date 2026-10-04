@@ -1,4 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import Button from "./components/ui/Button";
 import { EmptyState } from "./components/ui/Misc";
 import { useI18n } from "./i18n";
@@ -30,6 +31,11 @@ import TasksPage from "./pages/TasksPage";
 import PerformancePage from "./pages/PerformancePage";
 import PersonPerformancePage from "./pages/PersonPerformancePage";
 import DaysOffPage from "./pages/DaysOffPage";
+import RemindersPage from "./pages/RemindersPage";
+import PhonePage from "./pages/PhonePage";
+import ChatPage from "./pages/ChatPage";
+import ChatThreadPage, { ClientChatRedirect } from "./pages/ChatThreadPage";
+import { canCallInApp } from "./lib/appBridge";
 
 export function Splash() {
   return (
@@ -68,6 +74,16 @@ function guarded(allow, element) {
 
 function Routed() {
   const { status } = useAuth();
+  const navigate = useNavigate();
+
+  // The Ledger app opens a page from a notification without reloading
+  // (PortalActivity.openPath).
+  useEffect(() => {
+    window.ledgerNavigate = (path) => navigate(path);
+    return () => {
+      delete window.ledgerNavigate;
+    };
+  }, [navigate]);
 
   return (
     <Routes>
@@ -97,6 +113,11 @@ function Routed() {
         <Route path="settings/templates/:id" element={guarded(canSeeTeam, <TemplateEditorPage />)} />
         <Route path="finance" element={guarded(canSeeFinance, <FinancePage />)} />
         <Route path="tasks" element={<TasksPage />} />
+        <Route path="reminders" element={<RemindersPage />} />
+        <Route path="phone" element={guarded(() => canCallInApp(), <PhonePage />)} />
+        <Route path="chat" element={<ChatPage />} />
+        <Route path="chat/client/:clientId" element={guarded(canSeeClients, <ClientChatRedirect />)} />
+        <Route path="chat/:id" element={<ChatThreadPage />} />
         <Route path="performance" element={guarded(canSeePerformance, <PerformancePage />)} />
         <Route path="performance/:id" element={guarded(canSeePerformance, <PersonPerformancePage />)} />
         <Route path="days-off" element={guarded(canSeeDaysOff, <DaysOffPage />)} />

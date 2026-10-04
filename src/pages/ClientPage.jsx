@@ -8,6 +8,7 @@ import Icon from "../components/ui/Icon";
 import Segmented from "../components/ui/Segmented";
 import { SelectField, TextAreaField, TextField } from "../components/ui/Field";
 import { AsyncBoundary, Banner, EmptyState, KeyValue, PageHeader } from "../components/ui/Misc";
+import { ReminderSheet } from "../components/reminders/ReminderParts";
 import { personName } from "../components/clients/parts";
 import CasePanel from "../components/clients/CaseWork";
 import { CaseSheet, ClientSheet, LinkSheet, MergeSheet, PaymentSheet } from "../components/clients/ClientSheets";
@@ -224,6 +225,12 @@ function ClientView({ client, reload, goBack }) {
                 {t("clients.bookConsultation")}
               </Button>
             )}
+            <Button icon="message" to={`/chat/client/${client.id}`}>
+              {t("chat.clientChat")}
+            </Button>
+            <Button icon="alarm" onClick={() => setSheet({ type: "reminder" })}>
+              {t("reminders.forClient")}
+            </Button>
             {client.canManage && (
               <Button icon="checkCircle" onClick={() => setSheet({ type: "task" })}>
                 {t("tasks.giveForClient")}
@@ -378,6 +385,9 @@ function ClientView({ client, reload, goBack }) {
       {sheet?.type === "link" && <LinkSheet client={client} onClose={close} onSaved={saved} />}
       {sheet?.type === "merge" && <MergeSheet client={client} onClose={close} onSaved={saved} />}
       {sheet?.type === "task" && <TaskSheet client={{ id: client.id, name: client.name }} onClose={close} onSaved={close} />}
+      {sheet?.type === "reminder" && (
+        <ReminderSheet client={{ id: client.id, name: client.name, phone: client.phones[0]?.phone ?? null }} onClose={close} onSaved={close} />
+      )}
     </div>
   );
 }
