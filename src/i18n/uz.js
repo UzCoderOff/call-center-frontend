@@ -923,6 +923,8 @@ const uz = {
     },
   },
   calendar: {
+    showOff: "Yopiqlar ({count})",
+    hideOff: "Yopiqlarni yashirish",
     freeCount: "Boʻsh vaqtlar: {count}",
     bookAt: "{time} ga yozish",
     ownerHint: "Vaqtni bosing: mijoz yozish yoki shu vaqtni yopish. Kunni yuqoridagi tugmalar bilan oʻzgartiring.",
@@ -1033,6 +1035,10 @@ const uz = {
     bookedByLine: "{name} yozgan",
   },
   personal: {
+    monthView: "Oy",
+    previous: "Oldingi",
+    next: "Keyingi",
+    more: "yana {count} ta",
     myDay: "Mening kunim",
     lawyersDay: "Advokatlar kuni",
     consultations: "Konsultatsiyalar",
@@ -1145,6 +1151,9 @@ const uz = {
     saveFailed: "Saqlab boʻlmadi: {reason}",
   },
   calSettings: {
+    delete: "Kalendarni oʻchirish",
+    deleteConfirm: "«{name}» konsultatsiya kalendarini butunlay oʻchirasizmi? Advokatning oʻz kalendari qoladi; kerak boʻlsa, Xodimlar sahifasidan qayta yoqiladi.",
+    hasBookings: "Bu kalendarda {count} ta yozilish tarixi bor — u oʻchirilmaydi, tarix saqlanadi. Uni yopiq qoldiring: xodimlar koʻrmaydi.",
     title: "Kalendar sozlamalari",
     intro: "Har bir yangi hafta shu sozlamalar bilan toʻldiriladi. Keyin istalgan kunni alohida oʻzgartirish mumkin.",
     workDays: "Ish kunlari",

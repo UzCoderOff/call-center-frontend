@@ -6,6 +6,11 @@
   max-width: 820px;
 }
 
+/* A lawyer's own calendar: room for the week's seven columns. */
+.pageWide {
+  max-width: 1180px;
+}
+
 /* ---------- Week navigation ---------- */
 .weekNav {
   display: flex;

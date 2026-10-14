@@ -12,6 +12,7 @@ import styles from "./Ai.module.css";
 import { personName } from "../clients/parts";
 import { api } from "../../lib/api";
 import { saveFailed } from "../../lib/saveFailed";
+import { readPref, writePref } from "../../lib/prefs";
 import { useI18n } from "../../i18n";
 
 // Ledger AI on Claude in the portal (backend: services/ai/*): which features
@@ -246,6 +247,12 @@ export function AiSuggestionsCard({ team = false }) {
   const features = useAiFeatures();
   const [rows, setRows] = useState(null);
   const [busy, setBusy] = useState(false);
+  // Folded away with one tap (its title); remembered on this device.
+  const [open, setOpen] = useState(() => readPref("aiSuggestionsOpen", "1") !== "0");
+  function toggle() {
+    writePref("aiSuggestionsOpen", open ? "0" : "1");
+    setOpen(!open);
+  }
 
   const load = () =>
     api
@@ -281,20 +288,28 @@ export function AiSuggestionsCard({ team = false }) {
 
   if (!features.suggestions || rows === null) return null;
   if (rows.length === 0 && !team) return null;
+  // Folded: how many of each priority, on one line.
+  const byPriority = [1, 2, 3].map((p) => [p, rows.filter((r) => r.priority === p).length]).filter(([, n]) => n > 0);
   return (
     <Card
       flush
-      title={t(team ? "ai.suggestionsTeam" : "ai.suggestionsMine", { count: rows.length })}
-      subtitle={t("ai.suggestionsHint")}
+      title={
+        <button type="button" className={styles.foldTitle} onClick={toggle} aria-expanded={open}>
+          <Icon name={open ? "chevronDown" : "chevronRight"} size={18} />
+          {t(team ? "ai.suggestionsTeam" : "ai.suggestionsMine", { count: rows.length })}
+        </button>
+      }
+      subtitle={open ? t("ai.suggestionsHint") : byPriority.map(([p, n]) => `${t(`ai.priority.${p}`)}: ${n}`).join(" · ") || undefined}
       action={
-        team && (
+        team &&
+        open && (
           <Button size="small" variant="plain" icon="refresh" busy={busy} onClick={runNow}>
             {t("ai.refreshSuggestions")}
           </Button>
         )
       }
     >
-      {rows.length === 0 ? (
+      {!open ? null : rows.length === 0 ? (
         <p className={pageStyles.note} style={{ padding: "0 16px 16px" }}>
           {t("ai.noSuggestions")}
         </p>

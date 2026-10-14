@@ -209,6 +209,7 @@ export const api = {
   // --- the lawyer's calendar ---
   calendars: () => request("/calendars"),
   updateCalendar: (id, payload) => request(`/calendars/${id}`, { method: "PATCH", body: payload }),
+  deleteCalendar: (id) => request(`/calendars/${id}`, { method: "DELETE" }),
   calendarWeek: (id, weekStart) => request(`/calendars/${id}/weeks/${weekStart}`),
   // options: { cancelAppointments, cancelReason } — see the backend route.
   saveCalendarWeek: (id, weekStart, blocks, options = {}) =>

@@ -55,7 +55,7 @@ export default function CalendarPage() {
 
   const ready = calendars.data && people.data;
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${view === "mine" ? styles.pageWide : ""}`}>
       <PageHeader
         title={t("calendar.title")}
         actions={
@@ -81,7 +81,12 @@ export default function CalendarPage() {
               ) : list.length === 0 ? (
                 <EmptyState icon="calendar" text={t("calendar.noCalendar")} />
               ) : (
-                <CalendarView calendars={list} initialId={Number(params.get("cal")) || null} onCalendarChanged={() => (calendars.reload(), people.reload())} />
+                <CalendarView
+                  calendars={list}
+                  initialId={Number(params.get("cal")) || null}
+                  canDelete={user.role === "DEVELOPER"}
+                  onCalendarChanged={() => (calendars.reload(), people.reload())}
+                />
               )
             }
           </AsyncBoundary>
@@ -133,11 +138,16 @@ function openTime(dayBlocks, block) {
   return merged;
 }
 
-function CalendarView({ calendars, initialId, onCalendarChanged }) {
+function CalendarView({ calendars, initialId, canDelete, onCalendarChanged }) {
   const { t, fmt } = useI18n();
   const [params, setParams] = useSearchParams();
   const fallback = calendars.find((c) => c.isMine && c.active) || calendars.find((c) => c.active) || calendars[0];
   const calendar = calendars.find((c) => c.id === initialId) || fallback;
+  // Switched-off calendars (only their owner and the developer see them) stay
+  // out of the way until asked for.
+  const offCount = calendars.filter((c) => !c.active).length;
+  const [showOff, setShowOff] = useState(false);
+  const pickable = calendars.filter((c) => c.active || showOff || c.id === calendar.id);
 
   const today = todayIso();
   const asked = params.get("day") || params.get("week");
@@ -243,17 +253,24 @@ function CalendarView({ calendars, initialId, onCalendarChanged }) {
   return (
     <>
       <div className={styles.toolbar}>
-        {calendars.length > 1 && (
+        {pickable.length > 1 ? (
           <div className={styles.toolbarGrow}>
             <Segmented
+              wrap
               value={calendar.id}
               onChange={(id) => update({ cal: id, day: null })}
               label={t("calendar.title")}
-              options={calendars.map((c) => ({ value: c.id, label: c.active ? c.name : `${c.name} · ${t("personal.off")}` }))}
+              options={pickable.map((c) => ({ value: c.id, label: c.active ? c.name : `${c.name} · ${t("personal.off")}` }))}
             />
           </div>
+        ) : (
+          <span className={`${styles.toolbarGrow} ${pageStyles.note}`}>{calendar.name}</span>
         )}
-        {calendars.length <= 1 && <span className={`${styles.toolbarGrow} ${pageStyles.note}`}>{calendar.name}</span>}
+        {offCount > 0 && (
+          <Button size="small" variant="plain" icon={showOff ? "eye" : "minusCircle"} onClick={() => setShowOff(!showOff)}>
+            {showOff ? t("calendar.hideOff") : t("calendar.showOff", { count: offCount })}
+          </Button>
+        )}
         {calendar.canManage && (
           <Button size="small" icon="settings" onClick={() => setSettings(true)}>
             {t("calendar.settings")}
@@ -464,6 +481,12 @@ function CalendarView({ calendars, initialId, onCalendarChanged }) {
       {settings && (
         <CalendarSettingsSheet
           calendar={calendar}
+          canDelete={canDelete}
+          onDeleted={() => {
+            setSettings(false);
+            update({ cal: null, day: null });
+            onCalendarChanged();
+          }}
           onClose={() => setSettings(false)}
           onSaved={() => {
             setSettings(false);

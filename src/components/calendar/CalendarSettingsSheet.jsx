@@ -18,7 +18,7 @@ const A_MONDAY = "2026-09-28";
 // The usual week, which every new week starts from: working days, reception
 // hours, the lunch break (12:00–13:00 unless changed; can be switched off)
 // and how long one appointment is.
-export default function CalendarSettingsSheet({ calendar, onClose, onSaved }) {
+export default function CalendarSettingsSheet({ calendar, canDelete, onDeleted, onClose, onSaved }) {
   const { t, fmt } = useI18n();
   const u = calendar.usual;
   const [workDays, setWorkDays] = useState(u.workDays);
@@ -30,6 +30,21 @@ export default function CalendarSettingsSheet({ calendar, onClose, onSaved }) {
   const [slotMinutes, setSlotMinutes] = useState(u.slotMinutes);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // The developer removes a calendar nobody uses; one with bookings keeps
+  // their history, so it can only be switched off (the server says how many).
+  async function remove() {
+    if (!window.confirm(t("calSettings.deleteConfirm", { name: calendar.name }))) return;
+    setError("");
+    setBusy(true);
+    try {
+      await api.deleteCalendar(calendar.id);
+      onDeleted();
+    } catch (err) {
+      setError(err.code === "has_appointments" ? t("calSettings.hasBookings", { count: err.body?.count ?? "?" }) : t("calSettings.saveFailed", { reason: err.code || "?" }));
+      setBusy(false);
+    }
+  }
 
   const toggleDay = (d) => setWorkDays((days) => (days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort((a, b) => a - b)));
 
@@ -105,6 +120,11 @@ export default function CalendarSettingsSheet({ calendar, onClose, onSaved }) {
       <p className={pageStyles.note}>{t("calSettings.savedWeeksNote")}</p>
       {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
       <div className={pageStyles.formActions}>
+        {canDelete && (
+          <Button variant="plain" icon="trash" disabled={busy} onClick={remove}>
+            {t("calSettings.delete")}
+          </Button>
+        )}
         <Button onClick={onClose}>{t("common.cancel")}</Button>
         <Button variant="primary" busy={busy} onClick={save}>
           {t("calSettings.save")}

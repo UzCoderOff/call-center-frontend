@@ -920,6 +920,8 @@ const en = {
     },
   },
   calendar: {
+    showOff: "Switched off ({count})",
+    hideOff: "Hide switched off",
     freeCount: "Free times: {count}",
     bookAt: "Book at {time}",
     ownerHint: "Tap a time to book a client or close that time. Change the whole day with the buttons above.",
@@ -1030,6 +1032,10 @@ const en = {
     bookedByLine: "booked by {name}",
   },
   personal: {
+    monthView: "Month",
+    previous: "Previous",
+    next: "Next",
+    more: "{count} more",
     myDay: "My day",
     lawyersDay: "Lawyers' days",
     consultations: "Consultations",
@@ -1142,6 +1148,9 @@ const en = {
     saveFailed: "Couldn't save: {reason}",
   },
   calSettings: {
+    delete: "Delete calendar",
+    deleteConfirm: "Delete the consultation calendar “{name}” for good? The lawyer’s own calendar stays; it can be switched on again from Team.",
+    hasBookings: "This calendar has {count} bookings in its history — it isn’t deleted, so the history is kept. Leave it switched off: staff don’t see it.",
     title: "Calendar settings",
     intro: "Every new week is filled in from these settings. You can then change any day on its own.",
     workDays: "Working days",

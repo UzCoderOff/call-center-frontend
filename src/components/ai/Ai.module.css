@@ -91,3 +91,26 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* The suggestions card folds away from its title. */
+.foldTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: -4px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.foldTitle:hover {
+  background: var(--fill);
+}
+
+.foldTitle svg {
+  flex-shrink: 0;
+  color: var(--text-2);
+}
