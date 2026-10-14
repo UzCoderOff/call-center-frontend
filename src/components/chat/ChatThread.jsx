@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import styles from "./Chat.module.css";
 import Button from "../ui/Button";
 import Icon from "../ui/Icon";
-import { AI_BACKGROUND, ConvIcon, EventSheet, GroupSheet, MessageSheet, PersonAvatar, colorFor } from "./ChatParts";
+import { AI_BACKGROUND, ConvIcon, EventSheet, GroupSheet, MembersSheet, MessageSheet, PersonAvatar, colorFor } from "./ChatParts";
 import { useAuth } from "../../hooks/useAuth";
 import { canSeeFinance } from "../../lib/access";
 import { markReadHere } from "../../hooks/useChatUnread";
@@ -34,7 +34,7 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [sheet, setSheet] = useState(null); // "event" | "group" | { message }
+  const [sheet, setSheet] = useState(null); // "event" | "group" | "members" | { message }
   const [menu, setMenu] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -107,9 +107,10 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
   useLive(fetchNew);
 
   // Read the moment it's on screen — the server hears in the background.
+  // (The developer looking into someone else's chat leaves no read marks.)
   useEffect(() => {
-    if (messages?.length) markReadHere(conv.id, messages[messages.length - 1].id);
-  }, [conv.id, messages]);
+    if (messages?.length && !conv.looking) markReadHere(conv.id, messages[messages.length - 1].id);
+  }, [conv.id, conv.looking, messages]);
 
   async function loadOlder() {
     const el = scrollRef.current;
@@ -159,6 +160,17 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
     if (e.key === "Enter" && !e.shiftKey && !window.matchMedia("(pointer: coarse)").matches) sendText(e);
   }
 
+  // Ledger AI's offer to do something: yes or no, right on the card.
+  async function decide(message, decision) {
+    try {
+      await api.chatAction(conv.id, message.id, decision);
+      const res = await api.chatMessages(conv.id, { after: Math.max(0, message.id - 1) || undefined, since: sinceRef.current || undefined });
+      merge(res.messages, res.changed);
+    } catch (err) {
+      saveFailed(err, t);
+    }
+  }
+
   async function toggleMute() {
     setMenu(false);
     try {
@@ -181,11 +193,13 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
   }
 
   const title = conv.kind === "everyone" ? t("chat.everyone") : conv.title;
+  // Tap the name: who's in it.
+  const hasMembers = Array.isArray(conv.members) && conv.members.length > 0 && !ai;
   const subtitle =
     conv.kind === "everyone"
       ? t("chat.everyoneHint")
       : conv.kind === "group"
-        ? t("chat.membersCount", { count: conv.members?.length || 0 })
+        ? `${t("chat.membersCount", { count: conv.members?.length || 0 })} · ${t("chat.tapForMembers")}`
         : conv.kind === "client"
           ? t("chat.clientHint")
           : ai
@@ -198,7 +212,7 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
   useLayoutEffect(() => {
     if (thinking && atBottom()) toBottom();
   }, [thinking]);
-  const examples = ai ? ["aiEx1", "aiEx2", "aiEx3", canSeeFinance(user) ? "aiEx4" : "aiEx5"].map((k) => t(`chat.${k}`)) : [];
+  const examples = ai ? ["aiEx1", "aiEx2", "aiEx6", "aiEx7", canSeeFinance(user) ? "aiEx4" : "aiEx5"].map((k) => t(`chat.${k}`)) : [];
 
   return (
     <div className={styles.thread}>
@@ -206,11 +220,23 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
         <button type="button" className={`${styles.headButton} ${styles.back}`} onClick={() => navigate("/chat")} aria-label={t("chat.back")}>
           <Icon name="chevronLeft" size={24} />
         </button>
-        <ConvIcon conv={{ ...conv, title }} size={40} />
-        <div className={styles.threadTitle}>
-          <div className={styles.threadName}>{title}</div>
-          <div className={styles.threadSub}>{conv.muted ? `🔕 ${subtitle}` : subtitle}</div>
-        </div>
+        {hasMembers ? (
+          <button type="button" className={styles.threadTitleButton} onClick={() => setSheet("members")} aria-label={t("chat.membersTitle", { count: conv.members.length })}>
+            <ConvIcon conv={{ ...conv, title }} size={40} />
+            <div className={styles.threadTitle}>
+              <div className={styles.threadName}>{title}</div>
+              <div className={styles.threadSub}>{conv.muted ? `🔕 ${subtitle}` : subtitle}</div>
+            </div>
+          </button>
+        ) : (
+          <>
+            <ConvIcon conv={{ ...conv, title }} size={40} />
+            <div className={styles.threadTitle}>
+              <div className={styles.threadName}>{title}</div>
+              <div className={styles.threadSub}>{conv.muted ? `🔕 ${subtitle}` : subtitle}</div>
+            </div>
+          </>
+        )}
         {conv.kind === "client" && (
           <Link to={`/clients/${conv.clientId}`} className={styles.headButton} title={t("chat.openClient")} aria-label={t("chat.openClient")}>
             <Icon name="contact" size={20} />
@@ -221,10 +247,26 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
         </button>
         {menu && (
           <div className={styles.menu} role="menu" onMouseLeave={() => setMenu(false)}>
-            <button type="button" className={styles.menuItem} onClick={toggleMute} role="menuitem">
-              <Icon name={conv.muted ? "bell" : "bellOff"} size={18} />
-              {conv.muted ? t("chat.unmute") : t("chat.mute")}
-            </button>
+            {hasMembers && (
+              <button
+                type="button"
+                className={styles.menuItem}
+                onClick={() => {
+                  setMenu(false);
+                  setSheet("members");
+                }}
+                role="menuitem"
+              >
+                <Icon name="users" size={18} />
+                {t("chat.members")}
+              </button>
+            )}
+            {!conv.looking && (
+              <button type="button" className={styles.menuItem} onClick={toggleMute} role="menuitem">
+                <Icon name={conv.muted ? "bell" : "bellOff"} size={18} />
+                {conv.muted ? t("chat.unmute") : t("chat.mute")}
+              </button>
+            )}
             {conv.canManage && conv.kind === "group" && (
               <>
                 <button
@@ -250,6 +292,7 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
       </header>
 
       <div className={styles.messages} ref={scrollRef} onClick={() => menu && setMenu(false)}>
+        {conv.kind === "direct" && <div className={styles.notice}>🔒 {conv.looking ? t("chat.lookingNotice") : t("chat.directNotice")}</div>}
         {hasOlder && (
           <Button size="small" variant="plain" className={styles.older} busy={loadingOlder} onClick={loadOlder}>
             {t("chat.older")}
@@ -304,6 +347,8 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
                     )}
                     {m.deleted ? (
                       <span className={styles.deleted}>{t("chat.deleted")}</span>
+                    ) : m.action ? (
+                      <ActionCard message={m} onDecide={(decision) => decide(m, decision)} />
                     ) : (
                       <>
                         {m.event && <EventCard event={m.event} />}
@@ -311,7 +356,7 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
                       </>
                     )}
                     <span className={styles.meta}>
-                      {m.editedAt && !m.deleted && <span>{t("chat.edited")}</span>}
+                      {m.editedAt && !m.deleted && !m.action && <span>{t("chat.edited")}</span>}
                       <span>{fmt.time(ms)}</span>
                     </span>
                   </div>
@@ -357,7 +402,7 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
           </button>
         </form>
       ) : (
-        <div className={styles.readOnly}>{t("chat.readOnly")}</div>
+        <div className={styles.readOnly}>{conv.looking ? t("chat.lookingReadOnly") : t("chat.readOnly")}</div>
       )}
 
       {sheet === "event" && (
@@ -367,6 +412,13 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
             await send(payload);
             setSheet(null);
           }}
+        />
+      )}
+      {sheet === "members" && (
+        <MembersSheet
+          conv={conv}
+          onClose={() => setSheet(null)}
+          onEdit={conv.canManage && conv.kind === "group" ? () => setSheet("group") : null}
         />
       )}
       {sheet === "group" && (
@@ -399,6 +451,39 @@ function withBold(text) {
   return text
     .split(/(\*\*[^*\n]+\*\*)/g)
     .map((part, i) => (part.length > 4 && part.startsWith("**") && part.endsWith("**") ? <strong key={i}>{part.slice(2, -2)}</strong> : part));
+}
+
+// Ledger AI's offer (a reminder, a task, a target…): what exactly — and
+// "Tasdiqlash / Bekor qilish" until it's decided.
+function ActionCard({ message, onDecide }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(null);
+  const a = message.action;
+  const run = async (decision) => {
+    setBusy(decision);
+    await onDecide(decision);
+    setBusy(null);
+  };
+  return (
+    <div className={styles.actionCard}>
+      <div className={styles.actionText}>{a.summary}</div>
+      {a.status === "pending" ? (
+        <div className={styles.actionButtons}>
+          <Button size="small" busy={busy === "cancel"} onClick={() => run("cancel")}>
+            {t("ai.actionCancel")}
+          </Button>
+          <Button size="small" variant="primary" icon="check" busy={busy === "confirm"} onClick={() => run("confirm")}>
+            {t("ai.actionConfirm")}
+          </Button>
+        </div>
+      ) : (
+        <div className={`${styles.actionStatus} ${a.status === "done" ? styles.actionDone : ""}`}>
+          {t(`ai.actionStatus.${a.status}`)}
+          {a.error ? ` — ${a.error}` : ""}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // An event card: the date like a calendar page, what, when, and how soon.

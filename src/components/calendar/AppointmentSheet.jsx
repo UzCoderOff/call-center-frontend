@@ -15,8 +15,9 @@ import { telHref } from "../../lib/format";
 import { useI18n } from "../../i18n";
 
 // One appointment: details, a call button, and what the viewer may do —
-// the lawyer marks attended / no-show; whoever booked it (or a manager) can
-// cancel it before it happens.
+// the lawyer marks attended / no-show and writes the summary ("suhbat
+// yakuni", /consultations/:id); whoever booked it (or a manager) can cancel
+// it before it happens.
 export default function AppointmentSheet({ appointment, canManage, today, onClose, onChanged }) {
   const { user } = useAuth();
   const { t, fmt } = useI18n();
@@ -115,6 +116,19 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
           )}
         </KeyValue>
         {a.cancelReason && <KeyValue label={t("calendar.cancelReason")}>{a.cancelReason}</KeyValue>}
+        {a.summaryAt && (
+          <KeyValue label={t("summary.title")}>
+            <span style={{ display: "inline-flex", flexDirection: "column", gap: 4 }}>
+              <span>
+                <Badge tone={a.summary?.prospect === "potential" ? "good" : "neutral"}>{t(`summary.prospects.${a.summary?.prospect || "potential"}`)}</Badge>
+              </span>
+              <span style={{ whiteSpace: "pre-wrap" }}>{a.summary?.conclusion}</span>
+              <Link to={`/consultations/${a.id}`} onClick={onClose}>
+                {t("summary.open")}
+              </Link>
+            </span>
+          </KeyValue>
+        )}
         {a.callLogId && (
           <KeyValue label={t("calendar.call")}>
             <Link to={`/calls/${a.callLogId}`} onClick={onClose}>
@@ -153,6 +167,12 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
             {t("calendar.takeFee")}
           </Button>
         ))}
+
+      {!a.summaryAt && started && ["booked", "attended"].includes(a.status) && (canManage || isManagerRole(user.role)) && (
+        <Button variant="primary" icon="note" block to={`/consultations/${a.id}`}>
+          {t("summary.write")}
+        </Button>
+      )}
 
       {canManage && started && a.status !== "cancelled" && (
         <div className={pageStyles.actionsRow} style={{ marginTop: 0 }}>

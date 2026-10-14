@@ -16,6 +16,8 @@ import { CallCenterSection, StrikeRulesSection } from "../components/settings/Ca
 import { PhoneLineSection } from "../components/settings/PhoneLine";
 import { ClientArchiveSection } from "../components/settings/ClientArchive";
 import { AiSection } from "../components/settings/AiSettings";
+import { ClaudeSection } from "../components/settings/ClaudeSettings";
+import { SummaryRuleSection } from "../components/consultations/Summaries";
 import { JobField, ReportModeFields, WorkPatternFields, positionJobs, reportModeOf } from "../components/team/WorkSettingsFields";
 
 // "Avtomatik + Kunlik shakl", "Kunlik shakl", "Avtomatik", "Hisobot yoʻq".
@@ -49,8 +51,10 @@ export default function SettingsPage() {
         <Templates canEdit={canEdit} />
         <CallCenterSection canEdit={canEdit} />
         <StrikeRulesSection canEdit={canEdit} />
+        <SummaryRuleSection />
         <PhoneLineSection canEdit={canEdit} />
         {canEdit && <AiSection />}
+        {canEdit && <ClaudeSection />}
         <ClientArchiveSection />
         <TelegramOverview />
         <AuditLog />
@@ -68,6 +72,8 @@ const AUDIT_ICON = {
   "client.merge": "link",
   "case.delete": "trash",
   "payment.delete": "trash",
+  "payment.edit": "edit",
+  "summary.edit": "edit",
   "clients.import": "upload",
   "clients.bulk": "users",
   "material.archive": "archive",

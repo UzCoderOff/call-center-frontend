@@ -216,10 +216,10 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
 // case itself (CaseWork.jsx), not here.
 const OPERATOR_STATUSES = ["consultation", "call_again", "contract", "declined"];
 const CASE_FIELDS = {
-  manager: ["matter", "number", "court", "status", "startDate", "consultationDate", "contractDate", "closedDate", "lawyer", "operatorId", "lostReason", "lostNote"],
-  lawyer: ["matter", "number", "court", "status", "closedDate", "lostReason", "lostNote"],
-  coordinator: ["number", "court"],
-  operator: ["matter", "number", "status", "startDate", "lawyer", "lostReason", "lostNote"],
+  manager: ["matter", "details", "number", "court", "status", "startDate", "consultationDate", "contractDate", "closedDate", "lawyer", "operatorId", "lostReason", "lostNote"],
+  lawyer: ["matter", "details", "number", "court", "status", "closedDate", "lostReason", "lostNote"],
+  coordinator: ["number", "court", "details"],
+  operator: ["matter", "details", "number", "status", "startDate", "lawyer", "lostReason", "lostNote"],
 };
 
 export function CaseSheet({ clientId, item, canManage, finance = false, onClose, onSaved }) {
@@ -228,6 +228,7 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
   const role = editing ? item.permissions?.role || (canManage ? "manager" : "operator") : canManage ? "manager" : "operator";
   const may = (field) => (CASE_FIELDS[role] || []).includes(field);
   const [matter, setMatter] = useState(item?.matter || "");
+  const [details, setDetails] = useState(item?.details || "");
   const [number, setNumber] = useState(item?.number || "");
   const [court, setCourt] = useState(item?.court || "");
   const [lawyer, setLawyer] = useState({ lawyerId: item?.lawyerId ?? null, lawyer: item?.lawyer || "" });
@@ -255,6 +256,7 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
       lostReason: status === "declined" ? lostReason || null : undefined,
       lostNote: status === "declined" ? lostNote || null : undefined,
       matter,
+      details,
       number,
       court,
       status,
@@ -266,6 +268,7 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
     };
     const before = {
       matter: item?.matter || "",
+      details: item?.details || "",
       number: item?.number || "",
       court: item?.court || "",
       status: item?.status || "consultation",
@@ -316,6 +319,9 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
     <Sheet title={editing ? t("cases.edit") : t("cases.new")} onClose={onClose}>
       <div className={pageStyles.formStack}>
         {may("matter") && <TextField label={t("cases.matter")} placeholder={t("cases.matterPlaceholder")} value={matter} onChange={(e) => setMatter(e.target.value)} />}
+        {may("details") && (
+          <TextAreaField label={t("cases.details")} placeholder={t("cases.detailsPlaceholder")} value={details} onChange={(e) => setDetails(e.target.value)} rows={4} maxLength={6000} />
+        )}
         <div className={styles.twoCol}>
           {may("number") && <TextField label={t("cases.number")} value={number} onChange={(e) => setNumber(e.target.value)} />}
           {may("status") && (
@@ -389,18 +395,22 @@ const CONSULTATION_FEE = 450000;
 
 // `finance`: sees contract money. Without it, only the consultation fee can
 // be recorded (the server enforces the same).
-export function PaymentSheet({ clientId, cases, caseId, finance = false, onClose, onSaved }) {
+// A new payment, or correcting one (`payment`): the amount, the day, how,
+// what for. The server checks who may (the audit log keeps the before and
+// after of a correction).
+export function PaymentSheet({ clientId, cases, caseId, payment = null, finance = false, onClose, onSaved }) {
   const { t } = useI18n();
-  const target = cases.find((c) => c.id === caseId);
-  const firstKind = !finance || target?.status === "consultation" || target?.status === "call_again" ? "consultation" : "contract";
+  const editing = Boolean(payment);
+  const target = cases.find((c) => c.id === (payment?.caseId ?? caseId));
+  const firstKind = payment?.kind || (!finance || target?.status === "consultation" || target?.status === "call_again" ? "consultation" : "contract");
   const [amount, setAmount] = useState(
-    firstKind === "consultation" ? String(CONSULTATION_FEE) : target?.remaining > 0 ? String(target.remaining) : ""
+    payment ? String(payment.amount) : firstKind === "consultation" ? String(CONSULTATION_FEE) : target?.remaining > 0 ? String(target.remaining) : ""
   );
-  const [date, setDate] = useState(todayIso());
-  const [method, setMethod] = useState("card");
+  const [date, setDate] = useState(payment?.date || todayIso());
+  const [method, setMethod] = useState(payment ? payment.method || "" : "card");
   const [kind, setKind] = useState(firstKind);
-  const [forCase, setForCase] = useState(caseId ? String(caseId) : cases[0] ? String(cases[0].id) : "");
-  const [note, setNote] = useState("");
+  const [forCase, setForCase] = useState(payment ? (payment.caseId != null ? String(payment.caseId) : "") : caseId ? String(caseId) : cases[0] ? String(cases[0].id) : "");
+  const [note, setNote] = useState(payment?.note || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -409,7 +419,18 @@ export function PaymentSheet({ clientId, cases, caseId, finance = false, onClose
     setBusy(true);
     setError("");
     try {
-      await api.addPayment(clientId, { amount: Number(amount), date, method, kind, note, caseId: forCase ? Number(forCase) : null });
+      if (editing) {
+        const changes = {};
+        if (Number(amount) !== payment.amount) changes.amount = Number(amount);
+        if (date !== payment.date) changes.date = date;
+        if ((method || null) !== (payment.method || null)) changes.method = method || null;
+        if (kind !== payment.kind) changes.kind = kind;
+        if (note !== (payment.note || "")) changes.note = note;
+        if ((forCase ? Number(forCase) : null) !== (payment.caseId ?? null)) changes.caseId = forCase ? Number(forCase) : null;
+        if (Object.keys(changes).length) await api.updatePayment(payment.id, changes);
+      } else {
+        await api.addPayment(clientId, { amount: Number(amount), date, method, kind, note, caseId: forCase ? Number(forCase) : null });
+      }
       onSaved();
     } catch (err) {
       setError(t("clients.saveFailed", { reason: err.code || "?" }));
@@ -419,12 +440,13 @@ export function PaymentSheet({ clientId, cases, caseId, finance = false, onClose
   }
 
   return (
-    <Sheet title={finance ? t("payments.add") : t("payments.addConsultation")} onClose={onClose}>
+    <Sheet title={editing ? t("payments.edit") : finance ? t("payments.add") : t("payments.addConsultation")} onClose={onClose}>
       <div className={pageStyles.formStack}>
         <MoneyField label={t("payments.amount")} value={amount} onChange={setAmount} />
         <div className={styles.twoCol}>
           <TextField label={t("payments.date")} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <SelectField label={t("payments.method")} value={method} onChange={(e) => setMethod(e.target.value)}>
+            {editing && !payment.method && <option value="">—</option>}
             {["cash", "card", "transfer"].map((m) => (
               <option key={m} value={m}>
                 {t(`payments.methods.${m}`)}

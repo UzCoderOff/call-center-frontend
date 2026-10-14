@@ -663,3 +663,93 @@
     transform: translateY(-3px);
   }
 }
+
+/* The chat's name in its header: tap it to see who's in it. */
+.threadTitleButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.threadTitleButton:hover .threadName {
+  text-decoration: underline;
+}
+
+/* A private chat's note: work chats, the developer can read them. */
+.notice {
+  align-self: center;
+  max-width: 420px;
+  margin: 4px auto 10px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--fill);
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.personButton {
+  width: 100%;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.personButton:hover {
+  background: var(--fill-hover);
+}
+
+.overviewMain {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.overviewMain > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ledger AI's offer to do something. */
+.actionCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: min(260px, 60vw);
+}
+
+.actionText {
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.actionButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionStatus {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.actionDone {
+  color: var(--good-text);
+}

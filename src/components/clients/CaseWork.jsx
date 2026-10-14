@@ -7,7 +7,7 @@ import Button from "../ui/Button";
 import Badge from "../ui/Badge";
 import Icon from "../ui/Icon";
 import { SelectField, TextAreaField, TextField } from "../ui/Field";
-import { LEGAL_STAGES, MoneyBlock, STATUSES, StatusBadge, personName } from "./parts";
+import { LEGAL_STAGES, PayBadge, STATUSES, StatusBadge, personName } from "./parts";
 import { ScheduleBlock } from "./ScheduleSheet";
 import { LostSheet } from "./ClientWork";
 import { useAsync } from "../../hooks/useAsync";
@@ -23,11 +23,34 @@ import { useI18n } from "../../i18n";
 //   - where it has been, with dates (stage history — past dates can be
 //     entered for a case brought in from before Ledger), and the dates that
 //     matter (hearings, deadlines) with what happened
-//   - its money (for whoever sees it): contract, paid, schedule, payments
+//   - its money (for whoever sees it): contract, paid, what's left, schedule,
+//     payments (each can be corrected)
+//   - what it's about in detail, and its consultations' summaries
 // What each person may do comes from the server (`item.permissions`).
 
-export const DATE_KINDS = ["hearing", "summons", "deadline", "meeting", "other"];
-const DATE_ICON = { hearing: "briefcase", summons: "bell", deadline: "clock", meeting: "users", other: "calendar" };
+// The kinds of key date, grouped as the select shows them: the court; the
+// investigation's steps (the boss's list, 2026-10-14); the rest.
+export const DATE_GROUPS = [
+  { key: "court", kinds: ["hearing"] },
+  { key: "investigation", kinds: ["investigative_action", "interrogation", "confrontation", "suspect_questioning", "accused_questioning", "charge_announced", "case_review"] },
+  { key: "other", kinds: ["summons", "deadline", "meeting", "other"] },
+];
+export const DATE_KINDS = DATE_GROUPS.flatMap((g) => g.kinds);
+export const DATE_ICON = {
+  hearing: "briefcase",
+  investigative_action: "search",
+  interrogation: "message",
+  confrontation: "users",
+  suspect_questioning: "user",
+  accused_questioning: "user",
+  charge_announced: "alertCircle",
+  case_review: "file",
+  summons: "bell",
+  deadline: "clock",
+  meeting: "users",
+  other: "calendar",
+  stage: "arrowRight",
+};
 
 const clock = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 const toMinutes = (hhmm) => {
@@ -35,7 +58,7 @@ const toMinutes = (hhmm) => {
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 };
 
-export default function CasePanel({ item, client, onChanged, onEdit, onPay, onSchedule, onRemovePayment }) {
+export default function CasePanel({ item, client, onChanged, onEdit, onPay, onEditPayment, onSchedule, onRemovePayment }) {
   const { t, fmt } = useI18n();
   const p = item.permissions || {};
   const [sheet, setSheet] = useState(null);
@@ -82,6 +105,7 @@ export default function CasePanel({ item, client, onChanged, onEdit, onPay, onSc
         )}
       </header>
 
+      <Details item={item} canEdit={p.canEdit} onEdit={onEdit} />
       <People item={item} canAssign={p.canAssign} onAssign={() => setSheet({ type: "assign" })} />
       <Milestones item={item} />
 
@@ -102,6 +126,12 @@ export default function CasePanel({ item, client, onChanged, onEdit, onPay, onSc
             </p>
           )}
         </div>
+      )}
+
+      {item.consultations?.length > 0 && (
+        <Block title={t("summary.caseTitle")} subtitle={t("summary.caseSubtitle")}>
+          <SummaryList rows={item.consultations} />
+        </Block>
       )}
 
       {(signed || item.stages?.length > 0) && (
@@ -142,30 +172,9 @@ export default function CasePanel({ item, client, onChanged, onEdit, onPay, onSc
             </span>
           }
         >
-          {p.money && <MoneyBlock item={item} />}
+          {p.money && <MoneyFigures item={item} />}
           {p.money && <ScheduleBlock schedule={item.schedule} />}
-          {item.payments?.length > 0 && (
-            <div className={clientStyles.payments}>
-              {item.payments.slice(0, 8).map((pay) => (
-                <div key={pay.id} className={clientStyles.payment}>
-                  <Icon name="cash" size={16} />
-                  <span className={clientStyles.paymentMain}>
-                    {fmt.isoDateLong(pay.date)}
-                    {pay.kind === "consultation" ? ` · ${t("payments.kinds.consultation")}` : ""}
-                    {pay.method ? ` · ${t(`payments.methods.${pay.method}`)}` : ""}
-                    {pay.recordedBy ? ` · ${personName(pay.recordedBy)}` : ""}
-                    {pay.note ? ` · ${pay.note}` : ""}
-                  </span>
-                  <span className={clientStyles.paymentAmount}>{fmt.money(pay.amount)}</span>
-                  {client.canManage && (client.finance || pay.kind === "consultation") && (
-                    <button type="button" className={clientStyles.iconButton} onClick={() => onRemovePayment(pay)} aria-label={t("payments.delete")}>
-                      <Icon name="trash" size={15} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <PaymentList item={item} client={client} canPay={p.canPay} onEdit={onEditPayment} onRemove={onRemovePayment} />
         </Block>
       )}
 
@@ -174,6 +183,160 @@ export default function CasePanel({ item, client, onChanged, onEdit, onPay, onSc
       {sheet?.type === "assign" && <AssignSheet item={item} onClose={close} onSaved={saved} />}
       {sheet?.type === "lost" && <LostSheet item={item} onClose={close} onSaved={saved} />}
     </section>
+  );
+}
+
+// What the matter is about, in the client's words and the firm's — long
+// text folded after a few lines.
+function Details({ item, canEdit, onEdit }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  if (!item.details) {
+    return canEdit ? (
+      <button type="button" className={styles.detailsAsk} onClick={onEdit}>
+        <Icon name="plus" size={14} /> {t("cases.addDetails")}
+      </button>
+    ) : null;
+  }
+  const long = item.details.length > 280 || item.details.split("\n").length > 4;
+  return (
+    <div className={styles.details}>
+      <span className={styles.detailsLabel}>{t("cases.details")}</span>
+      <p className={`${styles.detailsText} ${long && !open ? styles.detailsFolded : ""}`}>{item.details}</p>
+      {long && (
+        <button type="button" className={styles.outcomeAsk} onClick={() => setOpen((v) => !v)}>
+          {open ? t("common.showLess") : t("common.showMore")}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Contract, paid, left — three big numbers, then the bar.
+function MoneyFigures({ item }) {
+  const { t, fmt } = useI18n();
+  const { contractAmount, paid = 0, remaining = 0, state } = item;
+  if (!contractAmount && !paid) return <p className={styles.empty}>{t("payments.noContractAmount")}</p>;
+  const pct = contractAmount ? Math.min(100, Math.round((paid / contractAmount) * 100)) : 100;
+  return (
+    <div className={styles.figures}>
+      <div className={styles.figureRow}>
+        <div className={styles.figure}>
+          <span className={styles.figureLabel}>{t("cases.contractTotal")}</span>
+          <strong className={styles.figureValue}>{contractAmount ? fmt.money(contractAmount) : "—"}</strong>
+        </div>
+        <div className={styles.figure}>
+          <span className={styles.figureLabel}>{t("cases.paidLabel")}</span>
+          <strong className={`${styles.figureValue} ${styles.figureGood}`}>{fmt.money(paid)}</strong>
+        </div>
+        <div className={styles.figure}>
+          <span className={styles.figureLabel}>{t("cases.remainingLabel")}</span>
+          <strong className={`${styles.figureValue} ${remaining > 0 ? styles.figureDue : styles.figureGood}`}>{contractAmount ? fmt.money(remaining) : "—"}</strong>
+        </div>
+      </div>
+      {contractAmount ? (
+        <div className={styles.figureBar}>
+          <div className={clientStyles.track} aria-hidden="true">
+            <div className={`${clientStyles.fill} ${state === "paid" ? clientStyles.fillDone : ""}`} style={{ width: `${pct}%` }} />
+          </div>
+          <span className={styles.figurePct}>
+            {t("payments.paidPct", { pct })} <PayBadge state={state} />
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Every payment on the case, newest first: when, how, who took it — each
+// can be corrected (pencil: managers any time, whoever recorded it on that
+// day) or, by a manager, removed.
+const SHOWN_PAYMENTS = 6;
+function PaymentList({ item, client, canPay, onEdit, onRemove }) {
+  const { t, fmt } = useI18n();
+  const [all, setAll] = useState(false);
+  const rows = item.payments || [];
+  if (rows.length === 0) return <p className={styles.empty}>{t("payments.none")}</p>;
+  const shown = all ? rows : rows.slice(0, SHOWN_PAYMENTS);
+  const fees = rows.filter((pay) => pay.kind === "consultation").reduce((sum, pay) => sum + pay.amount, 0);
+  const recordedToday = (pay) => new Date(pay.createdAt).toDateString() === new Date().toDateString();
+  const mayEdit = (pay) =>
+    Boolean(onEdit) &&
+    ((client.canManage && (client.finance || pay.kind === "consultation")) || (pay.recordedBy?.id === client.me && recordedToday(pay) && (pay.kind === "consultation" || canPay)));
+  return (
+    <div className={clientStyles.payments}>
+      <p className={styles.pastLabel}>{t("payments.list", { count: rows.length })}</p>
+      {shown.map((pay) => (
+        <div key={pay.id} className={clientStyles.payment}>
+          <Icon name="cash" size={16} />
+          <span className={clientStyles.paymentMain}>
+            {fmt.isoDateLong(pay.date)}
+            {pay.kind !== "contract" ? ` · ${t(`payments.kinds.${pay.kind}`)}` : ""}
+            {pay.method ? ` · ${t(`payments.methods.${pay.method}`)}` : ""}
+            {pay.recordedBy ? ` · ${personName(pay.recordedBy)}` : ""}
+            {pay.note ? ` · ${pay.note}` : ""}
+            {pay.editedAt ? ` · ${t("payments.edited")}` : ""}
+          </span>
+          <span className={clientStyles.paymentAmount}>{fmt.money(pay.amount)}</span>
+          {mayEdit(pay) && (
+            <button type="button" className={clientStyles.iconButton} onClick={() => onEdit(pay)} aria-label={t("payments.edit")} title={t("payments.edit")}>
+              <Icon name="edit" size={15} />
+            </button>
+          )}
+          {client.canManage && (client.finance || pay.kind === "consultation") && (
+            <button type="button" className={clientStyles.iconButton} onClick={() => onRemove(pay)} aria-label={t("payments.delete")} title={t("payments.delete")}>
+              <Icon name="trash" size={15} />
+            </button>
+          )}
+        </div>
+      ))}
+      {rows.length > SHOWN_PAYMENTS && (
+        <Button size="small" variant="plain" onClick={() => setAll((v) => !v)}>
+          {all ? t("common.showLess") : t("clients.showAll", { count: rows.length })}
+        </Button>
+      )}
+      {fees > 0 && <p className={styles.hint}>{t("payments.feesApart", { amount: fmt.money(fees) })}</p>}
+    </div>
+  );
+}
+
+// The summaries of the consultations on this case: who held it, potential
+// or not, what happens next, and what was said.
+export function SummaryList({ rows }) {
+  const { t, fmt } = useI18n();
+  return (
+    <ul className={styles.dates}>
+      {rows.map((c) => {
+        const s = c.summary || {};
+        return (
+          <li key={c.id} className={styles.summaryItem}>
+            <div className={styles.historyHead}>
+              <Badge tone={s.prospect === "potential" ? "good" : "neutral"} icon={s.prospect === "potential" ? "checkCircle" : "minusCircle"}>
+                {t(`summary.prospects.${s.prospect || "potential"}`)}
+              </Badge>
+              {s.next && <Badge tone="accent">{t(`summary.next.${s.next.kind}`)}{s.next.dueAt ? ` · ${fmt.dateTime(new Date(s.next.dueAt).getTime())}` : ""}</Badge>}
+              {s.lostReason && <Badge tone="neutral">{t(`clientWork.lost.${s.lostReason}`)}</Badge>}
+            </div>
+            {s.topic && (
+              <span className={styles.historyNote}>
+                <strong>{t("summary.topic")}:</strong> {s.topic}
+              </span>
+            )}
+            {s.advice && (
+              <span className={styles.historyNote}>
+                <strong>{t("summary.advice")}:</strong> {s.advice}
+              </span>
+            )}
+            <span className={styles.historyNote}>
+              <strong>{t("summary.conclusion")}:</strong> {s.conclusion}
+            </span>
+            <span className={styles.historyBy}>
+              {[t("summary.heldBy", { name: c.calendar?.name || personName(c.summaryBy) }), `${fmt.isoDateLong(c.date)}`, t("summary.writtenAt", { when: fmt.dateTime(new Date(c.summaryAt).getTime()) })].join(" · ")}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -240,23 +403,28 @@ function Milestones({ item }) {
   );
 }
 
-// Where the case has been, newest first, each with its date and where.
+// Where the case has been, newest first, each with its date and where —
+// planned ones (a date still ahead) on top, marked so; the latest reached
+// one is "now".
 function StageList({ item, canEdit, onEdit }) {
   const { t, fmt } = useI18n();
+  const today = todayIso();
   const rows = [...(item.stages || [])].sort((a, b) => (a.date === b.date ? b.id - a.id : a.date < b.date ? 1 : -1));
   if (rows.length === 0) return <p className={styles.empty}>{t("caseWork.noStages")}</p>;
+  const currentId = rows.find((r) => r.date <= today)?.id;
   return (
     <ol className={styles.history}>
-      {rows.map((r, i) => (
-        <li key={r.id} className={`${styles.historyItem} ${i === 0 ? styles.current : ""}`}>
+      {rows.map((r) => (
+        <li key={r.id} className={`${styles.historyItem} ${r.id === currentId ? styles.current : ""} ${r.date > today ? styles.planned : ""}`}>
           <span className={styles.historyDot} aria-hidden="true" />
           <div className={styles.historyMain}>
             <div className={styles.historyHead}>
               <strong>{t(`cases.stages.${r.stage}`)}</strong>
-              {i === 0 && <Badge tone="accent">{t("caseWork.now")}</Badge>}
+              {r.id === currentId && <Badge tone="accent">{t("caseWork.now")}</Badge>}
+              {r.date > today && <Badge tone="warning" icon="clock">{t("caseWork.planned")}</Badge>}
             </div>
             <span className={styles.historyMeta}>
-              {[t("caseWork.since", { date: fmt.isoDateLong(r.date) }), r.court].filter(Boolean).join(" · ")}
+              {[r.date > today ? t("caseWork.plannedFor", { date: fmt.isoDateLong(r.date) }) : t("caseWork.since", { date: fmt.isoDateLong(r.date) }), r.court].filter(Boolean).join(" · ")}
             </span>
             {r.note && <span className={styles.historyNote}>{r.note}</span>}
             <span className={styles.historyBy}>{[personName(r.createdBy), fmt.dateTime(new Date(r.createdAt).getTime())].filter(Boolean).join(" · ")}</span>
@@ -335,8 +503,9 @@ function ErrorLine({ text }) {
   return text ? <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{text}</p> : null;
 }
 
-// Adding a stage the case reached (today, or a date in the past), or
-// correcting / removing one.
+// Adding a stage the case reached (today, or a date in the past) or will
+// reach (a date ahead: planned — it becomes the case's stage on that day),
+// or correcting / removing one.
 function StageSheet({ item, row, onClose, onSaved }) {
   const { t } = useI18n();
   const editing = Boolean(row);
@@ -350,7 +519,6 @@ function StageSheet({ item, row, onClose, onSaved }) {
 
   async function save() {
     if (!date) return setError(t("caseWork.dateRequired"));
-    if (date > todayIso()) return setError(t("caseWork.noFutureStage"));
     setBusy("save");
     setError("");
     try {
@@ -387,7 +555,8 @@ function StageSheet({ item, row, onClose, onSaved }) {
             </option>
           ))}
         </SelectField>
-        <TextField label={t("caseWork.stageDate")} type="date" max={todayIso()} value={date} onChange={(e) => setDate(e.target.value)} />
+        <TextField label={t("caseWork.stageDate")} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        {date > todayIso() && <p className={styles.hint}>{t("caseWork.plannedHint")}</p>}
         <TextField label={t("caseWork.court")} placeholder={t("caseWork.courtPlaceholder")} value={court} onChange={(e) => setCourt(e.target.value)} />
         <TextAreaField label={t("caseWork.stageNote")} value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
         <ErrorLine text={error} />
@@ -454,10 +623,14 @@ function KeyDateSheet({ item, row, onClose, onSaved }) {
     <Sheet title={editing ? t("caseWork.editDate") : t("caseWork.addDate")} onClose={onClose}>
       <div className={pageStyles.formStack}>
         <SelectField label={t("caseWork.kind")} value={kind} onChange={(e) => setKind(e.target.value)}>
-          {DATE_KINDS.map((k) => (
-            <option key={k} value={k}>
-              {t(`caseWork.kinds.${k}`)}
-            </option>
+          {DATE_GROUPS.map((g) => (
+            <optgroup key={g.key} label={t(`caseWork.kindGroups.${g.key}`)}>
+              {g.kinds.map((k) => (
+                <option key={k} value={k}>
+                  {t(`caseWork.kinds.${k}`)}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </SelectField>
         <div className={clientStyles.twoCol}>

@@ -5,7 +5,7 @@ import Icon from "../components/ui/Icon";
 import { AsyncBoundary } from "../components/ui/Misc";
 import ChatList from "../components/chat/ChatList";
 import ChatThread from "../components/chat/ChatThread";
-import { DirectSheet, GroupSheet } from "../components/chat/ChatParts";
+import { DirectSheet, GroupSheet, OverviewSheet } from "../components/chat/ChatParts";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { useLive } from "../hooks/useLive";
@@ -14,8 +14,9 @@ import { useI18n } from "../i18n";
 
 // Chat (/chat and /chat/:id). On a computer: the chats on the left, the
 // open one on the right. On a phone: the list, and a chat full screen.
-// The developer makes groups; the boss and the developer can write to
-// anyone privately.
+// Anyone can write to anyone privately; the boss and the developer make
+// groups; the developer can read everyone's private chats ("Barcha
+// yozishmalar").
 
 const WIDE = "(min-width: 900px)";
 
@@ -39,7 +40,7 @@ export default function ChatPage() {
   const wide = useWide();
   const list = useAsync(() => api.chats(), []);
   const meta = useAsync(() => (convId ? api.chat(convId) : Promise.resolve(null)), [convId]);
-  const [creating, setCreating] = useState(null); // "group" | "direct"
+  const [creating, setCreating] = useState(null); // "group" | "direct" | "overview"
 
   // New messages show up in the list the moment the server has them
   // (useLive), quietly — no dimming; a slow check as a fallback.
@@ -60,16 +61,19 @@ export default function ChatPage() {
         <section className={styles.listPane} aria-label={t("chat.title")}>
           <div className={styles.listHead}>
             <h1 className={styles.listTitle}>{t("chat.title")}</h1>
-            {manager && (
-              <button type="button" className={styles.headButton} onClick={() => setCreating("direct")} title={t("chat.newDirect")} aria-label={t("chat.newDirect")}>
-                <Icon name="edit" size={20} />
+            {developer && (
+              <button type="button" className={styles.headButton} onClick={() => setCreating("overview")} title={t("chat.overviewTitle")} aria-label={t("chat.overviewTitle")}>
+                <Icon name="eye" size={20} />
               </button>
             )}
-            {developer && (
+            {manager && (
               <button type="button" className={styles.headButton} onClick={() => setCreating("group")} title={t("chat.newGroup")} aria-label={t("chat.newGroup")}>
                 <Icon name="users" size={20} />
               </button>
             )}
+            <button type="button" className={styles.headButton} onClick={() => setCreating("direct")} title={t("chat.newDirect")} aria-label={t("chat.newDirect")}>
+              <Icon name="edit" size={20} />
+            </button>
           </div>
           <div className={styles.listScroll}>
             <AsyncBoundary state={list}>{(rows) => <ChatList list={rows} activeId={convId} />}</AsyncBoundary>
@@ -117,6 +121,15 @@ export default function ChatPage() {
             setCreating(null);
             refreshList();
             navigate(`/chat/${conv.id}`);
+          }}
+        />
+      )}
+      {creating === "overview" && (
+        <OverviewSheet
+          onClose={() => setCreating(null)}
+          onOpen={(id) => {
+            setCreating(null);
+            navigate(`/chat/${id}`);
           }}
         />
       )}

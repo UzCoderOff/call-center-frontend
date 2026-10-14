@@ -114,4 +114,4 @@ export function Meter({ label, done, target }) {
   );
 }
 
-export const personName = (p) => p?.employee?.name || p?.username || "";
+export const personName = (p) => p?.employee?.name || p?.name || p?.username || "";

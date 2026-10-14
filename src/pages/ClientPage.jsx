@@ -18,7 +18,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { useBack } from "../hooks/useBack";
 import { api } from "../lib/api";
-import { telHref } from "../lib/format";
+import { telHref, todayIso } from "../lib/format";
 import { useI18n } from "../i18n";
 import { saveFailed } from "../lib/saveFailed";
 import { TaskSheet } from "../components/tasks/TaskParts";
@@ -204,6 +204,19 @@ function ClientView({ client, reload, goBack }) {
     }
   }
 
+  // Consultations whose summary this person should write (they held it, or
+  // a manager): over, not cancelled or missed, none written.
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const today = todayIso();
+  const summariesDue = (client.appointments || []).filter(
+    (a) =>
+      !a.summaryAt &&
+      ["booked", "attended"].includes(a.status) &&
+      (a.status === "attended" || a.date < today || (a.date === today && a.end <= nowMinutes)) &&
+      (a.calendar?.ownerId === user.id || client.canManage)
+  );
+
   const sub = [client.city, client.source && t(`clients.sources.${client.source}`), t("clients.addedOn", { date: fmt.date(new Date(client.createdAt).getTime()) })]
     .filter(Boolean)
     .join(" · ");
@@ -258,6 +271,26 @@ function ClientView({ client, reload, goBack }) {
           </Banner>
         </div>
       )}
+      {summariesDue.length > 0 && (
+        <div className={pageStyles.bannerSpace}>
+          <Banner
+            tone="warning"
+            icon="note"
+            action={
+              <Button size="small" variant="primary" to={`/consultations/${summariesDue[0].id}`}>
+                {t("summary.write")}
+              </Button>
+            }
+          >
+            <strong>{t("summary.dueTitle")}</strong>
+            <div className={pageStyles.bannerDetail}>
+              {summariesDue
+                .map((a) => `${fmt.isoDay(a.date)}, ${fmt.minutes(a.start)}${a.calendar?.name ? ` · ${a.calendar.name}` : ""}`)
+                .join(" · ")}
+            </div>
+          </Banner>
+        </div>
+      )}
       {client.archivedAt && (
         <div className={pageStyles.bannerSpace}>
           <Banner
@@ -298,6 +331,7 @@ function ClientView({ client, reload, goBack }) {
                 onChanged={reload}
                 onEdit={() => setSheet({ type: "case", item: c })}
                 onPay={!lawyer && c.permissions?.role !== "result" ? () => setSheet({ type: "payment", caseId: c.id }) : null}
+                onEditPayment={!lawyer ? (payment) => setSheet({ type: "payment", caseId: c.id, payment }) : null}
                 onSchedule={() => setSheet({ type: "schedule", item: c })}
                 onRemovePayment={removePayment}
               />
@@ -370,6 +404,7 @@ function ClientView({ client, reload, goBack }) {
           clientId={client.id}
           cases={client.cases}
           caseId={sheet.caseId}
+          payment={sheet.payment || null}
           finance={Boolean(client.cases.find((c) => c.id === sheet.caseId)?.permissions?.canPay)}
           onClose={close}
           onSaved={saved}
@@ -536,6 +571,7 @@ const EVENT_ICON = {
   contact: "user",
   file: "file",
   lost: "minusCircle",
+  consult_summary: "note",
 };
 // Which filter each kind of entry belongs to.
 const GROUP = { note: "notes", call: "calls", appointment: "appointments", payment: "money" };
@@ -591,6 +627,10 @@ function useEventText() {
         return t(`clientWork.events.file_${d.action || "add"}`, { name: d.name || "—", kind: d.kind ? t(`clientWork.fileKinds.${d.kind}`) : "" });
       case "lost":
         return t("clientWork.events.lost", { reason: d.reason ? t(`clientWork.lost.${d.reason}`) : "—" }) + (d.note ? `: ${d.note}` : "");
+      case "consult_summary": {
+        const parts = [t(`summary.prospects.${d.prospect || "potential"}`), d.next ? t(`summary.next.${d.next.kind}`) : null, d.next?.dueAt ? fmt.dateTime(new Date(d.next.dueAt).getTime()) : null, d.lostReason ? t(`clientWork.lost.${d.lostReason}`) : null];
+        return `${t("summary.event", { what: parts.filter(Boolean).join(" · ") })}: ${e.text}`;
+      }
       default:
         return e.text;
     }
@@ -623,7 +663,7 @@ function Activity({ client, userId, onChanged }) {
       const at = new Date(e.createdAt).getTime();
       out.push({
         key: `e${e.id}`,
-        group: e.kind === "note" || e.kind === "follow_up" ? "notes" : ["import", "archive", "keep", "restore", "merge", "contact"].includes(e.kind) ? "client" : "case",
+        group: e.kind === "note" || e.kind === "follow_up" || e.kind === "consult_summary" ? "notes" : ["import", "archive", "keep", "restore", "merge", "contact"].includes(e.kind) ? "client" : "case",
         at,
         icon: e.kind === "note" && e.data?.channel ? CHANNEL_ICON[e.data.channel] : EVENT_ICON[e.kind] || "briefcase",
         title: e.kind === "note" && e.data?.channel ? `${t(`clientWork.channels.${e.data.channel}`)}: ${e.text}` : eventText(e),
@@ -664,7 +704,7 @@ function Activity({ client, userId, onChanged }) {
         group: GROUP.payment,
         at: new Date(y, m - 1, d, 12).getTime(),
         icon: "cash",
-        title: `${t("clients.events.payment", { amount: fmt.money(p.amount) })}${p.method ? ` · ${t(`payments.methods.${p.method}`)}` : ""}`,
+        title: `${t("clients.events.payment", { amount: fmt.money(p.amount) })}${p.method ? ` · ${t(`payments.methods.${p.method}`)}` : ""}${p.editedAt ? ` · ${t("payments.edited")}` : ""}`,
         sub: [fmt.isoDateLong(p.date), personName(p.recordedBy), p.note].filter(Boolean).join(" · "),
       });
     }

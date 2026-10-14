@@ -10,6 +10,7 @@ import Badge from "../ui/Badge";
 import Icon from "../ui/Icon";
 import { SelectField, Switch, TextAreaField, TextField } from "../ui/Field";
 import { personName } from "./parts";
+import { FileReadingSheet, aiCanRead, useAiFeatures } from "../ai/AiParts";
 import { api } from "../../lib/api";
 import { telHref } from "../../lib/format";
 import { saveFailed } from "../../lib/saveFailed";
@@ -25,28 +26,28 @@ export const OUTCOMES = ["reached", "no_answer", "decided_yes", "decided_no", "r
 export const RELATIONS = ["father", "mother", "spouse", "child", "sibling", "relative", "representative", "friend", "colleague", "other"];
 export const LOST_REASONS = ["price", "thinking", "trust", "other_lawyer", "unreachable", "no_need", "not_our_field", "other"];
 export const FILE_KINDS = ["contract", "power_of_attorney", "court_decision", "application", "id_copy", "receipt", "evidence", "other"];
-const KIND_ICON = { call: "phone", decision: "clock", meeting: "users", documents: "file", payment: "cash", other: "bell" };
+export const KIND_ICON = { call: "phone", decision: "clock", meeting: "users", documents: "file", payment: "cash", other: "bell" };
 // How long to wait for a decision: one tap.
-const WAITS = [1, 2, 3, 7, 14];
+export const WAITS = [1, 2, 3, 7, 14];
 
 const pad = (n) => String(n).padStart(2, "0");
-const localDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export const localDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const localTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-function daysFromNow(days, time = "10:00") {
+export function daysFromNow(days, time = "10:00") {
   const d = new Date();
   d.setDate(d.getDate() + days);
   const [h, m] = time.split(":").map(Number);
   d.setHours(h, m, 0, 0);
   return d;
 }
-const combine = (date, time) => {
+export const combine = (date, time) => {
   const [y, mo, d] = date.split("-").map(Number);
   const [h, m] = (time || "10:00").split(":").map(Number);
   return new Date(y, mo - 1, d, h, m, 0, 0);
 };
 
 // Choices as big labelled chips (one at a time).
-function ChoiceChips({ options, value, onChange, label }) {
+export function ChoiceChips({ options, value, onChange, label }) {
   return (
     <div className={fieldStyles.chips} role="radiogroup" aria-label={label}>
       {options.map((o) => (
@@ -506,6 +507,8 @@ function ContactSheet({ client, item, onClose, onSaved }) {
 export function FilesCard({ client, onChanged }) {
   const { t, fmt } = useI18n();
   const [adding, setAdding] = useState(false);
+  const [reading, setReading] = useState(null);
+  const ai = useAiFeatures();
   const canEdit = client.view !== "result";
   const caseName = new Map(client.cases.map((k) => [k.id, k.matter || t("cases.untitled")]));
 
@@ -546,6 +549,11 @@ export function FilesCard({ client, onChanged }) {
                   {[t(`clientWork.fileKinds.${f.kind}`), f.caseId ? caseName.get(f.caseId) : null, fmt.date(new Date(f.createdAt).getTime()), personName(f.uploadedBy), `${Math.max(1, Math.round(f.size / 1024))} KB`].filter(Boolean).join(" · ")}
                 </span>
               </a>
+              {ai.fileReader && canEdit && aiCanRead(f) && (
+                <Button size="small" variant="plain" icon="sparkles" onClick={() => setReading(f)} title={t("ai.readFile")}>
+                  {f.aiAnalyzedAt ? t("ai.reading_done") : t("ai.readFileShort")}
+                </Button>
+              )}
               <Button size="small" variant="plain" icon="download" href={api.clientFileUrl(f.id, { download: true })} aria-label={t("clientWork.download")} />
               {(client.canManage || f.uploadedBy?.id === client.me) && (
                 <button type="button" className={clientStyles.iconButton} onClick={() => remove(f)} aria-label={t("caseWork.remove")}>
@@ -556,6 +564,7 @@ export function FilesCard({ client, onChanged }) {
           ))}
         </ul>
       )}
+      {reading && <FileReadingSheet file={reading} client={client} onClose={() => setReading(null)} onChanged={onChanged} />}
       {adding && (
         <UploadSheet
           client={client}

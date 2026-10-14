@@ -9,6 +9,7 @@ import styles from "./Clients.module.css";
 import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
 import { todayIso } from "../../lib/format";
+import { DATE_ICON } from "./CaseWork";
 import { useI18n } from "../../i18n";
 
 // Home-page cards for the work after the contract: the cases a coordinator
@@ -16,7 +17,6 @@ import { useI18n } from "../../i18n";
 // them, and — for managers — the contracts still waiting for a coordinator
 // or a lawyer.
 
-const DATE_ICON = { hearing: "briefcase", summons: "bell", deadline: "clock", meeting: "users", other: "calendar" };
 const clock = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 function SeeAll({ to }) {
@@ -108,7 +108,8 @@ export function MyCasesCard({ cases, title, limit = 8 }) {
   );
 }
 
-// Hearings, summons, deadlines in the coming two weeks.
+// Hearings, investigative steps, summons, deadlines in the coming two weeks
+// — and the stages planned in that time.
 export function UpcomingDatesCard({ days = 14 }) {
   const { t, fmt } = useI18n();
   const state = useAsync(() => api.upcomingDates(days), [days]);
@@ -127,7 +128,7 @@ export function UpcomingDatesCard({ days = 14 }) {
                 <Icon name={DATE_ICON[r.kind] || "calendar"} size={16} />
               </span>
             }
-            title={`${r.title || t(`caseWork.kinds.${r.kind}`)} — ${r.case.client.name}`}
+            title={`${r.kind === "stage" ? `${t("caseWork.kinds.stage")}: ${t(`cases.stages.${r.stage}`)}` : r.title || t(`caseWork.kinds.${r.kind}`)} — ${r.case.client.name}`}
             subtitle={[r.date === today ? t("caseWork.today") : fmt.isoDay(r.date), r.time != null ? clock(r.time) : null, r.place].filter(Boolean).join(" · ")}
           />
         ))}

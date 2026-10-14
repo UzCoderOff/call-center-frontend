@@ -77,7 +77,80 @@ function PeoplePicker({ people, selected, onToggle, single = false }) {
   );
 }
 
-// A group (developer): its name and who's in it.
+// Who's in a chat — tap the chat's name to see it (everyone in it can).
+export function MembersSheet({ conv, onClose, onEdit }) {
+  const { t } = useI18n();
+  const members = conv.members || [];
+  return (
+    <Sheet title={t("chat.membersTitle", { count: members.length })} onClose={onClose}>
+      <div className={pageStyles.formStack}>
+        {conv.kind === "everyone" && <p className={pageStyles.note}>{t("chat.everyoneMembersHint")}</p>}
+        <div className={styles.people}>
+          {members.map((m) => (
+            <div key={m.id} className={styles.person}>
+              <PersonAvatar name={m.name} size={32} />
+              <span>{m.name}</span>
+              <span className={styles.personRole}>{m.position || t(`roles.${m.role}`)}</span>
+            </div>
+          ))}
+        </div>
+        {onEdit && (
+          <div className={pageStyles.formActions}>
+            <Button icon="edit" onClick={onEdit}>
+              {t("chat.editGroup")}
+            </Button>
+          </div>
+        )}
+      </div>
+    </Sheet>
+  );
+}
+
+// The developer: everyone else's private chats, newest first — to read.
+export function OverviewSheet({ onClose, onOpen }) {
+  const { t, fmt } = useI18n();
+  const list = useAsync(() => api.chatOverview(), []);
+  const [q, setQ] = useState("");
+  return (
+    <Sheet title={t("chat.overviewTitle")} onClose={onClose}>
+      <div className={pageStyles.formStack}>
+        <p className={pageStyles.note}>{t("chat.overviewHint")}</p>
+        <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("chat.searchPeople")} />
+        <AsyncBoundary state={list}>
+          {(rows) => {
+            const words = q.trim().toLowerCase();
+            const shown = words ? rows.filter((r) => r.title.toLowerCase().includes(words)) : rows;
+            if (shown.length === 0) return <p className={pageStyles.note}>{t("chat.overviewEmpty")}</p>;
+            return (
+              <div className={styles.people}>
+                {shown.map((r) => (
+                  <button key={r.id} type="button" className={`${styles.person} ${styles.personButton}`} onClick={() => onOpen(r.id)}>
+                    <Icon name="messages" size={18} />
+                    <span className={styles.overviewMain}>
+                      <span>{r.title}</span>
+                      {r.lastMessage && (
+                        <span className={styles.personRole}>
+                          {r.lastMessage.author ? `${r.lastMessage.author.split(" ")[0]}: ` : ""}
+                          {r.lastMessage.eventTitle ? `📅 ${r.lastMessage.eventTitle}` : r.lastMessage.text}
+                        </span>
+                      )}
+                    </span>
+                    <span className={styles.personRole}>
+                      {t("chat.messagesCount", { count: r.messages })}
+                      {r.lastMessageAt ? ` · ${fmt.date(new Date(r.lastMessageAt).getTime())}` : ""}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            );
+          }}
+        </AsyncBoundary>
+      </div>
+    </Sheet>
+  );
+}
+
+// A group (boss, developer): its name and who's in it.
 export function GroupSheet({ group, onClose, onSaved }) {
   const { t } = useI18n();
   const people = useAsync(() => api.chatPeople(), []);
@@ -123,7 +196,7 @@ export function GroupSheet({ group, onClose, onSaved }) {
   );
 }
 
-// A private chat (boss, developer): who to write to.
+// A private chat (anyone): who to write to.
 export function DirectSheet({ onClose, onOpened }) {
   const { t } = useI18n();
   const people = useAsync(() => api.chatPeople(), []);
@@ -150,6 +223,7 @@ export function DirectSheet({ onClose, onOpened }) {
         <AsyncBoundary state={people}>
           {(list) => <PeoplePicker people={list} selected={picked ? [picked] : []} onToggle={setPicked} single />}
         </AsyncBoundary>
+        <p className={pageStyles.note}>{t("chat.directNotice")}</p>
         {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
         <div className={pageStyles.formActions}>
           <Button onClick={onClose}>{t("common.cancel")}</Button>

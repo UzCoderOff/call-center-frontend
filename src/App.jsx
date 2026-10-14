@@ -34,6 +34,8 @@ import DaysOffPage from "./pages/DaysOffPage";
 import RemindersPage from "./pages/RemindersPage";
 import PhonePage from "./pages/PhonePage";
 import ChatPage from "./pages/ChatPage";
+import ConsultationPage from "./pages/ConsultationPage";
+import ConsultationsPage from "./pages/ConsultationsPage";
 import { ClientChatRedirect } from "./pages/ChatThreadPage";
 import { canCallInApp } from "./lib/appBridge";
 import { syncWebPush } from "./lib/webPush";
@@ -125,6 +127,8 @@ function Routed() {
         <Route path="clients/import" element={guarded(canManageClients, <ClientImportPage />)} />
         <Route path="clients/:id" element={guarded(canSeeClients, <ClientPage />)} />
         <Route path="calendar" element={guarded(canSeeCalendar, <CalendarPage />)} />
+        <Route path="consultations" element={<ConsultationsPage />} />
+        <Route path="consultations/:id" element={<ConsultationPage />} />
         <Route path="calendar/:calendarId/plan/:weekStart" element={<PlannerRedirect />} />
         <Route path="reports" element={guarded(canSeeReports, <ReportsPage />)} />
         <Route path="reports/auto/:employeeId/:date" element={guarded(canSeeReports, <AutoReportPage />)} />

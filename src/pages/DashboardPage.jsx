@@ -25,6 +25,8 @@ import { canSeeFinance } from "../lib/access";
 import { MyTasksCard } from "../components/tasks/TaskParts";
 import { MyRemindersCard } from "../components/reminders/ReminderParts";
 import WebPushBanner from "../components/WebPushBanner";
+import { SummariesDueCard } from "../components/consultations/Summaries";
+import { AiSuggestionsCard } from "../components/ai/AiParts";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -103,6 +105,8 @@ function ManagerHome() {
       <div className={styles.stack}>
         <DaysOffCard />
         {canSeeFinance(user) && <FinanceCard />}
+        <SummariesDueCard team />
+        <AiSuggestionsCard team />
         <UnassignedCard />
         <MyTasksCard />
         <MyRemindersCard />
@@ -363,6 +367,7 @@ function CallsHome() {
       {isRecordingProblem(state.data?.sync?.recordings) && <MyRecordingBanner recordings={state.data.sync.recordings} />}
       <div className={styles.stack}>
         {canBookAppointments(user) && <AttentionCard />}
+        <AiSuggestionsCard />
         <MyTasksCard />
         <MyRemindersCard />
         <MyPlanCard />
@@ -402,6 +407,8 @@ function LawyerHome() {
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
+        <SummariesDueCard />
+        <AiSuggestionsCard />
         <MyTasksCard />
         <MyRemindersCard />
         <FollowUpsCard />
@@ -438,6 +445,7 @@ function CoordinatorHome() {
             </>
           )}
         </AsyncBoundary>
+        <AiSuggestionsCard />
         <MyTasksCard />
         <MyRemindersCard />
         <UpcomingDatesCard />
@@ -466,6 +474,7 @@ function StaffHome() {
       <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
         {canBookAppointments(user) && <AttentionCard />}
+        <AiSuggestionsCard />
         <MyTasksCard />
         <MyRemindersCard />
         <MyPlanCard />
