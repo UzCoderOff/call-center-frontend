@@ -215,6 +215,12 @@ export const api = {
     request(`/calendars/${id}/weeks/${weekStart}`, { method: "PUT", body: { blocks, ...options } }),
   publishCalendarWeek: (id, weekStart) => request(`/calendars/${id}/weeks/${weekStart}/publish`, { method: "POST" }),
   bookAppointment: (calendarId, payload) => request(`/calendars/${calendarId}/appointments`, { method: "POST", body: payload }),
+  // --- a lawyer's own calendar (routes/personalCalendar.js) ---
+  personalPeople: () => request("/personal-calendar/people"),
+  personalCalendar: (params) => request(`/personal-calendar${qs(params)}`),
+  addPersonalEvent: (payload) => request("/personal-calendar/events", { method: "POST", body: payload }),
+  updatePersonalEvent: (id, payload) => request(`/personal-calendar/events/${id}`, { method: "PATCH", body: payload }),
+  deletePersonalEvent: (id) => request(`/personal-calendar/events/${id}`, { method: "DELETE" }),
   appointments: (params) => request(`/appointments${qs(params)}`),
   updateAppointment: (id, payload) => request(`/appointments/${id}`, { method: "PATCH", body: payload }),
   // The consultation fee, when paid after booking: { feeAmount, feeMethod }.

@@ -212,7 +212,11 @@ export default function WorkSettingsFields({ value, onChange, options }) {
       </SelectField>
       <Switch
         label={t("settings.collectCalls")}
-        hint={t("settings.collectCallsHint")}
+        hint={
+          // Only the call center's and coordinators' calls count (the server
+          // ignores anyone else's phone — src/lib/calling.js).
+          jobsOf(value).some((j) => j === "call_center" || j === "coordinator") ? t("settings.collectCallsHint") : t("settings.collectCallsNotCounted")
+        }
         checked={Boolean(value.collectCalls)}
         onChange={(v) => set({ collectCalls: v })}
       />

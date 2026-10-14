@@ -705,3 +705,129 @@
   background: var(--fill);
   color: var(--text-2);
 }
+
+/* ---------- Tidier day (2026-10-14) ---------- */
+/* A stretch of free time: its times as small buttons, not a row each. */
+.freeRun {
+  align-items: flex-start;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.slotChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.slotChip {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: var(--radius-pill);
+  background: var(--good-soft);
+  color: var(--good-text);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+}
+
+button.slotChip:hover,
+button.slotChip:focus-visible {
+  background: var(--good);
+  color: #fff;
+}
+
+button.slotChip:active {
+  transform: scale(0.96);
+}
+
+.slotChipStatic {
+  opacity: 0.85;
+}
+
+.wholeDayButton {
+  width: 100%;
+  cursor: pointer;
+}
+
+.wholeDay:disabled {
+  cursor: default;
+}
+
+/* The lawyer's "this day" choices, one tap each. */
+.modes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.modeButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 62px;
+  padding: 8px 4px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.modeButton:hover:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.modeOn,
+.modeOn:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.modeButton:disabled {
+  opacity: 0.6;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.toolbarGrow {
+  flex: 1;
+  min-width: 0;
+}
+
+.slotSheetTime {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  margin: 4px 0 2px;
+}
+
+.slotSheetDay {
+  text-align: center;
+  color: var(--text-2);
+  margin-bottom: 16px;
+}
+
+.slotActions {
+  display: grid;
+  gap: 10px;
+}

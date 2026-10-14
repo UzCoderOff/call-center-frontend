@@ -21,16 +21,18 @@ const MODES = [
 // The lawyer changes one day. Four plain choices — an ordinary working day,
 // busy all day (court in another city, a trip), a day off, or their own
 // times. Saved straight away; if clients are already booked into time that
-// goes away, the lawyer sees who and decides.
-export default function DayEditSheet({ week, date, onClose, onSaved }) {
+// goes away, the lawyer sees who and decides. Opened from one of the day's
+// quick choices: `startMode` is already picked, and `startConflicts` are the
+// clients that choice would cancel (asked first).
+export default function DayEditSheet({ week, date, startMode, startConflicts, onClose, onSaved }) {
   const { t, fmt } = useI18n();
   const current = blocksOn(week.blocks, date);
-  const initialMode = dayMode(current, week.usual, date);
-  const [mode, setMode] = useState(initialMode);
-  const [note, setNote] = useState(initialMode === "busy" ? current[0].note || "" : "");
-  const [rows, setRows] = useState(() => (initialMode === "custom" ? current : usualDay(week.usual, date)).map(strip));
+  const currentMode = dayMode(current, week.usual, date);
+  const [mode, setMode] = useState(startMode || currentMode);
+  const [note, setNote] = useState(currentMode === "busy" ? current[0].note || "" : "");
+  const [rows, setRows] = useState(() => (currentMode === "custom" ? current : usualDay(week.usual, date)).map(strip));
   const [error, setError] = useState("");
-  const [conflicts, setConflicts] = useState(null);
+  const [conflicts, setConflicts] = useState(startConflicts || null);
   const [busy, setBusy] = useState(false);
 
   function dayBlocks() {

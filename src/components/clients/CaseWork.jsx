@@ -2,6 +2,7 @@ import { useState } from "react";
 import styles from "./CaseWork.module.css";
 import clientStyles from "./Clients.module.css";
 import pageStyles from "../../pages/Pages.module.css";
+import fieldStyles from "../ui/Field.module.css";
 import Sheet from "../ui/Sheet";
 import Button from "../ui/Button";
 import Badge from "../ui/Badge";
@@ -355,14 +356,18 @@ function Block({ title, subtitle, action, children }) {
   );
 }
 
-// Operator · Koordinator · Advokat — who to ask about this case.
+// Operator · Koordinator · Advokat(lar) — who to ask about this case. More
+// than one lawyer: the main one first.
 function People({ item, canAssign, onAssign }) {
   const { t } = useI18n();
   const signed = item.status === "contract" || item.status === "done";
+  const extra = (item.extraLawyers || []).map((l) => l.name);
   const people = [
     { key: "operator", name: item.operator?.name },
     { key: "coordinator", name: item.coordinator?.name, needed: signed },
-    { key: "lawyer", name: item.lawyer, needed: signed },
+    extra.length
+      ? { key: "lawyers", name: [item.lawyer ? t("caseWork.mainLawyer", { name: item.lawyer }) : null, ...extra].filter(Boolean).join(", "), needed: signed }
+      : { key: "lawyer", name: item.lawyer, needed: signed },
   ];
   return (
     <div className={styles.people}>
@@ -659,13 +664,17 @@ function KeyDateSheet({ item, row, onClose, onSaved }) {
 }
 
 // Managers: who looks after the case (coordinator) and who handles it
-// (lawyer). Each change is on the timeline; the person hears in Telegram.
+// (the main lawyer, and any more lawyers on it). Each change is on the
+// timeline; the person hears in Telegram.
 function AssignSheet({ item, onClose, onSaved }) {
   const { t } = useI18n();
   const people = useAsync(() => api.clientCoordinators(), []);
   const lawyers = useAsync(() => api.clientLawyers(), []);
   const [coordinatorId, setCoordinatorId] = useState(item.coordinator?.id ? String(item.coordinator.id) : "");
   const [lawyerId, setLawyerId] = useState(item.lawyerId ? String(item.lawyerId) : "");
+  const before = (item.extraLawyers || []).map((l) => l.id);
+  const [extra, setExtra] = useState(before);
+  const toggleExtra = (id) => setExtra((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -675,6 +684,9 @@ function AssignSheet({ item, onClose, onSaved }) {
     const payload = {};
     if (String(item.coordinator?.id ?? "") !== coordinatorId) payload.coordinatorId = coordinatorId ? Number(coordinatorId) : null;
     if (String(item.lawyerId ?? "") !== lawyerId) payload.lawyerId = lawyerId ? Number(lawyerId) : null;
+    // The main lawyer isn't one of "the others" too.
+    const others = extra.filter((id) => String(id) !== lawyerId);
+    if (others.length !== before.length || others.some((id) => !before.includes(id))) payload.extraLawyerIds = others;
     try {
       if (Object.keys(payload).length) await api.updateCase(item.id, payload);
       onSaved();
@@ -717,6 +729,25 @@ function AssignSheet({ item, onClose, onSaved }) {
             </option>
           ))}
         </SelectField>
+        {(lawyers.data?.accounts || []).length > 1 && (
+          <div>
+            <p className={fieldStyles.label}>{t("caseWork.moreLawyers")}</p>
+            <div className={fieldStyles.chips} role="group" aria-label={t("caseWork.moreLawyers")}>
+              {lawyers.data.accounts
+                .filter((l) => String(l.id) !== lawyerId)
+                .map((l) => {
+                  const on = extra.includes(l.id);
+                  return (
+                    <button key={l.id} type="button" role="checkbox" aria-checked={on} className={`${fieldStyles.chip} ${on ? fieldStyles.chipOn : ""}`} onClick={() => toggleExtra(l.id)}>
+                      {on && <Icon name="check" size={14} strokeWidth={2.4} />}
+                      {l.name}
+                    </button>
+                  );
+                })}
+            </div>
+            <p className={pageStyles.note}>{t("caseWork.moreLawyersHint")}</p>
+          </div>
+        )}
         <ErrorLine text={error} />
         <div className={pageStyles.formActions}>
           <Button onClick={onClose}>{t("common.cancel")}</Button>

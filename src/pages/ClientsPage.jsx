@@ -8,13 +8,14 @@ import { SearchField, SelectField } from "../components/ui/Field";
 import { List, ListRow } from "../components/ui/List";
 import { AsyncBoundary, Avatar, EmptyState, PageHeader } from "../components/ui/Misc";
 import { STATUSES, StatusBadge } from "../components/clients/parts";
-import { TargetsCard } from "../components/clients/ClientCards";
+import { TargetsCard, WorkOverviewCard } from "../components/clients/ClientCards";
 import { BulkSheet, ClientSheet } from "../components/clients/ClientSheets";
 import Icon from "../components/ui/Icon";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { canBookAppointments, canManageClients, canSeeFinance, isCallCenter, isCoordinator, isLawyer, takesCalls } from "../lib/access";
 import { api } from "../lib/api";
+import { shiftIso, todayIso } from "../lib/format";
 import { useI18n } from "../i18n";
 
 // Sections, so the cases that are going on aren't buried under one-off
@@ -186,7 +187,9 @@ export default function ClientsPage() {
       />
 
       <div className={styles.toolbar}>
-        {!lawyer && !coordinator && <TargetsCard manager={manager} />}
+        {/* The operators' monthly targets go with the consultations; "Mijozlar"
+            is about the cases being worked on. */}
+        {!lawyer && !coordinator && (section === "consultations" || searching) && <TargetsCard manager={manager} />}
         <Segmented
           full
           value={searching ? null : section}
@@ -197,6 +200,7 @@ export default function ClientsPage() {
             return { value: sec, label: counts && counts[sec] != null ? `${name} · ${fmt.number(counts[sec])}` : name };
           })}
         />
+        {!searching && section === "clients" && filter === "all" && !status && <WorkOverviewCard overview={state.data?.overview} onDebt={filters.includes("debt") ? () => update({ filter: "debt" }) : undefined} />}
         <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("clients.search")} aria-label={t("clients.search")} />
         {searching && <p className={styles.count} style={{ margin: 0 }}>{t("clients.searchingAll")}</p>}
         {filters.length > 1 && <Segmented
@@ -328,6 +332,9 @@ export default function ClientsPage() {
                     );
                   }
                   const k = c.latestCase;
+                  // A case being worked on (a contract): what it's about, its next
+                  // date, its lawyers and how far it's paid.
+                  const working = k && (k.status === "contract" || k.status === "done");
                   const callAt = c.nextCallAt ? new Date(c.nextCallAt).getTime() : null;
                   const dueToday = callAt && callAt < endOfToday;
                   const on = allMatching || selected.has(c.id);
@@ -346,8 +353,13 @@ export default function ClientsPage() {
                         )
                       }
                       title={c.name}
-                      subtitle={[c.phone && fmt.phone(c.phone), k?.lawyer, c.caseCount > 1 && t("clients.cases", { count: c.caseCount })].filter(Boolean).join(" · ")}
+                      subtitle={
+                        working
+                          ? [k.matter, k.number && `№ ${k.number}`, c.caseCount > 1 && t("clients.cases", { count: c.caseCount })].filter(Boolean).join(" · ") || (c.phone && fmt.phone(c.phone))
+                          : [c.phone && fmt.phone(c.phone), k?.lawyer, c.caseCount > 1 && t("clients.cases", { count: c.caseCount })].filter(Boolean).join(" · ")
+                      }
                       footer={
+                        <>
                         <span className={styles.rowBadges}>
                           <StatusBadge status={k?.status} />
                           {k?.legalStage && <Badge tone="neutral">{t(`cases.stages.${k.legalStage}`)}</Badge>}
@@ -356,7 +368,8 @@ export default function ClientsPage() {
                               {callAt < now ? t("clients.overdue") : t("clients.callAt", { time: fmt.time(callAt) })}
                             </Badge>
                           )}
-                          {c.debt > 0 && <Badge tone="warning">{t("clients.debt", { amount: fmt.money(c.debt) })}</Badge>}
+                          {/* A case being worked on shows its payment bar instead. */}
+                          {c.debt > 0 && !(working && k.contractAmount) && <Badge tone="warning">{t("clients.debt", { amount: fmt.money(c.debt) })}</Badge>}
                           {manager && k?.status === "contract" && !k.coordinator && (
                             <Badge tone="critical" icon="alertCircle">
                               {t("clients.noCoordinator")}
@@ -369,6 +382,8 @@ export default function ClientsPage() {
                           )}
                           {!manager && k?.coordinator && k.coordinator.id !== user.employee?.id && <Badge tone="neutral">{t("clients.coordinatorIs", { name: k.coordinator.name })}</Badge>}
                         </span>
+                        {working && <CaseExtras k={k} />}
+                        </>
                       }
                     />
                   );
@@ -415,5 +430,41 @@ export default function ClientsPage() {
         />
       )}
     </div>
+  );
+}
+
+// Under a case being worked on: its next key date (red when it's within 3
+// days), its lawyers, and how much of the contract is paid (when they see
+// money).
+function CaseExtras({ k }) {
+  const { t, fmt } = useI18n();
+  const today = todayIso();
+  const lawyers = [k.lawyer, ...(k.extraLawyers || []).map((l) => l.name)].filter(Boolean);
+  const share = k.contractAmount ? Math.min(100, Math.round(((k.paid || 0) / k.contractAmount) * 100)) : null;
+  const d = k.nextDate;
+  return (
+    <>
+      {d && (
+        <span className={`${styles.caseLine} ${d.date <= shiftIso(today, 3) ? styles.nextDateSoon : ""}`}>
+          <Icon name="calendar" size={14} />
+          {d.title || t(`caseWork.kinds.${d.kind || "other"}`)} · {fmt.isoDay(d.date)}
+          {d.time != null ? `, ${fmt.minutes(d.time)}` : ""}
+        </span>
+      )}
+      {lawyers.length > 0 && (
+        <span className={styles.caseLine}>
+          <Icon name="briefcase" size={14} />
+          {lawyers.join(", ")}
+        </span>
+      )}
+      {share != null && (
+        <span className={styles.paidLine}>
+          <span className={styles.paidTrack}>
+            <span className={`${styles.fill} ${share >= 100 ? styles.fillDone : ""}`} style={{ display: "block", width: `${share}%` }} />
+          </span>
+          {t("clients.paidOf", { paid: fmt.money(k.paid || 0), total: fmt.money(k.contractAmount) })}
+        </span>
+      )}
+    </>
   );
 }

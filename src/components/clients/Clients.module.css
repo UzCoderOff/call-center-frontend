@@ -763,3 +763,200 @@ a.item:hover .itemTitle {
   background: var(--accent);
   box-shadow: none;
 }
+
+/* ---------- Money altogether (client page) ---------- */
+.moneyCard {
+  margin-bottom: 16px;
+}
+
+.moneyFigures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.moneyFigure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.moneyLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.moneyValue {
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.moneyGood {
+  color: var(--good-text);
+}
+
+.moneyWarn {
+  color: var(--warning-text);
+}
+
+.moneyNote {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.moneyLines {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.moneyLines:empty {
+  display: none;
+}
+
+.moneyOverdue {
+  color: var(--critical-text);
+  font-weight: 600;
+}
+
+/* ---------- The cases being worked on (list) ---------- */
+.overview {
+  margin-bottom: 4px;
+}
+
+.overviewTop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.overviewStat {
+  flex: 1 1 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  text-align: left;
+}
+
+.overviewButton {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.overviewButton:hover {
+  background: var(--fill-hover);
+}
+
+.overviewNumber {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.overviewLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.weekList {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+
+.weekItem {
+  display: flex;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.weekItem:hover {
+  background: var(--fill);
+}
+
+.weekWhen {
+  flex: 0 0 auto;
+  min-width: 120px;
+  font-weight: 600;
+  color: var(--critical-text);
+}
+
+.weekWhat {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekMore {
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+@media (max-width: 480px) {
+  .weekItem {
+    flex-direction: column;
+    gap: 0;
+  }
+  .weekWhen {
+    min-width: 0;
+  }
+}
+
+/* A case row: its next date and how far it's paid. */
+.caseLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.caseLine svg {
+  flex-shrink: 0;
+}
+
+.nextDateSoon {
+  color: var(--critical-text);
+  font-weight: 600;
+}
+
+.paidLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.paidTrack {
+  flex: 0 0 64px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--fill);
+}

@@ -1,7 +1,7 @@
 // Which sections a signed-in person can use — shared by the navigation and
 // the route guards so the two never disagree. The server enforces the same
 // rules independently; this only decides what to show.
-const isManager = (user) => user.role === "BOSS" || user.role === "DEVELOPER";
+export const isManager = (user) => user.role === "BOSS" || user.role === "DEVELOPER";
 // The firm's other lawyers: their own calendar and their own clients' cases.
 export const isLawyer = (user) => user.role === "LAWYER";
 

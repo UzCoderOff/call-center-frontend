@@ -14,6 +14,7 @@ import { personName } from "../components/clients/parts";
 import CasePanel from "../components/clients/CaseWork";
 import { CaseSheet, ClientSheet, LinkSheet, MergeSheet, PaymentSheet } from "../components/clients/ClientSheets";
 import { ContactsCard, FilesCard, NextSteps } from "../components/clients/ClientWork";
+import { MoneySummaryCard } from "../components/clients/ClientCards";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { useBack } from "../hooks/useBack";
@@ -310,6 +311,7 @@ function ClientView({ client, reload, goBack }) {
       )}
       <div className={styles.layout}>
         <div className={styles.column}>
+          <MoneySummaryCard money={client.money} />
           <NextSteps client={client} onChanged={reload} />
 
           <div className={styles.sectionHead}>
