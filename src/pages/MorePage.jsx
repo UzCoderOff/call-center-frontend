@@ -22,6 +22,7 @@ const COLORS = {
   "/materials": "#ff6b35",
   "/profile": "#64748b",
   "/chat": "#0a84ff",
+  "/telegram": "#2aabee",
 };
 
 export default function MorePage() {

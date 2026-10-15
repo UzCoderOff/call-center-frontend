@@ -54,7 +54,7 @@ export function ConvIcon({ conv, size = 48 }) {
 }
 
 // Everyone else, to tick (a group's members) or to pick one (a private chat).
-function PeoplePicker({ people, selected, onToggle, single = false }) {
+export function PeoplePicker({ people, selected, onToggle, single = false }) {
   const { t } = useI18n();
   const [q, setQ] = useState("");
   const shown = useMemo(() => {

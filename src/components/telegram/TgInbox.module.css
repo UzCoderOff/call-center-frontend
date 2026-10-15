@@ -1,0 +1,362 @@
+/* Clients' Telegram chats (TgInbox.jsx): the parts the staff chat doesn't have. */
+
+.search {
+  padding: 8px 12px 4px;
+}
+
+.waitingLine {
+  margin: 4px 12px 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.waitBadge {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Their picture with a small Telegram mark. */
+.avatarWrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.tgMark {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 40%;
+  height: 40%;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: #2aabee;
+  color: #fff;
+}
+
+/* Under the chat's name: their client, or how to make them one. */
+.clientBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--separator);
+  background: var(--surface);
+}
+
+.clientChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.notClient {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.photo {
+  display: block;
+  margin: -4px -6px 6px;
+}
+
+.photo img {
+  display: block;
+  max-width: min(280px, 100%);
+  max-height: 320px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.voice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.voice audio {
+  width: min(240px, 60vw);
+  height: 36px;
+}
+
+.duration {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.fileLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+/* The chat inside a sheet on the client's page. */
+.embedded {
+  height: min(620px, 70vh);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* The client's page: their Telegram. */
+.card {
+  padding: 16px 18px;
+  border-radius: var(--radius-card, 14px);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 17px;
+  color: var(--text);
+}
+
+.cardTitle svg {
+  color: #2aabee;
+}
+
+.cardRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--separator);
+}
+
+.cardRow:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.cardWho {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+
+.cardSub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.cardLast {
+  font-size: 14px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Settings: how to connect, step by step. */
+.steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* ---------- The AI review (beta, TgReview.jsx) ---------- */
+.beta {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: #7c5cff;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+.betaNote {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.reviewBox {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--separator);
+  background: var(--surface);
+  max-height: 45%;
+  overflow-y: auto;
+}
+
+.reviewHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 14px;
+}
+
+.reviewHead svg {
+  color: #7c5cff;
+}
+
+.reviewWhen {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.reviewHead .moreButton {
+  margin-left: auto;
+}
+
+.review {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.reviewLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.stars {
+  color: #f5a623;
+  letter-spacing: 1px;
+  font-size: 14px;
+}
+
+.starsOff {
+  color: var(--fill-strong);
+}
+
+.topic {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.reviewText {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.moreButton {
+  justify-self: start;
+  padding: 2px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.moreButton:disabled {
+  color: var(--text-3);
+}
+
+.advice {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.advice ul {
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
+
+.betterReply {
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: var(--accent-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cardHeading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reviewCounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.reviewCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reviewList {
+  display: grid;
+}
+
+.reviewItem {
+  padding: 10px 0;
+  border-top: 1px solid var(--separator);
+}
+
+.reviewWho {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* The list: hidden chats (for managers). */
+.listOptions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 4px;
+}
+
+.aiHiddenNote {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--separator);
+  background: var(--fill);
+  font-size: 13px;
+  color: var(--text-2);
+}

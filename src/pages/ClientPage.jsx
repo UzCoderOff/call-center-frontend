@@ -26,6 +26,7 @@ import { TaskSheet } from "../components/tasks/TaskParts";
 import ScheduleSheet from "../components/clients/ScheduleSheet";
 import { CALL_ICON, TimelineList, entryFile, entryIcon, entryParts, entryTime, useEventText } from "../components/clients/Timeline";
 import { canBookAppointments } from "../lib/access";
+import { TelegramCard } from "../components/telegram/TgInbox";
 
 // One client: who they are, the people on their cases, each case's way
 // (milestones, stage history with dates, key dates, money), connected
@@ -291,6 +292,7 @@ function ClientView({ client, reload, goBack }) {
         {client.notes && <p className={pageStyles.note} style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{client.notes}</p>}
         <KeepOutOfArchive client={client} onChanged={reload} />
       </Card>
+      <TelegramCard client={client} />
       <ContactsCard client={client} onChanged={reload} />
       {!lawyer && <Connections client={client} onAdd={() => setSheet({ type: "link" })} onChanged={reload} />}
       {client.canManage && (

@@ -81,7 +81,7 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
   const [name, setName] = useState(client?.name || prefill?.name || "");
   const [phones, setPhones] = useState(client ? client.phones.map((p) => p.phone) : [prefill?.phone || ""]);
   const [city, setCity] = useState(client?.city || "");
-  const [source, setSource] = useState(client?.source || (prefill?.phone ? "call" : ""));
+  const [source, setSource] = useState(client?.source || prefill?.source || (prefill?.phone ? "call" : ""));
   const [email, setEmail] = useState(client?.email || "");
   const [notes, setNotes] = useState(client?.notes || "");
   const [matter, setMatter] = useState("");

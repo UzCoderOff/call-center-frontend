@@ -426,6 +426,17 @@ export const api = {
   telegramTest: () => request("/telegram/me/test", { method: "POST" }),
   telegramDisconnect: () => request("/telegram/me", { method: "DELETE" }),
   telegramOverview: () => request("/telegram/overview"),
+  // Clients writing to the firm's Telegram account (components/telegram/TgInbox.jsx).
+  tgChats: (params) => request(`/tg-inbox${qs(params)}`),
+  tgChat: (id, params) => request(`/tg-inbox/${id}${qs(params)}`),
+  tgUpdate: (id, payload) => request(`/tg-inbox/${id}`, { method: "PATCH", body: payload }),
+  tgClientChats: (clientId) => request(`/tg-inbox/client/${clientId}`),
+  tgStatus: () => request("/tg-inbox/status"),
+  tgSettings: (payload) => request("/tg-inbox/settings", { method: "PUT", body: payload }),
+  tgFileUrl: (messageId, { download = false } = {}) => `${BASE}/tg-inbox/files/${messageId}${download ? "?download=1" : ""}`,
+  tgReview: (id) => request(`/tg-inbox/${id}/review`, { method: "POST" }),
+  tgPhoneOwner: (id, phone) => request(`/tg-inbox/${id}/phone-owner${qs({ phone })}`),
+  tgReviews: (employeeId, month) => request(`/tg-inbox/reviews${qs({ employeeId, month })}`),
 
   // A Google Sheets link -> the file's bytes (the server downloads it).
   googleSheet: async (url) => {

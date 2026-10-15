@@ -19,7 +19,7 @@ import TemplateEditorPage from "./pages/TemplateEditorPage";
 import ProfilePage from "./pages/ProfilePage";
 import CalendarPage, { PlannerRedirect } from "./pages/CalendarPage";
 import MorePage from "./pages/MorePage";
-import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeePerformance, canSeeReports, canSeeTeam } from "./lib/access";
+import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeePerformance, canSeeReports, canSeeTeam, canSeeTgInbox } from "./lib/access";
 import ClientsPage from "./pages/ClientsPage";
 import ClientPage from "./pages/ClientPage";
 import CasePage from "./pages/CasePage";
@@ -36,6 +36,7 @@ import DaysOffPage from "./pages/DaysOffPage";
 import RemindersPage from "./pages/RemindersPage";
 import PhonePage from "./pages/PhonePage";
 import ChatPage from "./pages/ChatPage";
+import TelegramPage from "./pages/TelegramPage";
 import ConsultationPage from "./pages/ConsultationPage";
 import ConsultationsPage from "./pages/ConsultationsPage";
 import { ClientChatRedirect } from "./pages/ChatThreadPage";
@@ -149,6 +150,8 @@ function Routed() {
         <Route path="chat" element={<ChatPage />} />
         <Route path="chat/client/:clientId" element={guarded(canSeeClients, <ClientChatRedirect />)} />
         <Route path="chat/:id" element={<ChatPage />} />
+        <Route path="telegram" element={guarded(canSeeTgInbox, <TelegramPage />)} />
+        <Route path="telegram/:tgId" element={<TelegramPage />} />
         <Route path="performance" element={guarded(canSeePerformance, <PerformancePage />)} />
         <Route path="performance/:id" element={guarded(canSeePerformance, <PersonPerformancePage />)} />
         <Route path="days-off" element={guarded(canSeeDaysOff, <DaysOffPage />)} />

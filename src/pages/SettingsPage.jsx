@@ -12,6 +12,7 @@ import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 import { TelegramOverview } from "../components/telegram/TelegramCard";
+import { TgInboxSection } from "../components/telegram/TgInboxSettings";
 import { CallCenterSection, StrikeRulesSection } from "../components/settings/CallCenterRules";
 import { PhoneLineSection } from "../components/settings/PhoneLine";
 import { ClientArchiveSection } from "../components/settings/ClientArchive";
@@ -60,6 +61,7 @@ export default function SettingsPage() {
         <ChecklistsSection />
         <DeadlineDaysSection />
         <TelegramOverview />
+        <TgInboxSection canEdit={canEdit || user.role === "BOSS"} />
         <AuditLog />
       </div>
     </div>
