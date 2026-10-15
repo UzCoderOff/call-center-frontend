@@ -172,6 +172,11 @@ export const api = {
   myCash: () => request("/cash/me"),
   addHandover: (payload) => request("/cash/handovers", { method: "POST", body: payload }),
   deleteHandover: (id) => request(`/cash/handovers/${id}`, { method: "DELETE" }),
+  // Who can take cash (the forms' "Who took it?"); everyone: any account (Kassa).
+  cashHolders: (everyone = false) => request(`/cash/holders${everyone ? "?everyone=1" : ""}`),
+  // One person's cash payments, and moving one to whoever really took it.
+  cashPayments: (userId) => request(`/cash/payments${qs({ userId })}`),
+  moveCashPayment: (id, cashWith) => request(`/cash/payments/${id}`, { method: "PATCH", body: { cashWith } }),
   // --- a contract's payment schedule ---
   setInstallments: (caseId, items) => request(`/client-cases/${caseId}/installments`, { method: "PUT", body: { items } }),
   employeePerformance: (id, month) => request(`/performance/${id}${qs({ month })}`),
@@ -221,15 +226,27 @@ export const api = {
   personalCalendar: (params) => request(`/personal-calendar${qs(params)}`),
   addPersonalEvent: (payload) => request("/personal-calendar/events", { method: "POST", body: payload }),
   updatePersonalEvent: (id, payload) => request(`/personal-calendar/events/${id}`, { method: "PATCH", body: payload }),
-  deletePersonalEvent: (id) => request(`/personal-calendar/events/${id}`, { method: "DELETE" }),
+  // A repeating one: `date` takes out that day only.
+  deletePersonalEvent: (id, date) => request(`/personal-calendar/events/${id}${qs({ date })}`, { method: "DELETE" }),
+  // Who's busy when on a day — every lawyer ("Kim boʻsh?").
+  personalFree: (date) => request(`/personal-calendar/free${qs({ date })}`),
+  // --- covers for a lawyer who is away (routes/covers.js) ---
+  covers: () => request("/covers"),
+  coverLawyers: () => request("/covers/lawyers"),
+  addCover: (payload) => request("/covers", { method: "POST", body: payload }),
+  updateCover: (id, payload) => request(`/covers/${id}`, { method: "PATCH", body: payload }),
   appointments: (params) => request(`/appointments${qs(params)}`),
   updateAppointment: (id, payload) => request(`/appointments/${id}`, { method: "PATCH", body: payload }),
-  // The consultation fee, when paid after booking: { feeAmount, feeMethod }.
+  // The consultation fee, when paid after booking: { feeAmount, feeMethod, feeCashWith }.
   appointmentFee: (id, payload) => request(`/appointments/${id}/fee`, { method: "POST", body: payload }),
 
   // --- tasks (the boss gives someone work with a due time) ---
   tasks: (params) => request(`/tasks${qs(params)}`),
-  taskPeople: () => request("/tasks/people"),
+  // caseId: the people on that case (its tasks).
+  taskPeople: (caseId) => request(`/tasks/people${qs({ caseId })}`),
+  checklists: () => request("/tasks/checklists"),
+  saveChecklists: (lists) => request("/tasks/checklists", { method: "PUT", body: { lists } }),
+  applyChecklist: (listId, caseId, assigneeId) => request(`/tasks/checklists/${listId}/apply`, { method: "POST", body: { caseId, assigneeId } }),
   createTask: (payload) => request("/tasks", { method: "POST", body: payload }),
   updateTask: (id, payload) => request(`/tasks/${id}`, { method: "PATCH", body: payload }),
   deleteTask: (id) => request(`/tasks/${id}`, { method: "DELETE" }),
@@ -308,6 +325,14 @@ export const api = {
   updateStage: (id, payload) => request(`/client-stages/${id}`, { method: "PATCH", body: payload }),
   deleteStage: (id) => request(`/client-stages/${id}`, { method: "DELETE" }),
   addKeyDate: (caseId, payload) => request(`/client-cases/${caseId}/dates`, { method: "POST", body: payload }),
+  // A history entry with a type (services/caseEntries.js).
+  addEntry: (clientId, payload) => request(`/clients/${clientId}/notes`, { method: "POST", body: payload }),
+  // How a hearing went: { text, result?, next?, fileId? }.
+  writeOutcome: (dateId, payload) => request(`/client-dates/${dateId}/outcome`, { method: "POST", body: payload }),
+  outcomesDue: () => request("/client-cases/outcomes-due"),
+  debts: (days) => request(`/client-cases/debts${qs({ days })}`),
+  deadlineDays: () => request("/client-cases/deadline-days"),
+  saveDeadlineDays: (stage, days) => request("/client-cases/deadline-days", { method: "PUT", body: { stage, days } }),
   updateKeyDate: (id, payload) => request(`/client-dates/${id}`, { method: "PATCH", body: payload }),
   deleteKeyDate: (id) => request(`/client-dates/${id}`, { method: "DELETE" }),
   // My cases (coordinator, lawyer; managers: every open contract), or the

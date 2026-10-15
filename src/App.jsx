@@ -19,9 +19,11 @@ import TemplateEditorPage from "./pages/TemplateEditorPage";
 import ProfilePage from "./pages/ProfilePage";
 import CalendarPage, { PlannerRedirect } from "./pages/CalendarPage";
 import MorePage from "./pages/MorePage";
-import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeePerformance, canSeeReports, canSeeTeam } from "./lib/access";
+import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeePerformance, canSeeReports, canSeeTeam } from "./lib/access";
 import ClientsPage from "./pages/ClientsPage";
 import ClientPage from "./pages/ClientPage";
+import CasePage from "./pages/CasePage";
+import DebtsPage from "./pages/DebtsPage";
 import ClientImportPage from "./pages/ClientImportPage";
 import MaterialsPage from "./pages/MaterialsPage";
 import MaterialPage from "./pages/MaterialPage";
@@ -126,6 +128,8 @@ function Routed() {
         <Route path="clients" element={guarded(canSeeClients, <ClientsPage />)} />
         <Route path="clients/import" element={guarded(canManageClients, <ClientImportPage />)} />
         <Route path="clients/:id" element={guarded(canSeeClients, <ClientPage />)} />
+        <Route path="clients/:id/cases/:caseId" element={guarded(canSeeClients, <CasePage />)} />
+        <Route path="debts" element={guarded(canSeeDebts, <DebtsPage />)} />
         <Route path="calendar" element={guarded(canSeeCalendar, <CalendarPage />)} />
         <Route path="consultations" element={<ConsultationsPage />} />
         <Route path="consultations/:id" element={<ConsultationPage />} />

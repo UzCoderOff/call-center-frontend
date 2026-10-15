@@ -753,3 +753,39 @@
 .actionDone {
   color: var(--good-text);
 }
+
+/* @mentions: who to name, over the box to write in. */
+.mentionList {
+  display: grid;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+  border-top: 1px solid var(--separator);
+  background: var(--surface);
+}
+
+.mentionOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 15px;
+}
+
+.mentionOption:hover,
+.mentionOption:focus-visible {
+  background: var(--fill);
+}
+
+.mention {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.mine .mention {
+  color: inherit;
+  text-decoration: underline;
+}

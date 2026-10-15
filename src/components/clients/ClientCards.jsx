@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import styles from "./Clients.module.css";
 import Card from "../ui/Card";
+import Button from "../ui/Button";
 import { Meter } from "./parts";
 import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
@@ -36,11 +37,37 @@ export function TargetsCard({ manager }) {
 // The client's money altogether (Moliya, or the coordinator of their case):
 // what the contracts come to, what they've given, what's left — and what's
 // overdue and the next payment due. Server: routes/clients.js clientMoney.
-export function MoneySummaryCard({ money }) {
+// With the buttons for adding money right here (`onPay`: a payment;
+// `onContract`: the contract amount) — no hunting through the case below.
+export function MoneySummaryCard({ money, onPay, onContract }) {
   const { t, fmt } = useI18n();
-  if (!money || (!money.contract && !money.paid && !money.consultationFees)) return null;
-  const share = money.contract ? Math.min(100, Math.round((money.paid / money.contract) * 100)) : 0;
-  const done = money.contract > 0 && money.remaining === 0;
+  const empty = !money || (!money.contract && !money.paid && !money.consultationFees);
+  if (!money && !onContract) return null;
+  if (empty && !onPay && !onContract) return null;
+  const share = money?.contract ? Math.min(100, Math.round((money.paid / money.contract) * 100)) : 0;
+  const done = money?.contract > 0 && money.remaining === 0;
+  const actions = (onPay || onContract) && (
+    <div className={styles.moneyActions}>
+      {onPay && (
+        <Button size="small" variant="primary" icon="plus" onClick={onPay}>
+          {t("clientMoney.addPayment")}
+        </Button>
+      )}
+      {onContract && (
+        <Button size="small" icon="edit" onClick={onContract}>
+          {money?.contract ? t("clientMoney.changeContract") : t("clientMoney.setContract")}
+        </Button>
+      )}
+    </div>
+  );
+  if (empty) {
+    return (
+      <Card title={t("clientMoney.title")} className={styles.moneyCard}>
+        <p className={styles.moneyNote}>{t("clientMoney.nothingYet")}</p>
+        {actions}
+      </Card>
+    );
+  }
   return (
     <Card title={t("clientMoney.title")} subtitle={money.cases > 1 ? t("clientMoney.cases", { count: money.cases }) : undefined} className={styles.moneyCard}>
       {money.contract > 0 && (
@@ -73,6 +100,7 @@ export function MoneySummaryCard({ money }) {
         {money.unscheduled > 0 && money.remaining > 0 && <li>{t("clientMoney.unscheduled", { amount: fmt.money(money.unscheduled) })}</li>}
         {money.consultationFees > 0 && <li>{t("clientMoney.fees", { amount: fmt.money(money.consultationFees) })}</li>}
       </ul>
+      {actions}
     </Card>
   );
 }

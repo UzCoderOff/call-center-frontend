@@ -30,7 +30,7 @@ const HOUR_PX = 56;
 const DAY_FROM = 8 * 60;
 const DAY_TO = 19 * 60;
 
-const keyOf = (i) => `${i.type}:${i.id}:${i.ownerId}`;
+const keyOf = (i) => `${i.type}:${i.id}:${i.ownerId}:${i.date}`;
 const endOf = (i) => (i.end != null && i.end > i.start ? i.end : i.start + (i.type === "caseDate" ? 60 : 45));
 
 // The colour of an item: its kind for one's own, else what it is.
@@ -154,7 +154,7 @@ export default function PersonalCalendar({ people, onPeopleChanged, isManager })
 
   function open(item) {
     if (item.type === "event") return setSheet({ event: item });
-    if (item.type === "caseDate") return item.case?.clientId && navigate(`/clients/${item.case.clientId}`);
+    if (item.type === "caseDate") return item.case?.clientId && navigate(`/clients/${item.case.clientId}?case=${item.case.id}&section=dates`);
     if (item.type === "consultation") return navigate(`/consultations/${item.id}`);
   }
 

@@ -10,6 +10,9 @@ import { LOST_REASONS } from "./ClientWork";
 import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
 import { todayIso } from "../../lib/format";
+import Segmented from "../ui/Segmented";
+import CashWith, { cashWithDefault, cashWithOf } from "../finance/CashWith";
+import { useAuth } from "../../hooks/useAuth";
 import { useI18n } from "../../i18n";
 
 
@@ -396,28 +399,47 @@ const CONSULTATION_FEE = 450000;
 // `finance`: sees contract money. Without it, only the consultation fee can
 // be recorded (the server enforces the same).
 // A new payment, or correcting one (`payment`): the amount, the day, how,
-// what for. The server checks who may (the audit log keeps the before and
-// after of a correction).
-export function PaymentSheet({ clientId, cases, caseId, payment = null, finance = false, onClose, onSaved }) {
-  const { t } = useI18n();
+// what for — and, for cash, who took the money (Kassa counts it with them).
+// The server checks who may (the audit log keeps the before and after of a
+// correction).
+export function PaymentSheet({ clientId, cases, caseId, payment = null, finance = false, suggested = null, onClose, onSaved }) {
+  const { t, fmt } = useI18n();
+  const { user } = useAuth();
   const editing = Boolean(payment);
   const target = cases.find((c) => c.id === (payment?.caseId ?? caseId));
-  const firstKind = payment?.kind || (!finance || target?.status === "consultation" || target?.status === "call_again" ? "consultation" : "contract");
+  // `suggested`: what's left on a contract amount just set (the case here
+  // is from before it).
+  const firstKind = payment?.kind || (suggested ? "contract" : !finance || target?.status === "consultation" || target?.status === "call_again" ? "consultation" : "contract");
   const [amount, setAmount] = useState(
-    payment ? String(payment.amount) : firstKind === "consultation" ? String(CONSULTATION_FEE) : target?.remaining > 0 ? String(target.remaining) : ""
+    payment ? String(payment.amount) : suggested ? String(suggested) : firstKind === "consultation" ? String(CONSULTATION_FEE) : target?.remaining > 0 ? String(target.remaining) : ""
   );
   const [date, setDate] = useState(payment?.date || todayIso());
   const [method, setMethod] = useState(payment ? payment.method || "" : "card");
+  const [cashWith, setCashWith] = useState(payment ? cashWithOf(payment) : cashWithDefault(user));
   const [kind, setKind] = useState(firstKind);
   const [forCase, setForCase] = useState(payment ? (payment.caseId != null ? String(payment.caseId) : "") : caseId ? String(caseId) : cases[0] ? String(cases[0].id) : "");
   const [note, setNote] = useState(payment?.note || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const chosenCase = cases.find((c) => String(c.id) === forCase);
+  // Correcting someone else's payment: "me" is them.
+  const recorder = payment?.recordedBy && payment.recordedBy.id !== user.id ? { id: payment.recordedBy.id, name: payment.recordedBy.employee?.name || payment.recordedBy.name || payment.recordedBy.username } : null;
+
+  // Picking what it's for fills in the usual amount (until they type one).
+  function pickKind(next) {
+    setKind(next);
+    if (editing) return;
+    if (next === "consultation") setAmount(String(CONSULTATION_FEE));
+    else if (chosenCase?.remaining > 0) setAmount(String(chosenCase.remaining));
+  }
 
   async function save() {
     if (!Number(amount)) return setError(t("payments.amountRequired"));
+    if (!method && !editing) return setError(t("payments.methodRequired"));
+    if (method === "cash" && cashWith == null) return setError(t("cashWith.required"));
     setBusy(true);
     setError("");
+    const cash = method === "cash" ? cashWith : undefined;
     try {
       if (editing) {
         const changes = {};
@@ -427,9 +449,10 @@ export function PaymentSheet({ clientId, cases, caseId, payment = null, finance 
         if (kind !== payment.kind) changes.kind = kind;
         if (note !== (payment.note || "")) changes.note = note;
         if ((forCase ? Number(forCase) : null) !== (payment.caseId ?? null)) changes.caseId = forCase ? Number(forCase) : null;
+        if (cash !== undefined && cash !== cashWithOf(payment)) changes.cashWith = cash;
         if (Object.keys(changes).length) await api.updatePayment(payment.id, changes);
       } else {
-        await api.addPayment(clientId, { amount: Number(amount), date, method, kind, note, caseId: forCase ? Number(forCase) : null });
+        await api.addPayment(clientId, { amount: Number(amount), date, method, kind, note, caseId: forCase ? Number(forCase) : null, cashWith: cash });
       }
       onSaved();
     } catch (err) {
@@ -442,38 +465,33 @@ export function PaymentSheet({ clientId, cases, caseId, payment = null, finance 
   return (
     <Sheet title={editing ? t("payments.edit") : finance ? t("payments.add") : t("payments.addConsultation")} onClose={onClose}>
       <div className={pageStyles.formStack}>
-        <MoneyField label={t("payments.amount")} value={amount} onChange={setAmount} />
-        <div className={styles.twoCol}>
-          <TextField label={t("payments.date")} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <SelectField label={t("payments.method")} value={method} onChange={(e) => setMethod(e.target.value)}>
-            {editing && !payment.method && <option value="">—</option>}
-            {["cash", "card", "transfer"].map((m) => (
-              <option key={m} value={m}>
-                {t(`payments.methods.${m}`)}
+        {cases.length > 1 && (
+          <SelectField label={t("payments.forCase")} value={forCase} onChange={(e) => setForCase(e.target.value)}>
+            {cases.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.matter || t(`cases.statuses.${c.status}`)}
               </option>
             ))}
           </SelectField>
+        )}
+        {finance && (
+          <div className={pageStyles.formStack} style={{ gap: 6 }}>
+            <span className={pageStyles.note}>{t("payments.kind")}</span>
+            <Segmented full value={kind} onChange={pickKind} label={t("payments.kind")} options={["contract", "consultation", "other"].map((k) => ({ value: k, label: t(`payments.kinds.${k}`) }))} />
+          </div>
+        )}
+        <MoneyField label={t("payments.amount")} value={amount} onChange={setAmount} />
+        {!editing && !suggested && kind === "contract" && chosenCase?.contractAmount > 0 && (
+          <p className={pageStyles.note} style={{ marginTop: -6 }}>
+            {t("payments.leftOnCase", { amount: fmt.money(chosenCase.remaining ?? 0), total: fmt.money(chosenCase.contractAmount) })}
+          </p>
+        )}
+        <div className={pageStyles.formStack} style={{ gap: 6 }}>
+          <span className={pageStyles.note}>{t("payments.method")}</span>
+          <Segmented full value={method} onChange={setMethod} label={t("payments.method")} options={["cash", "card", "transfer"].map((m) => ({ value: m, label: t(`payments.methods.${m}`) }))} />
         </div>
-        <div className={styles.twoCol}>
-          {finance && (
-            <SelectField label={t("payments.kind")} value={kind} onChange={(e) => setKind(e.target.value)}>
-              {["consultation", "contract", "other"].map((k) => (
-                <option key={k} value={k}>
-                  {t(`payments.kinds.${k}`)}
-                </option>
-              ))}
-            </SelectField>
-          )}
-          {cases.length > 1 && (
-            <SelectField label={t("payments.forCase")} value={forCase} onChange={(e) => setForCase(e.target.value)}>
-              {cases.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.matter || t(`cases.statuses.${c.status}`)}
-                </option>
-              ))}
-            </SelectField>
-          )}
-        </div>
+        {method === "cash" && <CashWith value={cashWith} onChange={setCashWith} recorder={recorder} />}
+        <TextField label={t("payments.date")} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         <TextField label={t("payments.note")} value={note} onChange={(e) => setNote(e.target.value)} />
         <ErrorLine text={error} />
         <div className={pageStyles.formActions}>
@@ -481,6 +499,117 @@ export function PaymentSheet({ clientId, cases, caseId, payment = null, finance 
           <Button variant="primary" busy={busy} onClick={save}>
             {t("clients.save")}
           </Button>
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+// ------------------------------------------------------ contract amount
+// What the client pays altogether for a case — set straight from the
+// client's money card (it's also in "Ishni tahrirlash"). "Save and add a
+// payment": the usual moment — the contract is signed and the first money
+// comes in.
+export function ContractAmountSheet({ cases, caseId, onClose, onSaved, onSavedPay }) {
+  const { t, fmt } = useI18n();
+  const [forCase, setForCase] = useState(String(caseId ?? cases[0]?.id ?? ""));
+  const chosen = cases.find((c) => String(c.id) === forCase);
+  const [amount, setAmount] = useState(chosen?.contractAmount ? String(chosen.contractAmount) : "");
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState("");
+
+  function pickCase(id) {
+    setForCase(id);
+    const c = cases.find((x) => String(x.id) === id);
+    setAmount(c?.contractAmount ? String(c.contractAmount) : "");
+  }
+
+  async function save(andPay) {
+    if (!Number(amount)) return setError(t("payments.amountRequired"));
+    setBusy(andPay ? "pay" : "save");
+    setError("");
+    try {
+      if (Number(amount) !== (chosen?.contractAmount || 0)) await api.updateCase(Number(forCase), { contractAmount: Number(amount) });
+      if (andPay) onSavedPay(Number(forCase), Math.max(0, Number(amount) - (chosen?.paid || 0)) || null);
+      else onSaved();
+    } catch (err) {
+      setError(t("clients.saveFailed", { reason: err.code || "?" }));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Sheet title={t("clientMoney.contractTitle")} onClose={onClose}>
+      <div className={pageStyles.formStack}>
+        {cases.length > 1 && (
+          <SelectField label={t("payments.forCase")} value={forCase} onChange={(e) => pickCase(e.target.value)}>
+            {cases.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.matter || t(`cases.statuses.${c.status}`)}
+              </option>
+            ))}
+          </SelectField>
+        )}
+        <MoneyField label={t("clientMoney.contractAmount")} value={amount} onChange={setAmount} />
+        {chosen?.paid > 0 && <p className={pageStyles.note}>{t("clientMoney.paidSoFar", { amount: fmt.money(chosen.paid) })}</p>}
+        <p className={pageStyles.note}>{t("clientMoney.contractHint")}</p>
+        <ErrorLine text={error} />
+        <div className={pageStyles.formActions}>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <Button busy={busy === "save"} onClick={() => save(false)}>
+            {t("clients.save")}
+          </Button>
+          <Button variant="primary" icon="plus" busy={busy === "pay"} onClick={() => save(true)}>
+            {t("clientMoney.saveAndPay")}
+          </Button>
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+// ------------------------------------------------------- find a client
+// "Whose money is it?" — find the client by name or phone (Moliya → "Toʻlov
+// qoʻshish"); picking one opens their page with the payment form.
+export function PickClientSheet({ title, onClose, onPick }) {
+  const { t } = useI18n();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState(null);
+
+  const searching = query.trim().length >= 2;
+  useEffect(() => {
+    if (query.trim().length < 2) return undefined;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      api
+        .clients({ q: query })
+        .then((data) => !cancelled && setResults(data.clients.slice(0, 10)))
+        .catch(() => !cancelled && setResults([]));
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <Sheet title={title} onClose={onClose}>
+      <div className={pageStyles.formStack}>
+        <TextField label={t("pickClient.who")} placeholder={t("links.searchPlaceholder")} value={query} onChange={(e) => setQuery(e.target.value)} autoComplete="off" autoFocus />
+        {searching && results && results.length === 0 && <p className={pageStyles.note}>{t("pickClient.none")}</p>}
+        {searching && results && results.length > 0 && (
+          <div className={styles.results}>
+            {results.map((r) => (
+              <button key={r.id} type="button" className={styles.result} onClick={() => onPick(r)}>
+                <strong>{r.name}</strong>
+                <span className={styles.linkSub}>{[r.phone, r.latestCase?.matter].filter(Boolean).join(" · ") || "—"}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className={pageStyles.formActions}>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
         </div>
       </div>
     </Sheet>

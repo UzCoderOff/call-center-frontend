@@ -4,7 +4,7 @@ import styles from "./AppShell.module.css";
 import Icon from "../ui/Icon";
 import { Avatar } from "../ui/Misc";
 import { useAuth, isManagerRole } from "../../hooks/useAuth";
-import { canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeFinance, canSeePerformance, canSeeReports } from "../../lib/access";
+import { canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeeFinance, canSeePerformance, canSeeReports } from "../../lib/access";
 import { useI18n } from "../../i18n";
 import { useChatUnread } from "../../hooks/useChatUnread";
 
@@ -19,6 +19,8 @@ export function navItems(user) {
     ...(canSeeCalls(user) ? [{ to: "/calls", icon: "phone", label: "nav.calls" }] : []),
     ...(canSeeClients(user) ? [{ to: "/clients", icon: "contact", label: "nav.clients" }] : []),
     ...(canSeeFinance(user) ? [{ to: "/finance", icon: "cash", label: "nav.finance" }] : []),
+    // Coordinators: who owes on their cases (Moliya has it too, under Qarzlar).
+    ...(canSeeDebts(user) && !canSeeFinance(user) ? [{ to: "/debts", icon: "cash", label: "nav.debts" }] : []),
     ...(canSeeCalendar(user) ? [{ to: "/calendar", icon: "calendar", label: "nav.calendar" }] : []),
     ...(canSeeReports(user) ? [{ to: "/reports", icon: "clipboard", label: "nav.reports" }] : []),
     ...(canSeePerformance(user) ? [{ to: "/performance", icon: "barChart", label: "nav.performance" }] : []),

@@ -713,3 +713,21 @@ section.foldCard {
 .foldBody {
   padding-bottom: 18px;
 }
+
+/* Kassa → one person's cash payments */
+.cashPayment {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--separator);
+}
+
+.cashPayment:last-child {
+  border-bottom: none;
+}
+
+.cashPaymentTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}

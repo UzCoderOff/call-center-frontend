@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import styles from "../components/clients/Clients.module.css";
 import pageStyles from "./Pages.module.css";
@@ -11,8 +11,8 @@ import { AsyncBoundary, Banner, EmptyState, KeyValue, PageHeader } from "../comp
 import { ReminderSheet } from "../components/reminders/ReminderParts";
 import QuickActions from "../components/clients/QuickActions";
 import { personName } from "../components/clients/parts";
-import CasePanel from "../components/clients/CaseWork";
-import { CaseSheet, ClientSheet, LinkSheet, MergeSheet, PaymentSheet } from "../components/clients/ClientSheets";
+import CaseWorkspace, { CaseSwitcher } from "../components/cases/CaseWorkspace";
+import { CaseSheet, ClientSheet, ContractAmountSheet, LinkSheet, MergeSheet, PaymentSheet } from "../components/clients/ClientSheets";
 import { ContactsCard, FilesCard, NextSteps } from "../components/clients/ClientWork";
 import { MoneySummaryCard } from "../components/clients/ClientCards";
 import { useAuth } from "../hooks/useAuth";
@@ -24,6 +24,7 @@ import { useI18n } from "../i18n";
 import { saveFailed } from "../lib/saveFailed";
 import { TaskSheet } from "../components/tasks/TaskParts";
 import ScheduleSheet from "../components/clients/ScheduleSheet";
+import { CALL_ICON, TimelineList, entryFile, entryIcon, entryParts, entryTime, useEventText } from "../components/clients/Timeline";
 import { canBookAppointments } from "../lib/access";
 
 // One client: who they are, the people on their cases, each case's way
@@ -174,6 +175,23 @@ function ClientView({ client, reload, goBack }) {
   };
   const tel = telHref(client.phones[0]?.phone);
 
+  // Money, from the top of the page (not only inside each case): the cases
+  // they can record a payment on — the one still owing first.
+  const payable = lawyer || client.archivedAt ? [] : client.cases.filter((c) => c.permissions?.role !== "result");
+  const payCase = (payable.find((c) => c.remaining > 0) || payable.find((c) => c.status !== "done" && c.status !== "declined") || payable[0])?.id ?? null;
+  const mayPay = !lawyer && !client.archivedAt;
+  const openPay = (caseId = payCase) => setSheet({ type: "payment", caseId });
+  const contractCases = client.finance ? payable.filter((c) => c.permissions?.money) : [];
+  // ?pay=1 (Moliya → "Toʻlov qoʻshish"): the payment form, open.
+  useEffect(() => {
+    if (params.get("pay") !== "1") return;
+    if (mayPay) openPay();
+    const next = new URLSearchParams(params);
+    next.delete("pay");
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Archiving hides the client from lists; everything is kept and it can be
   // restored from the "Archive" filter.
   async function archive() {
@@ -195,15 +213,41 @@ function ClientView({ client, reload, goBack }) {
     }
   }
 
-  async function removePayment(p) {
-    if (!confirm(t("payments.confirmDelete"))) return;
-    try {
-      await api.deletePayment(p.id);
-      reload();
-    } catch (err) {
-      saveFailed(err, t);
-    }
+  // The case open on this page (2026-10-15: right here, all of it): the one
+  // picked (?case=), else the one in work. Several cases: a switcher.
+  const pickedId = Number(params.get("case")) || null;
+  const openCase =
+    client.cases.find((c) => c.id === pickedId) ||
+    client.cases.find((c) => c.status === "contract") ||
+    client.cases.find((c) => c.status !== "done" && c.status !== "declined") ||
+    client.cases[0] ||
+    null;
+  function pickCase(id) {
+    const next = new URLSearchParams(params);
+    next.set("case", String(id));
+    next.delete("section");
+    setParams(next, { replace: true });
   }
+  // Came from a link to one part of it (?section=money): go there — only on
+  // the case that was asked for — and once more after its lists have loaded
+  // (they push it down), unless they've scrolled on their own meanwhile.
+  const section = openCase && (!pickedId || openCase.id === pickedId) ? params.get("section") : null;
+  useEffect(() => {
+    if (!section) return undefined;
+    const go = () => document.getElementById(`section-${section}`)?.scrollIntoView({ block: "start" });
+    let landed = null;
+    const first = setTimeout(() => {
+      go();
+      landed = window.scrollY;
+    }, 300);
+    const again = setTimeout(() => {
+      if (landed !== null && Math.abs(window.scrollY - landed) < 4) go();
+    }, 1500);
+    return () => {
+      clearTimeout(first);
+      clearTimeout(again);
+    };
+  }, [section, openCase?.id]);
 
   // Consultations whose summary this person should write (they held it, or
   // a manager): over, not cancelled or missed, none written.
@@ -221,6 +265,48 @@ function ClientView({ client, reload, goBack }) {
   const sub = [client.city, client.source && t(`clients.sources.${client.source}`), t("clients.addedOn", { date: fmt.date(new Date(client.createdAt).getTime()) })]
     .filter(Boolean)
     .join(" · ");
+
+  // The client's own cards — beside the case, under its team's work.
+  const clientCards = (
+    <>
+      {client.results?.length > 0 && (
+        <Card title={t("clients.result.earlier")} subtitle={t("clients.result.earlierHint")}>
+          {client.results.map((r) => (
+            <KeyValue key={r.id} label={r.contractDate ? t("clients.signedOn", { date: fmt.isoDateLong(r.contractDate) }) : t("cases.statuses.contract")}>
+              {r.coordinator ? t("clients.coordinatorIs", { name: r.coordinator }) : t("caseWork.notAssigned")}
+            </KeyValue>
+          ))}
+        </Card>
+      )}
+      <Card title={t("clients.details")}>
+        {client.phones.map((p) => (
+          <div key={p.id} className={styles.phoneRow}>
+            <Icon name="phone" size={16} />
+            <a href={telHref(p.phone) || undefined}>{fmt.phone(p.phone)}</a>
+          </div>
+        ))}
+        {client.email && <KeyValue label={t("clients.email")}>{client.email}</KeyValue>}
+        <KeyValue label={t("clients.idLabel")}>#{client.id}</KeyValue>
+        {client.createdBy && <KeyValue label={t("clients.addedBy")}>{personName(client.createdBy)}</KeyValue>}
+        {client.notes && <p className={pageStyles.note} style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{client.notes}</p>}
+        <KeepOutOfArchive client={client} onChanged={reload} />
+      </Card>
+      <ContactsCard client={client} onChanged={reload} />
+      {!lawyer && <Connections client={client} onAdd={() => setSheet({ type: "link" })} onChanged={reload} />}
+      {client.canManage && (
+        <div className={pageStyles.actionsRow} style={{ marginTop: 0 }}>
+          <Button icon="link" onClick={() => setSheet({ type: "merge" })}>
+            {t("clients.merge")}
+          </Button>
+          {!client.archivedAt && (
+            <Button variant="destructive" icon="minusCircle" onClick={archive}>
+              {t("clients.archive")}
+            </Button>
+          )}
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div>
@@ -245,7 +331,8 @@ function ClientView({ client, reload, goBack }) {
       />
       <QuickActions
         actions={[
-          { icon: "message", label: t("chat.clientChat"), to: `/chat/client/${client.id}` },
+          mayPay && { icon: "cash", label: t("clientMoney.payShort"), onClick: () => openPay() },
+          client.level !== "result" && { icon: "message", label: t("chat.clientChat"), to: `/chat/client/${client.id}` },
           { icon: "alarm", label: t("reminders.forClient"), onClick: () => setSheet({ type: "reminder" }) },
           client.canManage && { icon: "checkCircle", label: t("tasks.giveForClient"), onClick: () => setSheet({ type: "task" }) },
           client.canEdit && { icon: "sliders", label: t("clients.edit"), onClick: () => setSheet({ type: "client" }) },
@@ -309,81 +396,50 @@ function ClientView({ client, reload, goBack }) {
           </Banner>
         </div>
       )}
-      <div className={styles.layout}>
-        <div className={styles.column}>
-          <MoneySummaryCard money={client.money} />
-          <NextSteps client={client} onChanged={reload} />
-
-          <div className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>{lawyer ? t("lawyer.yourCases") : t("cases.title")}</h2>
-            {!lawyer && (
-              <Button size="small" icon="plus" onClick={() => setSheet({ type: "case" })}>
-                {client.results?.length ? t("clients.newMatter") : t("cases.add")}
-              </Button>
-            )}
-          </div>
-          {client.cases.length === 0 ? (
-            <EmptyState icon="briefcase" text={t("cases.empty")} />
-          ) : (
-            client.cases.map((c) => (
-              <CasePanel
-                key={c.id}
-                item={c}
-                client={client}
-                onChanged={reload}
-                onEdit={() => setSheet({ type: "case", item: c })}
-                onPay={!lawyer && c.permissions?.role !== "result" ? () => setSheet({ type: "payment", caseId: c.id }) : null}
-                onEditPayment={!lawyer ? (payment) => setSheet({ type: "payment", caseId: c.id, payment }) : null}
-                onSchedule={() => setSheet({ type: "schedule", item: c })}
-                onRemovePayment={removePayment}
-              />
-            ))
-          )}
-
-          {client.results?.length > 0 && (
-            <Card title={t("clients.result.earlier")} subtitle={t("clients.result.earlierHint")}>
-              {client.results.map((r) => (
-                <KeyValue key={r.id} label={r.contractDate ? t("clients.signedOn", { date: fmt.isoDateLong(r.contractDate) }) : t("cases.statuses.contract")}>
-                  {r.coordinator ? t("clients.coordinatorIs", { name: r.coordinator }) : t("caseWork.notAssigned")}
-                </KeyValue>
-              ))}
-            </Card>
-          )}
-
-          <FilesCard client={client} onChanged={reload} />
-          {!lawyer && <Connections client={client} onAdd={() => setSheet({ type: "link" })} onChanged={reload} />}
-        </div>
-
-        <div className={styles.column}>
-          <Card title={t("clients.details")}>
-            {client.phones.map((p) => (
-              <div key={p.id} className={styles.phoneRow}>
-                <Icon name="phone" size={16} />
-                <a href={telHref(p.phone) || undefined}>{fmt.phone(p.phone)}</a>
-              </div>
-            ))}
-            {client.email && <KeyValue label={t("clients.email")}>{client.email}</KeyValue>}
-            <KeyValue label={t("clients.idLabel")}>#{client.id}</KeyValue>
-            {client.createdBy && <KeyValue label={t("clients.addedBy")}>{personName(client.createdBy)}</KeyValue>}
-            {client.notes && <p className={pageStyles.note} style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{client.notes}</p>}
-            <KeepOutOfArchive client={client} onChanged={reload} />
-          </Card>
-          <ContactsCard client={client} onChanged={reload} />
-          <Activity client={client} userId={user.id} onChanged={reload} />
-          {client.canManage && (
-            <div className={pageStyles.actionsRow} style={{ marginTop: 0 }}>
-              <Button icon="link" onClick={() => setSheet({ type: "merge" })}>
-                {t("clients.merge")}
-              </Button>
-              {!client.archivedAt && (
-                <Button variant="destructive" icon="minusCircle" onClick={archive}>
-                  {t("clients.archive")}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+      <div className={styles.sectionHead}>
+        <h2 className={styles.sectionTitle}>{lawyer ? t("lawyer.yourCases") : t("cases.title")}</h2>
+        {!lawyer && (
+          <Button size="small" icon="plus" onClick={() => setSheet({ type: "case" })}>
+            {client.results?.length ? t("clients.newMatter") : t("cases.add")}
+          </Button>
+        )}
       </div>
+      {client.cases.length > 1 && <CaseSwitcher cases={client.cases} value={openCase?.id} onChange={pickCase} />}
+      {openCase ? (
+        <CaseWorkspace
+          key={openCase.id}
+          client={client}
+          item={openCase}
+          reload={reload}
+          asideTop={
+            <>
+              {client.cases.length > 1 && (
+                <MoneySummaryCard
+                  money={client.money}
+                  onPay={mayPay && payCase != null ? () => openPay() : undefined}
+                  onContract={contractCases.length ? () => setSheet({ type: "contract", caseId: (contractCases.find((c) => !c.contractAmount && c.status === "contract") || contractCases.find((c) => c.id === payCase) || contractCases[0]).id }) : undefined}
+                />
+              )}
+              <NextSteps client={client} onChanged={reload} />
+            </>
+          }
+          asideBottom={clientCards}
+          timeline={(openEntry) => <Activity client={client} userId={user.id} onChanged={reload} onEntry={openEntry} openCase={openCase} />}
+        />
+      ) : (
+        // No case yet: the client on their own.
+        <div className={styles.layout}>
+          <div className={styles.column}>
+            <NextSteps client={client} onChanged={reload} />
+            <EmptyState icon="briefcase" text={t("cases.empty")} />
+            <FilesCard client={client} onChanged={reload} />
+            {clientCards}
+          </div>
+          <div className={styles.column}>
+            <Activity client={client} userId={user.id} onChanged={reload} />
+          </div>
+        </div>
+      )}
 
       {sheet?.type === "client" && <ClientSheet client={client} onClose={close} onSaved={saved} />}
       {sheet?.type === "case" && (
@@ -395,8 +451,8 @@ function ClientView({ client, reload, goBack }) {
           onClose={close}
           onSaved={(result) => {
             saved();
-            // A new consultation: offer to book the visit too.
-            if (!sheet.item && result?.status === "consultation" && mayBook) setParams({ ask: "book" }, { replace: true });
+            // A new case: open it here (a new consultation: offer to book the visit too).
+            if (!sheet.item && result?.id) setParams({ case: String(result.id), ...(result.status === "consultation" && mayBook ? { ask: "book" } : {}) }, { replace: true });
           }}
         />
       )}
@@ -407,9 +463,22 @@ function ClientView({ client, reload, goBack }) {
           cases={client.cases}
           caseId={sheet.caseId}
           payment={sheet.payment || null}
-          finance={Boolean(client.cases.find((c) => c.id === sheet.caseId)?.permissions?.canPay)}
+          suggested={sheet.suggested || null}
+          finance={sheet.caseId != null ? Boolean(client.cases.find((c) => c.id === sheet.caseId)?.permissions?.canPay) : Boolean(client.finance)}
           onClose={close}
           onSaved={saved}
+        />
+      )}
+      {sheet?.type === "contract" && (
+        <ContractAmountSheet
+          cases={contractCases}
+          caseId={sheet.caseId}
+          onClose={close}
+          onSaved={saved}
+          onSavedPay={(caseId, left) => {
+            reload();
+            setSheet({ type: "payment", caseId, suggested: left });
+          }}
         />
       )}
       {sheet?.type === "link" && <LinkSheet client={client} onClose={close} onSaved={saved} />}
@@ -554,96 +623,15 @@ function KeepOutOfArchive({ client, onChanged }) {
 }
 
 // ------------------------------------------------------------ activity
-const CALL_ICON ={ incoming: "phoneIncoming", outgoing: "phoneOutgoing" };
-const EVENT_ICON = {
-  import: "upload",
-  note: "note",
-  archive: "minusCircle",
-  keep: "clock",
-  restore: "refresh",
-  merge: "link",
-  status: "checkCircle",
-  stage: "briefcase",
-  stage_row: "briefcase",
-  date_row: "calendar",
-  assign: "users",
-  case_edit: "edit",
-  case: "plus",
-  follow_up: "bell",
-  contact: "user",
-  file: "file",
-  lost: "minusCircle",
-  consult_summary: "note",
-};
 // Which filter each kind of entry belongs to.
 const GROUP = { note: "notes", call: "calls", appointment: "appointments", payment: "money" };
 // How a talk happened, when it wasn't a call in Ledger.
 const CHANNELS = ["", "telegram", "meeting", "phone", "sms"];
-const CHANNEL_ICON = { telegram: "send", meeting: "users", phone: "smartphone", sms: "note" };
 const FILTERS = ["all", "notes", "calls", "case", "money", "appointments"];
-
-// One line of the timeline for a recorded change, in words.
-function useEventText() {
-  const { t, fmt } = useI18n();
-  return (e) => {
-    const d = e.data || {};
-    const [from, to] = (e.text || "").split(">");
-    switch (e.kind) {
-      case "status":
-        return t("clients.events.status", { from: from ? t(`cases.statuses.${from}`) : "—", to: to ? t(`cases.statuses.${to}`) : "—" });
-      case "stage":
-        return t("clients.events.stage", { from: from ? t(`cases.stages.${from}`) : "—", to: to ? t(`cases.stages.${to}`) : "—" });
-      case "stage_row":
-        if (d.action === "clear") return t("caseWork.events.stageClear");
-        return t(`caseWork.events.stage_${d.action}`, { stage: d.stage ? t(`cases.stages.${d.stage}`) : "—", date: d.date ? fmt.isoDateLong(d.date) : "—" });
-      case "date_row":
-        return t(`caseWork.events.date_${d.action}`, { title: d.title || t(`caseWork.kinds.${d.kind || "other"}`), date: d.date ? fmt.isoDateLong(d.date) : "—", outcome: d.outcome || "" });
-      case "assign":
-        return d.to ? t("caseWork.events.assign", { role: t(`cases.${d.role}`), name: d.to }) : t("caseWork.events.unassign", { role: t(`cases.${d.role}`), name: d.from || "—" });
-      case "case_edit":
-        return t("caseWork.events.edit", {
-          fields: (d.changes || []).map((c) => `${t(`caseWork.fields.${c.field}`)}: ${showValue(c.from, fmt)} → ${showValue(c.to, fmt)}`).join("; "),
-        });
-      case "case":
-        return t("clients.events.case", { text: e.text || "—" });
-      case "archive":
-        return d.auto ? t("clients.events.archiveAuto", { days: d.days }) : t("clients.events.archive");
-      case "keep":
-        return d.until ? t("clients.events.keep", { date: fmt.isoDateLong(d.until) }) : t("clients.events.keepOff");
-      case "restore":
-        return t("clients.events.restore");
-      case "merge":
-        return t("clients.events.merge", { name: e.text });
-      case "follow_up": {
-        const what = t(`clientWork.kinds.${d.kind || "other"}`);
-        const who = d.contact ? ` — ${d.contact.name} (${t(`clientWork.relations.${d.contact.relation}`)})` : "";
-        const when = d.dueAt ? fmt.dateTime(new Date(d.dueAt).getTime()) : "";
-        if (d.action === "done") return `${t("clientWork.events.done", { what, when })}${who}${d.outcome ? ` — ${t(`clientWork.outcomes.${d.outcome}`)}` : ""}${d.outcomeNote ? `: ${d.outcomeNote}` : ""}`;
-        if (d.action === "cancel") return t("clientWork.events.cancel", { what, when });
-        if (d.action === "move") return t("clientWork.events.move", { what, when });
-        return `${t("clientWork.events.add", { what, when })}${who}${d.note ? ` — ${d.note}` : ""}`;
-      }
-      case "contact":
-        return t(`clientWork.events.contact_${d.action || "add"}`, { name: d.name || "—", relation: d.relation ? t(`clientWork.relations.${d.relation}`) : "" });
-      case "file":
-        return t(`clientWork.events.file_${d.action || "add"}`, { name: d.name || "—", kind: d.kind ? t(`clientWork.fileKinds.${d.kind}`) : "" });
-      case "lost":
-        return t("clientWork.events.lost", { reason: d.reason ? t(`clientWork.lost.${d.reason}`) : "—" }) + (d.note ? `: ${d.note}` : "");
-      case "consult_summary": {
-        const parts = [t(`summary.prospects.${d.prospect || "potential"}`), d.next ? t(`summary.next.${d.next.kind}`) : null, d.next?.dueAt ? fmt.dateTime(new Date(d.next.dueAt).getTime()) : null, d.lostReason ? t(`clientWork.lost.${d.lostReason}`) : null];
-        return `${t("summary.event", { what: parts.filter(Boolean).join(" · ") })}: ${e.text}`;
-      }
-      default:
-        return e.text;
-    }
-  };
-}
-
-const showValue = (v, fmt) => (v == null || v === "" ? "—" : /^\d{4}-\d{2}-\d{2}$/.test(v) ? fmt.isoDateLong(v) : v);
 
 // Everything about the client in time order, newest first — filterable, with
 // a note box (a note can be about one case: then only its people see it).
-function Activity({ client, userId, onChanged }) {
+function Activity({ client, userId, onChanged, onEntry = null, openCase = null }) {
   const { t, fmt } = useI18n();
   const eventText = useEventText();
   const [text, setText] = useState("");
@@ -651,9 +639,10 @@ function Activity({ client, userId, onChanged }) {
   const [filter, setFilter] = useState("all");
   const [showAll, setShowAll] = useState(false);
   const [editing, setEditing] = useState(null); // { id, text }
-  // A coordinator's or lawyer's note goes on their case; an operator's or a
-  // manager's on the client.
-  const ownCase = client.cases.length === 1 && ["coordinator", "lawyer"].includes(client.cases[0].permissions?.role) ? String(client.cases[0].id) : "";
+  // A coordinator's or lawyer's note goes on their case (the one open on the
+  // page); an operator's or a manager's on the client.
+  const mine = openCase || (client.cases.length === 1 ? client.cases[0] : null);
+  const ownCase = mine && ["coordinator", "lawyer"].includes(mine.permissions?.role) ? String(mine.id) : "";
   const [noteCase, setNoteCase] = useState(ownCase);
   const [channel, setChannel] = useState("");
   const caseName = useMemo(() => new Map(client.cases.map((k) => [k.id, k.matter || t("cases.untitled")])), [client.cases, t]);
@@ -662,14 +651,17 @@ function Activity({ client, userId, onChanged }) {
   const items = useMemo(() => {
     const out = [];
     for (const e of client.events) {
-      const at = new Date(e.createdAt).getTime();
+      const at = entryTime(e);
       out.push({
         key: `e${e.id}`,
         group: e.kind === "note" || e.kind === "follow_up" || e.kind === "consult_summary" ? "notes" : ["import", "archive", "keep", "restore", "merge", "contact"].includes(e.kind) ? "client" : "case",
         at,
-        icon: e.kind === "note" && e.data?.channel ? CHANNEL_ICON[e.data.channel] : EVENT_ICON[e.kind] || "briefcase",
-        title: e.kind === "note" && e.data?.channel ? `${t(`clientWork.channels.${e.data.channel}`)}: ${e.text}` : eventText(e),
-        sub: [e.kind === "import" ? t("clients.events.fromExcel") : personName(e.author), fmt.dateTime(at), e.editedAt ? t("clients.edited") : null, many && e.caseId ? caseName.get(e.caseId) : null].filter(Boolean).join(" · "),
+        icon: entryIcon(e),
+        title: eventText(e),
+        entry: entryParts(e, t, fmt, client.files),
+        sub: [e.kind === "import" ? t("clients.events.fromExcel") : personName(e.author), fmt.dateTime(new Date(e.createdAt).getTime()), e.editedAt ? t("clients.edited") : null, many && e.caseId ? caseName.get(e.caseId) : null, entryFile(e, client.files)]
+          .filter(Boolean)
+          .join(" · "),
         note: e.kind === "note" ? e : null,
         mine: e.kind === "note" && (e.authorId === userId || client.canManage),
       });
@@ -707,7 +699,7 @@ function Activity({ client, userId, onChanged }) {
         at: new Date(y, m - 1, d, 12).getTime(),
         icon: "cash",
         title: `${t("clients.events.payment", { amount: fmt.money(p.amount) })}${p.method ? ` · ${t(`payments.methods.${p.method}`)}` : ""}${p.editedAt ? ` · ${t("payments.edited")}` : ""}`,
-        sub: [fmt.isoDateLong(p.date), personName(p.recordedBy), p.note].filter(Boolean).join(" · "),
+        sub: [fmt.isoDateLong(p.date), personName(p.recordedBy), p.cashHolder ? t("cashWith.took", { name: personName(p.cashHolder) }) : null, p.note].filter(Boolean).join(" · "),
       });
     }
     return out.sort((a, b) => b.at - a.at);
@@ -753,7 +745,17 @@ function Activity({ client, userId, onChanged }) {
   }
 
   return (
-    <Card title={t("clients.timeline")} subtitle={t("clients.timelineHint")}>
+    <Card
+      title={t("clients.timeline")}
+      subtitle={t("clients.timelineHint")}
+      action={
+        onEntry && (
+          <Button size="small" variant="primary" icon="plus" onClick={onEntry}>
+            {t("entries.add")}
+          </Button>
+        )
+      }
+    >
       <div className={styles.composer}>
         <TextAreaField aria-label={t("clients.writeNote")} placeholder={t("clients.writeNote")} value={text} onChange={(e) => setText(e.target.value)} rows={2} />
         <div className={styles.composerRow}>
@@ -827,49 +829,5 @@ function Activity({ client, userId, onChanged }) {
         </>
       )}
     </Card>
-  );
-}
-
-function TimelineList({ items, renderExtra, editing, editor }) {
-  return (
-    <div className={styles.timeline}>
-      {items.map((item) => {
-        const body = (
-          <>
-            <span className={styles.itemIcon}>
-              <Icon name={item.icon} size={16} />
-            </span>
-            <span className={styles.itemMain}>
-              <span className={styles.itemTitle} style={item.note ? { whiteSpace: "pre-wrap", fontWeight: 500 } : undefined}>
-                {item.title}
-              </span>
-              <span className={styles.itemSub} style={{ display: "block" }}>
-                {item.sub}
-              </span>
-            </span>
-          </>
-        );
-        if (item.to) {
-          return (
-            <Link key={item.key} to={item.to} className={styles.item}>
-              {body}
-            </Link>
-          );
-        }
-        if (editing && item.note && editing.id === item.note.id) {
-          return (
-            <div key={item.key} className={styles.item}>
-              {editor}
-            </div>
-          );
-        }
-        return (
-          <div key={item.key} className={styles.item}>
-            {body}
-            {renderExtra ? renderExtra(item) : null}
-          </div>
-        );
-      })}
-    </div>
   );
 }

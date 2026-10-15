@@ -6,8 +6,12 @@ export const isManager = (user) => user.role === "BOSS" || user.role === "DEVELO
 export const isLawyer = (user) => user.role === "LAWYER";
 
 // Whether a staff member has calls at all: synced from their phone
-// (collectCalls) or through Ledger's phone line (pbxCalling).
+// (collectCalls) or through Ledger's phone line (pbxCalling). They see them
+// in Calls and on their home page, whatever their job.
 export const takesCalls = (employee) => Boolean(employee?.hasCalls ?? (employee?.collectCalls || employee?.pbxCalling));
+// ...and their calls count — the call center and coordinators (the
+// server's countsCalls): operators of clients, the clients database.
+export const countsCalls = (employee) => Boolean(employee?.countsCalls ?? takesCalls(employee));
 
 export function canSeeCalls(user) {
   return isManager(user) || takesCalls(user.employee);
@@ -44,7 +48,7 @@ export const isCallCenter = (user) => hasJob(user, "call_center");
 // (call-center staff, anyone who books appointments, coordinators); a lawyer
 // sees their own clients.
 export function canSeeClients(user) {
-  return isManager(user) || isLawyer(user) || takesCalls(user.employee) || user.employee?.calendarAccess === "book" || isCoordinator(user);
+  return isManager(user) || isLawyer(user) || countsCalls(user.employee) || user.employee?.calendarAccess === "book" || isCoordinator(user);
 }
 
 // Money from clients — contract amounts, payments, debts: the developer, and
@@ -52,6 +56,12 @@ export function canSeeClients(user) {
 // decides and leaves money out for everyone else).
 export function canSeeFinance(user) {
   return Boolean(user?.finance);
+}
+
+// Who owes on the cases someone looks after (pages/DebtsPage.jsx):
+// coordinators their own; Moliya every case.
+export function canSeeDebts(user) {
+  return canSeeFinance(user) || isCoordinator(user);
 }
 
 // Natijalar (performance): managers see everyone; a staff member their own.

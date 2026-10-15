@@ -15,6 +15,7 @@ import { TelegramOverview } from "../components/telegram/TelegramCard";
 import { CallCenterSection, StrikeRulesSection } from "../components/settings/CallCenterRules";
 import { PhoneLineSection } from "../components/settings/PhoneLine";
 import { ClientArchiveSection } from "../components/settings/ClientArchive";
+import { ChecklistsSection, DeadlineDaysSection } from "../components/settings/CaseSettings";
 import { AiSection } from "../components/settings/AiSettings";
 import { ClaudeSection } from "../components/settings/ClaudeSettings";
 import { SummaryRuleSection } from "../components/consultations/Summaries";
@@ -56,6 +57,8 @@ export default function SettingsPage() {
         {canEdit && <AiSection />}
         {canEdit && <ClaudeSection />}
         <ClientArchiveSection />
+        <ChecklistsSection />
+        <DeadlineDaysSection />
         <TelegramOverview />
         <AuditLog />
       </div>
@@ -73,6 +76,7 @@ const AUDIT_ICON = {
   "case.delete": "trash",
   "payment.delete": "trash",
   "payment.edit": "edit",
+  "payment.cashHolder": "cash",
   "summary.edit": "edit",
   "clients.import": "upload",
   "clients.bulk": "users",

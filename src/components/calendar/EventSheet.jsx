@@ -14,14 +14,21 @@ const EVENT_KINDS = ["court", "meeting", "work", "personal", "other"];
 const KIND_ICONS = { court: "briefcase", meeting: "users", work: "clipboard", personal: "coffee", other: "calendar" };
 
 // Add or change one thing in a lawyer's own calendar. Moving it is just
-// another day or time: "Today / Tomorrow / +1 day" and the times.
+// another day or time: "Today / Tomorrow / +1 day" and the times. It can
+// repeat (every day, Monday–Saturday, every week) until a day or for good;
+// a change is to the whole series, and deleting asks "only this day, or all".
+const REPEATS = ["none", "daily", "workdays", "weekly"];
 export default function EventSheet({ event, defaults, people, onClose, onSaved }) {
   const { t, fmt } = useI18n();
   const editing = Boolean(event);
   const start0 = event ? event.start : defaults?.start ?? 9 * 60;
   const [title, setTitle] = useState(event?.title || "");
   const [kind, setKind] = useState(event?.kind || "meeting");
-  const [date, setDate] = useState(event?.date || defaults?.date || todayIso());
+  // A series: its first day (changes are to all of it).
+  const series = Boolean(event?.repeat);
+  const [date, setDate] = useState((series ? event.seriesDate : event?.date) || defaults?.date || todayIso());
+  const [repeat, setRepeat] = useState(event?.repeat || "none");
+  const [repeatUntil, setRepeatUntil] = useState(event?.repeatUntil || "");
   const [allDay, setAllDay] = useState(editing && event.start == null);
   const [start, setStart] = useState(start0 ?? 9 * 60);
   const [end, setEnd] = useState(event?.end ?? Math.min((start0 ?? 9 * 60) + 60, 23 * 60 + 45));
@@ -43,7 +50,18 @@ export default function EventSheet({ event, defaults, people, onClose, onSaved }
     if (!allDay && end <= start) return setError(t("personal.badTimes"));
     setBusy(true);
     setError("");
-    const payload = { title: title.trim(), kind, date, start: allDay ? null : start, end: allDay ? null : end, place: place.trim() || null, note: note.trim() || null };
+    if (repeat !== "none" && repeatUntil && repeatUntil < date) return setError(t("personal.badUntil"));
+    const payload = {
+      title: title.trim(),
+      kind,
+      date,
+      start: allDay ? null : start,
+      end: allDay ? null : end,
+      place: place.trim() || null,
+      note: note.trim() || null,
+      repeat: repeat === "none" ? null : repeat,
+      repeatUntil: repeat === "none" ? null : repeatUntil || null,
+    };
     try {
       const saved = editing ? await api.updatePersonalEvent(event.id, payload) : await api.addPersonalEvent({ ...payload, ownerId });
       onSaved(saved);
@@ -53,11 +71,12 @@ export default function EventSheet({ event, defaults, people, onClose, onSaved }
     }
   }
 
-  async function remove() {
-    if (!window.confirm(t("personal.deleteConfirm"))) return;
+  // `day`: only that day of a series.
+  async function remove(day) {
+    if (!window.confirm(day ? t("personal.deleteDayConfirm", { date: fmt.isoDay(day) }) : series ? t("personal.deleteSeriesConfirm") : t("personal.deleteConfirm"))) return;
     setBusy(true);
     try {
-      await api.deletePersonalEvent(event.id);
+      await api.deletePersonalEvent(event.id, day);
       onSaved(null);
     } catch (err) {
       setError(t("clients.saveFailed", { reason: err.code || "?" }));
@@ -108,6 +127,17 @@ export default function EventSheet({ event, defaults, people, onClose, onSaved }
           </div>
         </div>
 
+        {series && <p className={pageStyles.note}>{t("personal.seriesNote", { date: fmt.isoDay(event.date) })}</p>}
+        <div className={styles.timeRow}>
+          <SelectField label={t("personal.repeat")} value={repeat} onChange={(e) => setRepeat(e.target.value)}>
+            {REPEATS.map((r) => (
+              <option key={r} value={r}>
+                {t(`personal.repeats.${r}`)}
+              </option>
+            ))}
+          </SelectField>
+          {repeat !== "none" && <TextField label={t("personal.repeatUntil")} type="date" value={repeatUntil} min={date} onChange={(e) => setRepeatUntil(e.target.value)} />}
+        </div>
         <Switch label={t("personal.allDay")} checked={allDay} onChange={setAllDay} />
         {!allDay && (
           <div className={styles.timeRow}>
@@ -125,9 +155,14 @@ export default function EventSheet({ event, defaults, people, onClose, onSaved }
 
         {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
         <div className={pageStyles.formActions}>
+          {editing && series && (
+            <Button variant="plain" icon="trash" disabled={busy} onClick={() => remove(event.date)}>
+              {t("personal.deleteDay")}
+            </Button>
+          )}
           {editing && (
-            <Button variant="plain" icon="trash" disabled={busy} onClick={remove}>
-              {t("personal.delete")}
+            <Button variant="plain" icon="trash" disabled={busy} onClick={() => remove()}>
+              {series ? t("personal.deleteSeries") : t("personal.delete")}
             </Button>
           )}
           <Button onClick={onClose}>{t("common.cancel")}</Button>

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import pageStyles from "../../pages/Pages.module.css";
 import Sheet from "../ui/Sheet";
 import Button from "../ui/Button";
-import { MoneyField, SelectField, TextAreaField } from "../ui/Field";
+import { MoneyField, TextAreaField } from "../ui/Field";
 import Badge from "../ui/Badge";
 import { CONSULTATION_FEE, FEE_METHODS } from "./BookingSheet";
 import { canBookAppointments, isLawyer } from "../../lib/access";
@@ -11,6 +11,8 @@ import { KeyValue } from "../ui/Misc";
 import { AppointmentStatusBadge } from "./Appointment";
 import { useAuth, isManagerRole } from "../../hooks/useAuth";
 import { api } from "../../lib/api";
+import Segmented from "../ui/Segmented";
+import CashWith, { cashWithDefault } from "../finance/CashWith";
 import { telHref } from "../../lib/format";
 import { useI18n } from "../../i18n";
 
@@ -29,16 +31,19 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
   const [takingFee, setTakingFee] = useState(false);
   const [feeAmount, setFeeAmount] = useState(String(CONSULTATION_FEE));
   const [feeMethod, setFeeMethod] = useState("cash");
+  // Cash: who took it — often the lawyer or the boss, in the office.
+  const [feeCashWith, setFeeCashWith] = useState(cashWithDefault(user));
   const a = appointment;
   const fee = a.payments?.[0] || null;
   const mayTakeFee = !fee && a.status !== "cancelled" && !isLawyer(user) && canBookAppointments(user);
 
   async function recordFee() {
     if (!Number(feeAmount)) return setError(t("payments.amountRequired"));
+    if (feeMethod === "cash" && feeCashWith == null) return setError(t("cashWith.required"));
     setBusy("fee");
     setError("");
     try {
-      onChanged(await api.appointmentFee(a.id, { feeAmount: Number(feeAmount), feeMethod }));
+      onChanged(await api.appointmentFee(a.id, { feeAmount: Number(feeAmount), feeMethod, ...(feeMethod === "cash" ? { feeCashWith } : {}) }));
       setTakingFee(false);
     } catch (err) {
       setError(err.code === "phone_required_for_fee" ? t("calendar.feeNeedsPhone") : t("calendar.actionFailed"));
@@ -110,6 +115,7 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
           {fee ? (
             <Badge tone="good" icon="check">
               {`${fmt.money(fee.amount)} · ${t(`payments.methods.${fee.method || "cash"}`)}`}
+              {fee.cashHolder ? ` · ${t("cashWith.took", { name: fee.cashHolder.employee?.name || fee.cashHolder.name || fee.cashHolder.username })}` : ""}
             </Badge>
           ) : (
             <Badge tone="warning">{t("calendar.feeNotPaid")}</Badge>
@@ -148,13 +154,11 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
         (takingFee ? (
           <div className={pageStyles.formStack}>
             <MoneyField label={t("payments.amount")} value={feeAmount} onChange={setFeeAmount} />
-            <SelectField label={t("payments.method")} value={feeMethod} onChange={(e) => setFeeMethod(e.target.value)}>
-              {FEE_METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {t(`payments.methods.${m}`)}
-                </option>
-              ))}
-            </SelectField>
+            <div className={pageStyles.formStack} style={{ gap: 6 }}>
+              <span className={pageStyles.note}>{t("payments.method")}</span>
+              <Segmented full value={feeMethod} onChange={setFeeMethod} label={t("payments.method")} options={FEE_METHODS.map((m) => ({ value: m, label: t(`payments.methods.${m}`) }))} />
+            </div>
+            {feeMethod === "cash" && <CashWith value={feeCashWith} onChange={setFeeCashWith} first={a.calendar?.ownerId ?? null} />}
             <div className={pageStyles.formActions}>
               <Button onClick={() => setTakingFee(false)}>{t("common.cancel")}</Button>
               <Button variant="primary" icon="cash" busy={busy === "fee"} onClick={recordFee}>

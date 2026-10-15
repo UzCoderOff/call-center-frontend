@@ -13,7 +13,7 @@ import { BulkSheet, ClientSheet } from "../components/clients/ClientSheets";
 import Icon from "../components/ui/Icon";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
-import { canBookAppointments, canManageClients, canSeeFinance, isCallCenter, isCoordinator, isLawyer, takesCalls } from "../lib/access";
+import { canBookAppointments, canManageClients, canSeeFinance, isCallCenter, isCoordinator, isLawyer, countsCalls } from "../lib/access";
 import { api } from "../lib/api";
 import { shiftIso, todayIso } from "../lib/format";
 import { useI18n } from "../i18n";
@@ -225,7 +225,7 @@ export default function ClientsPage() {
               <option value="">{t("clients.anyOperator")}</option>
               <option value="none">{t("clients.noOperatorFilter")}</option>
               {(employees.data || [])
-                .filter((e) => e.active && takesCalls(e))
+                .filter((e) => e.active && countsCalls(e))
                 .map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name}
@@ -411,7 +411,7 @@ export default function ClientsPage() {
         <BulkSheet
           kind={bulk}
           count={allMatching ? state.data?.pagination.total ?? 0 : selected.size}
-          operators={(employees.data || []).filter((e) => e.active && (takesCalls(e) || e.calendarAccess === "book"))}
+          operators={(employees.data || []).filter((e) => e.active && (countsCalls(e) || e.calendarAccess === "book"))}
           lawyers={lawyers.data?.accounts || []}
           coordinators={[...(coordinators.data?.coordinators || []), ...(coordinators.data?.others || [])]}
           onApply={applyBulk}

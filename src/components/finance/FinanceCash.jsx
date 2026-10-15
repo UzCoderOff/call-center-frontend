@@ -4,22 +4,26 @@ import pageStyles from "../../pages/Pages.module.css";
 import Button from "../ui/Button";
 import Card from "../ui/Card";
 import Sheet from "../ui/Sheet";
-import { MoneyField, TextField } from "../ui/Field";
+import { MoneyField, SelectField, TextField } from "../ui/Field";
 import { List, ListRow } from "../ui/List";
 import { AsyncBoundary, EmptyState, StatTile } from "../ui/Misc";
 import { Table } from "./parts";
 import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
 import { useI18n } from "../../i18n";
+import { Link } from "react-router-dom";
 
-// Moliya → Kassa: cash in people's hands. Whoever records a cash payment took
-// the money; "Qabul qildim" records them handing it over. What they hold =
-// cash taken − handed over (counted from the day this started).
+// Moliya → Kassa: cash in people's hands. A cash payment is with whoever took
+// the money (picked when it's recorded; else whoever recorded it) — "Kimda?"
+// shows a person's cash payments and moves a wrong one to whoever really
+// took it. "Qabul qildim" records them handing it over. What they hold =
+// cash with them − handed over (counted from the day this started).
 export default function FinanceCash() {
   const { t, fmt } = useI18n();
   const [refresh, setRefresh] = useState(0);
   const state = useAsync(() => api.cash(), [refresh]);
   const [receiving, setReceiving] = useState(null); // a person row
+  const [looking, setLooking] = useState(null); // a person row: their cash payments
   const reload = () => setRefresh((n) => n + 1);
 
   return (
@@ -51,16 +55,43 @@ export default function FinanceCash() {
                   <strong key="b" className={p.holding > 0 ? styles.owedAmount : undefined}>
                     {fmt.money(p.holding)}
                   </strong>,
-                  p.holding > 0 ? (
-                    <Button key="r" size="small" variant="primary" onClick={() => setReceiving(p)}>
-                      {t("finance.cash.receive")}
-                    </Button>
-                  ) : (
-                    ""
-                  ),
+                  <span key="r" style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+                    {p.payments > 0 && (
+                      <Button size="small" onClick={() => setLooking(p)}>
+                        {t("finance.cash.whose")}
+                      </Button>
+                    )}
+                    {p.holding > 0 && (
+                      <Button size="small" variant="primary" onClick={() => setReceiving(p)}>
+                        {t("finance.cash.receive")}
+                      </Button>
+                    )}
+                  </span>,
                 ])}
               />
             </Card>
+
+            {d.kassa?.length > 0 && (
+              <Card flush title={t("finance.cash.kassaTitle")} subtitle={t("finance.cash.kassaHint")}>
+                <List plain inset={16}>
+                  {d.kassa.map((p) => (
+                    <ListRow
+                      key={p.user.id}
+                      title={p.user.name}
+                      subtitle={t("finance.paymentsCount", { count: p.payments })}
+                      trailing={
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                          <strong>{fmt.money(p.taken)}</strong>
+                          <Button size="small" onClick={() => setLooking(p)}>
+                            {t("finance.cash.whose")}
+                          </Button>
+                        </span>
+                      }
+                    />
+                  ))}
+                </List>
+              </Card>
+            )}
 
             <Card flush title={t("finance.cash.historyTitle")}>
               {d.handovers.length === 0 ? (
@@ -90,6 +121,7 @@ export default function FinanceCash() {
               )}
             </Card>
 
+            {looking && <CashPaymentsSheet person={looking} onClose={() => setLooking(null)} onChanged={reload} />}
             {receiving && (
               <HandoverSheet
                 person={receiving}
@@ -143,6 +175,78 @@ function HandoverSheet({ person, today, onClose, onSaved }) {
           </Button>
         </div>
       </form>
+    </Sheet>
+  );
+}
+
+// One person's cash payments: each one, and who has the money — moved to
+// whoever really took it (the client paid the boss or the lawyer in the
+// office, not the operator who recorded it).
+function CashPaymentsSheet({ person, onClose, onChanged }) {
+  const { t, fmt } = useI18n();
+  const [refresh, setRefresh] = useState(0);
+  const state = useAsync(() => api.cashPayments(person.user.id), [refresh]);
+  const people = useAsync(() => api.cashHolders(true), []);
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState("");
+  async function move(payment, to) {
+    setBusy(payment.id);
+    setError("");
+    try {
+      await api.moveCashPayment(payment.id, Number(to));
+      setRefresh((n) => n + 1);
+      onChanged();
+    } catch {
+      setError(t("finance.cash.failed"));
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <Sheet title={t("finance.cash.whoseTitle", { name: person.user.name })} onClose={onClose}>
+      <div className={pageStyles.formStack}>
+        <p className={pageStyles.note}>{t("finance.cash.whoseHint")}</p>
+        {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
+        <AsyncBoundary state={state}>
+          {(d) =>
+            d.payments.length === 0 ? (
+              <EmptyState icon="cash" text={t("finance.cash.whoseEmpty")} />
+            ) : (
+              <div>
+                {d.payments.map((p) => {
+                  const options = people.data?.people || [];
+                  const known = options.some((o) => o.id === p.holder.id);
+                  return (
+                    <div key={p.id} className={styles.cashPayment}>
+                      <div className={styles.cashPaymentTop}>
+                        <Link to={`/clients/${p.client.id}`}>{p.client.name}</Link>
+                        <strong>{fmt.money(p.amount)}</strong>
+                      </div>
+                      <span className={pageStyles.note}>
+                        {[fmt.isoDateLong(p.date), t(`payments.kinds.${p.kind}`), p.recordedBy ? t("finance.recordedBy", { name: p.recordedBy.name }) : null, p.note]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                      <SelectField label={t("finance.cash.with")} value={String(p.holder.id)} disabled={busy === p.id || !people.data} onChange={(e) => move(p, e.target.value)}>
+                        {!known && <option value={p.holder.id}>{p.holder.name}</option>}
+                        {options.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.name}
+                            {o.role === "BOSS" ? ` (${t("cashWith.boss")})` : o.role === "LAWYER" ? ` (${t("cashWith.lawyer")})` : ""}
+                          </option>
+                        ))}
+                      </SelectField>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          }
+        </AsyncBoundary>
+        <div className={pageStyles.formActions}>
+          <Button onClick={onClose}>{t("common.close")}</Button>
+        </div>
+      </div>
     </Sheet>
   );
 }

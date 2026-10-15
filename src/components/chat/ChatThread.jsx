@@ -20,6 +20,10 @@ import { useI18n } from "../../i18n";
 // Ledger AI (kind "assistant", boss and developer): the same chat, but its
 // answers come from the server (services/ai/assistant.js) — dots while it
 // thinks, example questions to start, no events.
+//
+// Where the chat's people are known (a client's chat — also where the team
+// talks about its cases —, a group, everyone), "@" picks someone: they're
+// told even if they muted the chat.
 
 // The live updates bring new messages at once; this is only the safety net.
 const FALLBACK_MS = 30 * 1000;
@@ -36,6 +40,13 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
   const [sending, setSending] = useState(false);
   const [sheet, setSheet] = useState(null); // "event" | "group" | "members" | { message }
   const [menu, setMenu] = useState(false);
+  // @mentions: the people picked while writing ({ id, name }), and what's
+  // typed after the "@" (null: not picking).
+  const [mentioned, setMentioned] = useState([]);
+  const [mentionQuery, setMentionQuery] = useState(null);
+  const mentionable = !ai && Array.isArray(conv.members) ? conv.members.filter((p) => p.id !== user.id) : [];
+  const mentionMatches =
+    mentionQuery === null ? [] : mentionable.filter((p) => p.name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const lastIdRef = useRef(0);
@@ -144,8 +155,14 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
     if (!body || sending) return;
     setSending(true);
     try {
-      await send({ text: body });
-      if (preset === undefined) setText("");
+      // Only the people still named in the text.
+      const mentions = mentioned.filter((p) => body.includes(`@${p.name}`)).map((p) => p.id);
+      await send({ text: body, ...(mentions.length ? { mentions } : {}) });
+      if (preset === undefined) {
+        setText("");
+        setMentioned([]);
+        setMentionQuery(null);
+      }
       if (inputRef.current) inputRef.current.style.height = "";
       inputRef.current?.focus();
     } catch (err) {
@@ -157,7 +174,36 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
 
   // Enter sends on a computer; on a phone it's a new line (the button sends).
   function onKeyDown(e) {
+    if (mentionMatches.length && (e.key === "Enter" || e.key === "Tab")) {
+      e.preventDefault();
+      pickMention(mentionMatches[0]);
+      return;
+    }
+    if (e.key === "Escape" && mentionQuery !== null) return setMentionQuery(null);
     if (e.key === "Enter" && !e.shiftKey && !window.matchMedia("(pointer: coarse)").matches) sendText(e);
+  }
+
+  // "@" followed by letters at the cursor: picking someone.
+  function watchMention(value, cursor) {
+    if (!mentionable.length) return;
+    const before = value.slice(0, cursor);
+    const m = /(?:^|\s)@([^\s@]{0,30})$/.exec(before);
+    setMentionQuery(m ? m[1] : null);
+  }
+
+  function pickMention(person) {
+    const el = inputRef.current;
+    const cursor = el ? el.selectionStart : text.length;
+    const before = text.slice(0, cursor).replace(/@([^\s@]{0,30})$/, `@${person.name} `);
+    const next = before + text.slice(cursor);
+    setText(next);
+    setMentioned((list) => (list.some((p) => p.id === person.id) ? list : [...list, person]));
+    setMentionQuery(null);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      el.selectionStart = el.selectionEnd = before.length;
+    });
   }
 
   // Ledger AI's offer to do something: yes or no, right on the card.
@@ -352,7 +398,7 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
                     ) : (
                       <>
                         {m.event && <EventCard event={m.event} />}
-                        {m.text && <span>{ai && !m.mine ? withBold(m.text) : m.text}</span>}
+                        {m.text && <span>{ai && !m.mine ? withBold(m.text) : withMentions(m.text, mentionable, user, styles.mention)}</span>}
                       </>
                     )}
                     <span className={styles.meta}>
@@ -376,6 +422,16 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
         )}
       </div>
 
+      {mentionMatches.length > 0 && (
+        <div className={styles.mentionList} role="listbox" aria-label={t("chat.mentionPick")}>
+          {mentionMatches.map((p) => (
+            <button key={p.id} type="button" role="option" className={styles.mentionOption} onMouseDown={(e) => e.preventDefault()} onClick={() => pickMention(p)}>
+              <PersonAvatar name={p.name} />
+              <span>{p.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {conv.canWrite ? (
         <form className={styles.composer} onSubmit={sendText}>
           {!ai && (
@@ -389,6 +445,7 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
             value={text}
             onChange={(e) => {
               setText(e.target.value);
+              watchMention(e.target.value, e.target.selectionStart);
               e.target.style.height = "auto";
               e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
             }}
@@ -444,6 +501,27 @@ export default function ChatThread({ conv, onConvChanged, onActivity, onGone }) 
       )}
     </div>
   );
+}
+
+// "@Name" of someone in the chat stands out (yours: more).
+function withMentions(text, people, me, className) {
+  const names = [...people.map((p) => p.name), me.employee?.name || me.name || me.username].filter(Boolean);
+  if (!names.length || !text.includes("@")) return text;
+  const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`@(${names.map(escape).sort((a, b) => b.length - a.length).join("|")})`, "g");
+  const parts = [];
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    parts.push(
+      <span key={m.index} className={className}>
+        {m[0]}
+      </span>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
 }
 
 // Ledger AI may mark a word **bold** — shown bold, never as HTML.

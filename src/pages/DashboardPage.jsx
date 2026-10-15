@@ -27,6 +27,7 @@ import { MyRemindersCard } from "../components/reminders/ReminderParts";
 import WebPushBanner from "../components/WebPushBanner";
 import { SummariesDueCard } from "../components/consultations/Summaries";
 import { AiSuggestionsCard } from "../components/ai/AiParts";
+import { CoversCard, DebtsCard, OutcomesDueCard } from "../components/cases/HomeCards";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -36,7 +37,8 @@ import { useI18n } from "../i18n";
 // Home adapts to the person: managers get the company overview; a lawyer
 // their day and their cases; a coordinator the cases handed to them (money
 // due, dates coming up); call-center staff their call numbers; everyone
-// else (translators, document services…) their daily report. By their job
+// else (translators, document services…) their daily report — and, when
+// their phone sends its calls, their own calls under it. By their job
 // (Team → person), not by whether their phone is monitored. With two jobs,
 // the main one (chosen first) decides.
 export default function DashboardPage() {
@@ -106,6 +108,7 @@ function ManagerHome() {
         <DaysOffCard />
         {canSeeFinance(user) && <FinanceCard />}
         <SummariesDueCard team />
+        <OutcomesDueCard team />
         <AiSuggestionsCard team />
         <UnassignedCard />
         <MyTasksCard />
@@ -408,6 +411,8 @@ function LawyerHome() {
       <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
         <SummariesDueCard />
+        <OutcomesDueCard />
+        <CoversCard />
         <AiSuggestionsCard />
         <MyTasksCard />
         <MyRemindersCard />
@@ -445,6 +450,8 @@ function CoordinatorHome() {
             </>
           )}
         </AsyncBoundary>
+        <OutcomesDueCard />
+        <DebtsCard />
         <AiSuggestionsCard />
         <MyTasksCard />
         <MyRemindersCard />
@@ -488,11 +495,32 @@ function StaffHome() {
           </>
         ) : canBookAppointments(user) ? (
           <MyAppointmentsCard />
-        ) : (
+        ) : takesCalls(user.employee) ? null : (
           <EmptyState icon="clipboard" text={t("home.noReportForm")} />
         )}
+        {takesCalls(user.employee) && <MyCallsSection />}
       </div>
     </div>
+  );
+}
+
+// Their own calls (their phone sends them), for anyone whose home isn't
+// about calls — an office worker: seen, not counted toward any target.
+function MyCallsSection() {
+  const { t, fmt } = useI18n();
+  const [range, setRange] = useState("month");
+  const state = useAsync(() => api.dashboard(rangeWithPrevious(range)), [range]);
+  return (
+    <CallsSection title={t("dashboard.myCallsSection")} range={range} onRange={setRange}>
+      <AsyncBoundary state={state}>
+        {(data) => (
+          <div className={styles.stack}>
+            <StatsOverview data={data} range={range} />
+            {data.sync && <p className={styles.selfSync}>{syncLine(data.sync, t, fmt)}</p>}
+          </div>
+        )}
+      </AsyncBoundary>
+    </CallsSection>
   );
 }
 

@@ -1,4 +1,5 @@
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import pageStyles from "./Pages.module.css";
 import styles from "../components/finance/Finance.module.css";
 import Button from "../components/ui/Button";
@@ -9,6 +10,8 @@ import FinanceConsultations from "../components/finance/FinanceConsultations";
 import { FinanceContracts, FinanceDebts } from "../components/finance/FinanceContracts";
 import FinanceEntries from "../components/finance/FinanceEntries";
 import FinanceCash from "../components/finance/FinanceCash";
+import { PickClientSheet } from "../components/clients/ClientSheets";
+import { isLawyer } from "../lib/access";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { shiftMonth, useMonthLabel } from "../components/finance/parts";
 import { useAsync } from "../hooks/useAsync";
@@ -32,6 +35,9 @@ export default function FinancePage() {
   const tab = TABS.includes(params.get("tab")) ? params.get("tab") : "overview";
   const state = useAsync(() => api.finance(month || undefined), [month]);
   const monthLabel = useMonthLabel();
+  const navigate = useNavigate();
+  // "Toʻlov qoʻshish": find the client, then their page with the form open.
+  const [picking, setPicking] = useState(false);
 
   const update = (patch) => {
     const next = new URLSearchParams(params);
@@ -44,7 +50,19 @@ export default function FinancePage() {
 
   return (
     <div>
-      <PageHeader title={t("finance.title")} subtitle={t("finance.subtitle")} />
+      <PageHeader
+        title={t("finance.title")}
+        subtitle={t("finance.subtitle")}
+        actions={
+          // Lawyers don't record payments.
+          !isLawyer(user) && (
+            <Button variant="primary" icon="plus" onClick={() => setPicking(true)}>
+              {t("clientMoney.addPayment")}
+            </Button>
+          )
+        }
+      />
+      {picking && <PickClientSheet title={t("pickClient.payTitle")} onClose={() => setPicking(false)} onPick={(c) => navigate(`/clients/${c.id}?pay=1`)} />}
       <AsyncBoundary state={state}>
         {(data) => (
           <div className={pageStyles.stack}>

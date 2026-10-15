@@ -8,16 +8,13 @@ import Button from "../ui/Button";
 import Badge from "../ui/Badge";
 import Icon from "../ui/Icon";
 import { SelectField, TextAreaField, TextField } from "../ui/Field";
-import { LEGAL_STAGES, PayBadge, STATUSES, StatusBadge, personName } from "./parts";
-import { ScheduleBlock } from "./ScheduleSheet";
-import { LostSheet } from "./ClientWork";
+import { LEGAL_STAGES, PayBadge, personName } from "./parts";
 import { useAsync } from "../../hooks/useAsync";
 import { api } from "../../lib/api";
 import { todayIso } from "../../lib/format";
-import { saveFailed } from "../../lib/saveFailed";
 import { useI18n } from "../../i18n";
 
-// One case on the client's page, the way a firm works it:
+// The pieces of a case's page (pages/CasePage.jsx), the way a firm works it:
 //   - who's on it: the operator who brought it, the coordinator who looks
 //     after it since the contract, the lawyer (managers assign them)
 //   - its milestones: came in, consultation, contract, closed — with dates
@@ -59,137 +56,9 @@ const toMinutes = (hhmm) => {
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 };
 
-export default function CasePanel({ item, client, onChanged, onEdit, onPay, onEditPayment, onSchedule, onRemovePayment }) {
-  const { t, fmt } = useI18n();
-  const p = item.permissions || {};
-  const [sheet, setSheet] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const signed = item.status === "contract" || item.status === "done";
-  const close = () => setSheet(null);
-  const saved = () => {
-    setSheet(null);
-    onChanged();
-  };
-
-  async function setStatus(status) {
-    // Didn't continue: asked why first.
-    if (status === "declined") return setSheet({ type: "lost" });
-    setBusy(true);
-    try {
-      await api.updateCase(item.id, { status });
-      onChanged();
-    } catch (err) {
-      saveFailed(err, t);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // The statuses this person can move the case to.
-  const statuses = p.role === "operator" ? ["consultation", "call_again", "contract", "declined"] : STATUSES;
-
-  return (
-    <section className={styles.panel} aria-busy={busy}>
-      <header className={styles.head}>
-        <div className={styles.headMain}>
-          <span className={styles.badges}>
-            <StatusBadge status={item.status} />
-            {item.legalStage && <Badge tone="neutral">{t(`cases.stages.${item.legalStage}`)}</Badge>}
-          </span>
-          <h3 className={styles.title}>{item.matter || t("cases.untitled")}</h3>
-          <p className={styles.meta}>{[item.number && `№ ${item.number}`, item.court].filter(Boolean).join(" · ") || t("caseWork.noNumber")}</p>
-        </div>
-        {p.canEdit && (
-          <Button size="small" variant="plain" icon="sliders" onClick={onEdit}>
-            {t("cases.edit")}
-          </Button>
-        )}
-      </header>
-
-      <Details item={item} canEdit={p.canEdit} onEdit={onEdit} />
-      <People item={item} canAssign={p.canAssign} onAssign={() => setSheet({ type: "assign" })} />
-      <Milestones item={item} />
-
-      {p.canStatus && (
-        <div className={styles.statusRow}>
-          <SelectField label={t("cases.status")} value={item.status} onChange={(e) => setStatus(e.target.value)}>
-            {statuses.map((s) => (
-              <option key={s} value={s}>
-                {t(`cases.statuses.${s}`)}
-              </option>
-            ))}
-          </SelectField>
-          {p.role === "operator" && <p className={styles.hint}>{t("caseWork.operatorContractHint")}</p>}
-          {item.status === "declined" && item.lostReason && (
-            <p className={styles.hint}>
-              {t("clientWork.lostWhy", { reason: t(`clientWork.lost.${item.lostReason}`) })}
-              {item.lostNote ? ` — ${item.lostNote}` : ""}
-            </p>
-          )}
-        </div>
-      )}
-
-      {item.consultations?.length > 0 && (
-        <Block title={t("summary.caseTitle")} subtitle={t("summary.caseSubtitle")}>
-          <SummaryList rows={item.consultations} />
-        </Block>
-      )}
-
-      {(signed || item.stages?.length > 0) && (
-        <Block
-          title={t("caseWork.stagesTitle")}
-          subtitle={t("caseWork.stagesSubtitle")}
-          action={p.canHistory && <Button size="small" icon="plus" onClick={() => setSheet({ type: "stage" })}>{t("caseWork.addStage")}</Button>}
-        >
-          <StageList item={item} canEdit={p.canHistory} onEdit={(row) => setSheet({ type: "stage", row })} />
-        </Block>
-      )}
-
-      {(signed || item.dates?.length > 0) && (
-        <Block
-          title={t("caseWork.datesTitle")}
-          subtitle={t("caseWork.datesSubtitle")}
-          action={p.canDates && <Button size="small" icon="plus" onClick={() => setSheet({ type: "date" })}>{t("caseWork.addDate")}</Button>}
-        >
-          <DateList item={item} canEdit={p.canDates} onEdit={(row) => setSheet({ type: "date", row })} />
-        </Block>
-      )}
-
-      {(p.money || item.payments?.length > 0) && (
-        <Block
-          title={t("caseWork.moneyTitle")}
-          action={
-            <span className={styles.actions}>
-              {p.canSchedule && signed && item.contractAmount > 0 && (
-                <Button size="small" variant="plain" icon="calendar" onClick={onSchedule}>
-                  {item.schedule?.items?.length ? t("schedule.edit") : t("schedule.set")}
-                </Button>
-              )}
-              {onPay && (
-                <Button size="small" icon="cash" onClick={onPay}>
-                  {t("payments.add")}
-                </Button>
-              )}
-            </span>
-          }
-        >
-          {p.money && <MoneyFigures item={item} />}
-          {p.money && <ScheduleBlock schedule={item.schedule} />}
-          <PaymentList item={item} client={client} canPay={p.canPay} onEdit={onEditPayment} onRemove={onRemovePayment} />
-        </Block>
-      )}
-
-      {sheet?.type === "stage" && <StageSheet item={item} row={sheet.row} onClose={close} onSaved={saved} />}
-      {sheet?.type === "date" && <KeyDateSheet item={item} row={sheet.row} onClose={close} onSaved={saved} />}
-      {sheet?.type === "assign" && <AssignSheet item={item} onClose={close} onSaved={saved} />}
-      {sheet?.type === "lost" && <LostSheet item={item} onClose={close} onSaved={saved} />}
-    </section>
-  );
-}
-
 // What the matter is about, in the client's words and the firm's — long
 // text folded after a few lines.
-function Details({ item, canEdit, onEdit }) {
+export function Details({ item, canEdit, onEdit }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   if (!item.details) {
@@ -214,7 +83,7 @@ function Details({ item, canEdit, onEdit }) {
 }
 
 // Contract, paid, left — three big numbers, then the bar.
-function MoneyFigures({ item }) {
+export function MoneyFigures({ item }) {
   const { t, fmt } = useI18n();
   const { contractAmount, paid = 0, remaining = 0, state } = item;
   if (!contractAmount && !paid) return <p className={styles.empty}>{t("payments.noContractAmount")}</p>;
@@ -253,7 +122,7 @@ function MoneyFigures({ item }) {
 // can be corrected (pencil: managers any time, whoever recorded it on that
 // day) or, by a manager, removed.
 const SHOWN_PAYMENTS = 6;
-function PaymentList({ item, client, canPay, onEdit, onRemove }) {
+export function PaymentList({ item, client, canPay, onEdit, onRemove }) {
   const { t, fmt } = useI18n();
   const [all, setAll] = useState(false);
   const rows = item.payments || [];
@@ -275,6 +144,7 @@ function PaymentList({ item, client, canPay, onEdit, onRemove }) {
             {pay.kind !== "contract" ? ` · ${t(`payments.kinds.${pay.kind}`)}` : ""}
             {pay.method ? ` · ${t(`payments.methods.${pay.method}`)}` : ""}
             {pay.recordedBy ? ` · ${personName(pay.recordedBy)}` : ""}
+            {pay.cashHolder ? ` · ${t("cashWith.took", { name: personName(pay.cashHolder) })}` : ""}
             {pay.note ? ` · ${pay.note}` : ""}
             {pay.editedAt ? ` · ${t("payments.edited")}` : ""}
           </span>
@@ -341,7 +211,7 @@ export function SummaryList({ rows }) {
   );
 }
 
-function Block({ title, subtitle, action, children }) {
+export function Block({ title, subtitle, action, children }) {
   return (
     <div className={styles.block}>
       <div className={styles.blockHead}>
@@ -358,7 +228,7 @@ function Block({ title, subtitle, action, children }) {
 
 // Operator · Koordinator · Advokat(lar) — who to ask about this case. More
 // than one lawyer: the main one first.
-function People({ item, canAssign, onAssign }) {
+export function People({ item, canAssign, onAssign }) {
   const { t } = useI18n();
   const signed = item.status === "contract" || item.status === "done";
   const extra = (item.extraLawyers || []).map((l) => l.name);
@@ -387,7 +257,7 @@ function People({ item, canAssign, onAssign }) {
 }
 
 // Came in → consultation → contract → closed, each with its date.
-function Milestones({ item }) {
+export function Milestones({ item }) {
   const { t, fmt } = useI18n();
   const steps = [
     { key: "start", date: item.startDate },
@@ -411,7 +281,7 @@ function Milestones({ item }) {
 // Where the case has been, newest first, each with its date and where —
 // planned ones (a date still ahead) on top, marked so; the latest reached
 // one is "now".
-function StageList({ item, canEdit, onEdit }) {
+export function StageList({ item, canEdit, onEdit }) {
   const { t, fmt } = useI18n();
   const today = todayIso();
   const rows = [...(item.stages || [])].sort((a, b) => (a.date === b.date ? b.id - a.id : a.date < b.date ? 1 : -1));
@@ -447,7 +317,10 @@ function StageList({ item, canEdit, onEdit }) {
 
 // Hearings, summons, deadlines: coming up first, then what's past (with
 // what happened, or a reminder to write it).
-function DateList({ item, canEdit, onEdit }) {
+// Dates that take place and have an outcome (services/outcomes.js).
+export const OUTCOME_KINDS = ["hearing", "investigative_action", "interrogation", "confrontation", "suspect_questioning", "accused_questioning", "charge_announced", "case_review", "summons"];
+
+export function DateList({ item, canEdit, onEdit, onOutcome }) {
   const { t, fmt } = useI18n();
   const today = todayIso();
   const rows = item.dates || [];
@@ -477,7 +350,7 @@ function DateList({ item, canEdit, onEdit }) {
               </span>
             ) : (
               canEdit && (
-                <button type="button" className={styles.outcomeAsk} onClick={() => onEdit(r)}>
+                <button type="button" className={styles.outcomeAsk} onClick={() => (onOutcome && OUTCOME_KINDS.includes(r.kind) ? onOutcome(r) : onEdit(r))}>
                   {t("caseWork.writeOutcome")}
                 </button>
               )
@@ -511,7 +384,7 @@ function ErrorLine({ text }) {
 // Adding a stage the case reached (today, or a date in the past) or will
 // reach (a date ahead: planned — it becomes the case's stage on that day),
 // or correcting / removing one.
-function StageSheet({ item, row, onClose, onSaved }) {
+export function StageSheet({ item, row, onClose, onSaved }) {
   const { t } = useI18n();
   const editing = Boolean(row);
   const latest = item.legalStage ? LEGAL_STAGES.indexOf(item.legalStage) : -1;
@@ -583,7 +456,7 @@ function StageSheet({ item, row, onClose, onSaved }) {
 
 // A hearing, summons, deadline or meeting — and, once it's past, what
 // happened.
-function KeyDateSheet({ item, row, onClose, onSaved }) {
+export function KeyDateSheet({ item, row, onClose, onSaved }) {
   const { t } = useI18n();
   const editing = Boolean(row);
   const [kind, setKind] = useState(row?.kind || "hearing");
@@ -666,7 +539,7 @@ function KeyDateSheet({ item, row, onClose, onSaved }) {
 // Managers: who looks after the case (coordinator) and who handles it
 // (the main lawyer, and any more lawyers on it). Each change is on the
 // timeline; the person hears in Telegram.
-function AssignSheet({ item, onClose, onSaved }) {
+export function AssignSheet({ item, onClose, onSaved }) {
   const { t } = useI18n();
   const people = useAsync(() => api.clientCoordinators(), []);
   const lawyers = useAsync(() => api.clientLawyers(), []);

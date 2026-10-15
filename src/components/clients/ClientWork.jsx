@@ -503,14 +503,17 @@ function ContactSheet({ client, item, onClose, onSaved }) {
 
 // --------------------------------------------------------------- files
 // Files kept on the client — contracts, powers of attorney, court decisions,
-// receipts — by kind, newest first; each opens (or downloads).
-export function FilesCard({ client, onChanged }) {
+// receipts — by kind, newest first; each opens (or downloads). `caseId`: a
+// case's page — its files and the client's own (not another case's), and a
+// new one goes on the case.
+export function FilesCard({ client, onChanged, caseId = null }) {
   const { t, fmt } = useI18n();
   const [adding, setAdding] = useState(false);
   const [reading, setReading] = useState(null);
   const ai = useAiFeatures();
   const canEdit = client.view !== "result";
   const caseName = new Map(client.cases.map((k) => [k.id, k.matter || t("cases.untitled")]));
+  const files = caseId ? client.files.filter((f) => f.caseId == null || f.caseId === caseId) : client.files;
 
   async function remove(f) {
     if (!confirm(t("clientWork.confirmRemoveFile", { name: f.title || f.name }))) return;
@@ -534,11 +537,11 @@ export function FilesCard({ client, onChanged }) {
         )
       }
     >
-      {client.files.length === 0 ? (
+      {files.length === 0 ? (
         <p className={pageStyles.note}>{t("clientWork.noFiles")}</p>
       ) : (
         <ul className={styles.files}>
-          {client.files.map((f) => (
+          {files.map((f) => (
             <li key={f.id} className={styles.file}>
               <span className={styles.stepIcon}>
                 <Icon name="file" size={16} />
@@ -546,7 +549,7 @@ export function FilesCard({ client, onChanged }) {
               <a className={styles.fileMain} href={api.clientFileUrl(f.id)} target="_blank" rel="noreferrer">
                 <span className={styles.fileName}>{f.title || f.name}</span>
                 <span className={styles.stepBy}>
-                  {[t(`clientWork.fileKinds.${f.kind}`), f.caseId ? caseName.get(f.caseId) : null, fmt.date(new Date(f.createdAt).getTime()), personName(f.uploadedBy), `${Math.max(1, Math.round(f.size / 1024))} KB`].filter(Boolean).join(" · ")}
+                  {[t(`clientWork.fileKinds.${f.kind}`), f.caseId && !caseId ? caseName.get(f.caseId) : !f.caseId && caseId ? t("clientWork.aboutClient") : null, fmt.date(new Date(f.createdAt).getTime()), personName(f.uploadedBy), `${Math.max(1, Math.round(f.size / 1024))} KB`].filter(Boolean).join(" · ")}
                 </span>
               </a>
               {ai.fileReader && canEdit && aiCanRead(f) && (
@@ -568,6 +571,7 @@ export function FilesCard({ client, onChanged }) {
       {adding && (
         <UploadSheet
           client={client}
+          caseId={caseId}
           onClose={() => setAdding(false)}
           onSaved={() => {
             setAdding(false);
@@ -579,13 +583,13 @@ export function FilesCard({ client, onChanged }) {
   );
 }
 
-function UploadSheet({ client, onClose, onSaved }) {
+function UploadSheet({ client, caseId: forCase = null, onClose, onSaved }) {
   const { t } = useI18n();
   const input = useRef(null);
   const [file, setFile] = useState(null);
   const [kind, setKind] = useState("contract");
   const [title, setTitle] = useState("");
-  const [caseId, setCaseId] = useState(client.cases.length === 1 ? String(client.cases[0].id) : "");
+  const [caseId, setCaseId] = useState(forCase ? String(forCase) : client.cases.length === 1 ? String(client.cases[0].id) : "");
   const [progress, setProgress] = useState(null);
   const [error, setError] = useState("");
 

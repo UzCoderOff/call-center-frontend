@@ -15,6 +15,8 @@ import CalendarSettingsSheet from "../components/calendar/CalendarSettingsSheet"
 import BookingSheet from "../components/calendar/BookingSheet";
 import AppointmentSheet from "../components/calendar/AppointmentSheet";
 import PersonalCalendar from "../components/calendar/PersonalCalendar";
+import WhoIsFree from "../components/calendar/WhoIsFree";
+import Covers, { useCovers } from "../components/calendar/Covers";
 import { AttentionCard } from "../components/calendar/CalendarCards";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
@@ -31,7 +33,9 @@ import { saveFailed } from "../lib/saveFailed";
 //        one; the boss sees them all.
 //   Konsultatsiyalar  the consultation calendar staff book clients into —
 //        a lawyer can switch theirs off.
-// URL: ?view=mine|consult — plus, for consultations, ?cal=<id>&day=<date>
+//   Kim boʻsh?  every lawyer's busy times on a day, and when the ones picked
+//        are all free (components/calendar/WhoIsFree.jsx).
+// URL: ?view=mine|free|consult — plus, for consultations, ?cal=<id>&day=<date>
 // and, when opened from a call or to re-book a client, ?phone=&callId=&name=
 // so the booking form is filled in (always the consultation side).
 export default function CalendarPage() {
@@ -46,27 +50,41 @@ export default function CalendarPage() {
   const hasConsult = (calendars.data || []).length > 0;
   const hasPersonal = (people.data || []).length > 0;
   const asked = params.get("view");
-  const view = asked === "mine" && hasPersonal ? "mine" : asked === "consult" && hasConsult ? "consult" : !booking && isLawyer(user) && hasPersonal ? "mine" : hasConsult ? "consult" : "mine";
+  const view =
+    asked === "free" && personalAllowed
+      ? "free"
+      : asked === "mine" && hasPersonal
+        ? "mine"
+        : asked === "consult" && hasConsult
+          ? "consult"
+          : !booking && isLawyer(user) && hasPersonal
+            ? "mine"
+            : hasConsult
+              ? "consult"
+              : "mine";
+  // Lawyers away and who covers for them.
+  const covers = useCovers();
 
   function switchView(v) {
     // Each side keeps its own day.
-    setParams(new URLSearchParams(v === "mine" ? { view: "mine" } : { view: "consult" }), { replace: true });
+    setParams(new URLSearchParams({ view: v }), { replace: true });
   }
 
   const ready = calendars.data && people.data;
   return (
-    <div className={`${styles.page} ${view === "mine" ? styles.pageWide : ""}`}>
+    <div className={`${styles.page} ${view === "mine" || view === "free" ? styles.pageWide : ""}`}>
       <PageHeader
         title={t("calendar.title")}
         actions={
-          ready && hasConsult && hasPersonal ? (
+          ready && hasPersonal ? (
             <Segmented
               value={view}
               onChange={switchView}
               label={t("calendar.title")}
               options={[
                 { value: "mine", label: isManager(user) ? t("personal.lawyersDay") : t("personal.myDay") },
-                { value: "consult", label: t("personal.consultations") },
+                { value: "free", label: t("free.tab") },
+                ...(hasConsult ? [{ value: "consult", label: t("personal.consultations") }] : []),
               ]}
             />
           ) : null
@@ -76,8 +94,15 @@ export default function CalendarPage() {
         {(list) => (
           <AsyncBoundary state={people}>
             {(persons) =>
-              view === "mine" && persons.length > 0 ? (
-                <PersonalCalendar people={persons} isManager={isManager(user)} onPeopleChanged={() => (people.reload(), calendars.reload())} />
+              view === "free" && personalAllowed ? (
+                <WhoIsFree />
+              ) : view === "mine" && persons.length > 0 ? (
+                <>
+                  <div style={{ marginBottom: 16 }}>
+                    <Covers state={covers} />
+                  </div>
+                  <PersonalCalendar people={persons} isManager={isManager(user)} onPeopleChanged={() => (people.reload(), calendars.reload())} />
+                </>
               ) : list.length === 0 ? (
                 <EmptyState icon="calendar" text={t("calendar.noCalendar")} />
               ) : (

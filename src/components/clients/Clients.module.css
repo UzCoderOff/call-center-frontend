@@ -451,6 +451,49 @@ a.item:hover .itemTitle {
   color: var(--text-3);
 }
 
+/* A typed history entry: its words and small tags under the kind. */
+.itemBadge {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: 1px;
+}
+
+.itemText {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.itemTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.itemTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--fill);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.itemTag_accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.itemTag_warning {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
 /* Sheets */
 .phoneEditRow {
   display: flex;
@@ -826,6 +869,13 @@ a.item:hover .itemTitle {
 .moneyOverdue {
   color: var(--critical-text);
   font-weight: 600;
+}
+
+.moneyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 /* ---------- The cases being worked on (list) ---------- */

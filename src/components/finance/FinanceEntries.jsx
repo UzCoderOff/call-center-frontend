@@ -56,6 +56,7 @@ export default function FinanceEntries({ data }) {
                     r.p.method ? t(`payments.methods.${r.p.method}`) : t("finance.methodNone"),
                     r.p.lawyer,
                     r.p.recordedBy ? t("finance.recordedBy", { name: r.p.recordedBy }) : null,
+                    r.p.cashWith ? t("cashWith.took", { name: r.p.cashWith }) : null,
                     r.p.note,
                   ]
                     .filter(Boolean)

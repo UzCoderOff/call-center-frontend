@@ -3,11 +3,12 @@ import pageStyles from "../../pages/Pages.module.css";
 import Sheet from "../ui/Sheet";
 import Button from "../ui/Button";
 import Segmented from "../ui/Segmented";
-import { MoneyField, SelectField, Switch, TextAreaField, TextField } from "../ui/Field";
+import { MoneyField, Switch, TextAreaField, TextField } from "../ui/Field";
 import { useAuth } from "../../hooks/useAuth";
 import { isLawyer } from "../../lib/access";
 import { KeyValue } from "../ui/Misc";
 import { api } from "../../lib/api";
+import CashWith, { cashWithDefault } from "../finance/CashWith";
 import { useI18n } from "../../i18n";
 
 const ERRORS = {
@@ -46,6 +47,8 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
   const [feeReceived, setFeeReceived] = useState(false);
   const [feeAmount, setFeeAmount] = useState(String(CONSULTATION_FEE));
   const [feeMethod, setFeeMethod] = useState("cash");
+  // Cash: who took it — often the lawyer or the boss, in the office.
+  const [feeCashWith, setFeeCashWith] = useState(cashWithDefault(user));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -54,6 +57,7 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
     if (!format) return setError(t("calendar.format.pick"));
     if (feeReceived && !clientPhone.trim() && !prefill?.clientId) return setError(t("calendar.feeNeedsPhone"));
     if (feeReceived && !Number(feeAmount)) return setError(t("payments.amountRequired"));
+    if (feeReceived && feeMethod === "cash" && feeCashWith == null) return setError(t("cashWith.required"));
     setBusy(true);
     setError("");
     try {
@@ -68,7 +72,7 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
         format,
         callLogId: prefill?.callId || undefined,
         clientId: prefill?.clientId || undefined,
-        ...(feeReceived ? { feeReceived: true, feeAmount: Number(feeAmount), feeMethod } : {}),
+        ...(feeReceived ? { feeReceived: true, feeAmount: Number(feeAmount), feeMethod, ...(feeMethod === "cash" ? { feeCashWith } : {}) } : {}),
       });
       onBooked(appointment);
     } catch (err) {
@@ -137,13 +141,11 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
         {feeReceived && (
           <div className={pageStyles.formStack} style={{ gap: 10 }}>
             <MoneyField label={t("payments.amount")} value={feeAmount} onChange={setFeeAmount} />
-            <SelectField label={t("payments.method")} value={feeMethod} onChange={(e) => setFeeMethod(e.target.value)}>
-              {FEE_METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {t(`payments.methods.${m}`)}
-                </option>
-              ))}
-            </SelectField>
+            <div className={pageStyles.formStack} style={{ gap: 6 }}>
+              <span className={pageStyles.note}>{t("payments.method")}</span>
+              <Segmented full value={feeMethod} onChange={setFeeMethod} label={t("payments.method")} options={FEE_METHODS.map((m) => ({ value: m, label: t(`payments.methods.${m}`) }))} />
+            </div>
+            {feeMethod === "cash" && <CashWith value={feeCashWith} onChange={setFeeCashWith} first={calendar.owner?.id ?? null} />}
           </div>
         )}
         {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}

@@ -4,12 +4,12 @@ import Icon from "../ui/Icon";
 import { readPref, writePref } from "../../lib/prefs";
 import { useI18n } from "../../i18n";
 
-// Whose phones the calls numbers are about: the call center's (sales
-// calls) and the coordinators' (clients who already signed) — the only calls
-// that count (2026-10-14; anyone else's phone isn't monitored). Calls and
-// Home show the call center by default; coordinators are a tap away. The
-// choice is remembered on this device and shared by both pages.
-export const CALL_JOBS = ["call_center", "coordinator"];
+// Whose phones the calls numbers are about. Not every phone is a sales line:
+// coordinators call clients who already signed, an office worker's phone
+// rings with their own work (seen, not counted toward targets — 2026-10-15).
+// Calls and Home show the call center by default; the others are a tap
+// away. The choice is remembered on this device and shared by both pages.
+export const CALL_JOBS = ["call_center", "coordinator", "office", "other"];
 const KEY = "callJobs";
 const DEFAULT = ["call_center"];
 
