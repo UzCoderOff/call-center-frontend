@@ -2010,7 +2010,7 @@ const en = {
     step3: "Choose «All 1:1 chats» (staff and personal chats can be excluded). For now the bot only reads — it doesn't need permission to reply.",
     step4: "Write to the firm from another phone — the message appears in «Clients' Telegram» in the menu.",
     whoAnswers: "Who answers the firm's Telegram",
-    whoAnswersHint: "Replies sent from the firm's Telegram count as this person's (when it's one person).",
+    whoAnswersHint: "These people (and managers) see the «Mijozlar Telegrami» section and the AI's feedback on every chat. Nobody else does; a coordinator or lawyer sees only their own client's chat, on the client's page. With one person picked, the replies and the AI's marks count as theirs in Natijalar.",
     nobodyAnswers: "Not set",
     change: "Change",
     counts: "Chats",

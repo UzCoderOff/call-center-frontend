@@ -64,11 +64,11 @@ export function canSeeDebts(user) {
   return canSeeFinance(user) || isCoordinator(user);
 }
 
-// Mijozlar Telegrami: managers; the call center (new people, clients before
-// a contract); coordinators (their clients in work). The server decides which
-// chats each one sees.
+// Mijozlar Telegrami: managers, and the people picked to answer the firm's
+// Telegram (Sozlamalar → «Mijozlar Telegrami»; the server sends `tgInbox`).
+// Coordinators and lawyers see their own clients' chats on the client page.
 export function canSeeTgInbox(user) {
-  return isManager(user) || (user.role === "EMPLOYEE" && (isCallCenter(user) || isCoordinator(user)));
+  return isManager(user) || Boolean(user.tgInbox);
 }
 
 // Natijalar (performance): managers see everyone; a staff member their own.

@@ -2013,7 +2013,7 @@ const uz = {
     step3: "«Barcha shaxsiy chatlar»ni tanlang (xodimlar va shaxsiy chatlarni chiqarib tashlash mumkin). Hozircha bot faqat oʻqiydi — javob berish ruxsati shart emas.",
     step4: "Boshqa telefondan firmaga yozib koʻring — xabar menyudagi «Mijozlar Telegrami»da paydo boʻladi.",
     whoAnswers: "Firma Telegramiga kim javob beradi",
-    whoAnswersHint: "Firma Telegramidan yozilgan javoblar shu xodimniki hisoblanadi (bitta odam boʻlsa).",
+    whoAnswersHint: "Shu xodimlar (va rahbarlar) «Mijozlar Telegrami» boʻlimini va har bir yozishma boʻyicha AI xulosasini koʻradi. Boshqa xodimlarga koʻrinmaydi; koordinator va advokat faqat oʻz ishdagi mijozining yozishmasini mijoz sahifasida koʻradi. Bitta odam belgilansa, javoblar va AI baholari Natijalarda uniki hisoblanadi.",
     nobodyAnswers: "Belgilanmagan",
     change: "Oʻzgartirish",
     counts: "Yozishmalar",
