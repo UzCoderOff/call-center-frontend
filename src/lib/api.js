@@ -439,6 +439,8 @@ export const api = {
   tgSettings: (payload) => request("/tg-inbox/settings", { method: "PUT", body: payload }),
   tgFileUrl: (messageId, { download = false } = {}) => `${BASE}/tg-inbox/files/${messageId}${download ? "?download=1" : ""}`,
   tgReview: (id) => request(`/tg-inbox/${id}/review`, { method: "POST" }),
+  // A manager checks the AI's review: { verdict: "right"|"wrong"|null, kind?, note? }.
+  tgReviewFeedback: (reviewId, payload) => request(`/tg-inbox/reviews/${reviewId}/feedback`, { method: "PUT", body: payload }),
   tgPhoneOwner: (id, phone) => request(`/tg-inbox/${id}/phone-owner${qs({ phone })}`),
   tgReviews: (employeeId, month) => request(`/tg-inbox/reviews${qs({ employeeId, month })}`),
 

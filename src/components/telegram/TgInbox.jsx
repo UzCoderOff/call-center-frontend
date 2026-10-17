@@ -218,7 +218,9 @@ export function TgThread({ chatId, embedded = false, onChanged }) {
           )}
 
           {chat.aiHidden && <div className={tg.aiHiddenNote}>{t("tg.aiHiddenNote")}</div>}
-          {chat.canManage && <ChatReview review={review} canReview={chat.canReview} onReview={reviewNow} busy={reviewing} />}
+          {chat.canManage && (
+            <ChatReview review={review} canReview={chat.canReview} onReview={reviewNow} busy={reviewing} onChecked={(r) => setData((d) => ({ ...d, review: r }))} />
+          )}
 
           <Messages chatId={chat.id} messages={messages} hasOlder={hasOlder} />
 

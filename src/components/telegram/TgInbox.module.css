@@ -360,3 +360,47 @@
   font-size: 13px;
   color: var(--text-2);
 }
+
+/* A manager's check of the AI's review (2026-10-17). */
+.check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--separator);
+  font-size: 13px;
+}
+
+.checkAsk {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.checkButtons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.checkDone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.checkBy {
+  color: var(--text-2);
+}
