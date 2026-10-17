@@ -13,7 +13,7 @@ import { BulkSheet, ClientSheet } from "../components/clients/ClientSheets";
 import Icon from "../components/ui/Icon";
 import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
-import { canBookAppointments, canManageClients, canSeeFinance, isCallCenter, isCoordinator, isLawyer, countsCalls } from "../lib/access";
+import { canManageClients, canSeeFinance, isCallCenter, isCoordinator, isLawyer, countsCalls } from "../lib/access";
 import { api } from "../lib/api";
 import { shiftIso, todayIso } from "../lib/format";
 import { useI18n } from "../i18n";
@@ -426,7 +426,11 @@ export default function ClientsPage() {
             setCreating(false);
             update({ new: null, phone: null, name: null });
           }}
-          onSaved={(client) => navigate(`/clients/${client.id}${canBookAppointments(user) ? "?ask=book" : ""}`)}
+          onSaved={(client, { bookUrl }) => {
+            navigate(`/clients/${client.id}`);
+            // "Book a consultation too?" — yes: straight to the calendar.
+            if (bookUrl) navigate(bookUrl);
+          }}
         />
       )}
     </div>

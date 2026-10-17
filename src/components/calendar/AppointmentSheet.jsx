@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import pageStyles from "../../pages/Pages.module.css";
 import Sheet from "../ui/Sheet";
 import Button from "../ui/Button";
 import { MoneyField, TextAreaField } from "../ui/Field";
+import fieldStyles from "../ui/Field.module.css";
 import Badge from "../ui/Badge";
 import { CONSULTATION_FEE, FEE_METHODS } from "./BookingSheet";
 import { canBookAppointments, isLawyer } from "../../lib/access";
@@ -19,14 +20,19 @@ import { useI18n } from "../../i18n";
 // One appointment: details, a call button, and what the viewer may do —
 // the lawyer marks attended / no-show and writes the summary ("suhbat
 // yakuni", /consultations/:id); whoever booked it (or a manager) can cancel
-// it before it happens.
+// it — before its time, or after it when it didn't take place — saying why,
+// what happened, and whether to book a new one (2026-10-17).
+const CANCEL_REASONS = ["client", "moved", "lawyer", "mistake", "other"];
 export default function AppointmentSheet({ appointment, canManage, today, onClose, onChanged }) {
   const { user } = useAuth();
   const { t, fmt } = useI18n();
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
+  const [why, setWhy] = useState(null);
+  const [rebook, setRebook] = useState(null);
   // Recording the consultation fee after booking.
   const [takingFee, setTakingFee] = useState(false);
   const [feeAmount, setFeeAmount] = useState(String(CONSULTATION_FEE));
@@ -59,8 +65,30 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
   // take back the same day, until the summary is written (the server checks
   // the same).
   const ownWalkIn = a.walkIn && a.status === "attended" && a.bookedBy?.id === user.id && a.date === today && !a.summaryAt;
-  const mayCancel =
-    (a.status === "booked" && upcoming && (canManage || a.bookedBy?.id === user.id || isManagerRole(user.role))) || ownWalkIn;
+  // Before its time or after it, until the summary is written (the server
+  // checks the same).
+  const mayCancel = (a.status !== "cancelled" && !a.summaryAt && (canManage || a.bookedBy?.id === user.id || isManagerRole(user.role))) || ownWalkIn;
+  const bookAgainUrl = `/calendar?${new URLSearchParams({ ...(a.clientId ? { clientId: a.clientId } : {}), name: a.clientName, ...(a.clientPhone ? { phone: a.clientPhone } : {}) })}`;
+
+  async function cancel() {
+    if (!why) return setError(t("calendar.cancelWhyNeeded"));
+    if (rebook === null) return setError(t("calendar.cancelRebookNeeded"));
+    const text = [t(`calendar.cancelReasons.${why}`), reason.trim()].filter(Boolean).join(": ");
+    setBusy("cancelled");
+    setError("");
+    try {
+      const updated = await api.updateAppointment(a.id, { status: "cancelled", cancelReason: text });
+      onChanged(updated);
+      if (rebook) {
+        onClose?.();
+        navigate(bookAgainUrl);
+      }
+    } catch {
+      setError(t("calendar.actionFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
   const booker = a.bookedBy?.employee?.name || a.bookedBy?.username;
   const tel = telHref(a.clientPhone);
   // Office <-> online: the lawyer, or whoever booked it while it's booked
@@ -196,17 +224,46 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
       {mayCancel &&
         (cancelling ? (
           <div className={pageStyles.formStack}>
-            <TextAreaField label={t("calendar.cancelReason")} value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
+            <span className={pageStyles.note}>{t("calendar.cancelWhy")}</span>
+            <div className={fieldStyles.chips} role="radiogroup">
+              {CANCEL_REASONS.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  role="radio"
+                  aria-checked={why === r}
+                  className={`${fieldStyles.chip} ${why === r ? fieldStyles.chipOn : ""}`}
+                  onClick={() => {
+                    setWhy(r);
+                    if (r === "moved" && rebook === null) setRebook(true);
+                  }}
+                >
+                  {t(`calendar.cancelReasons.${r}`)}
+                </button>
+              ))}
+            </div>
+            <TextAreaField label={t("calendar.cancelWhatHappened")} value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
+            <span className={pageStyles.note}>{t("calendar.cancelRebook")}</span>
+            <Segmented
+              full
+              value={rebook}
+              onChange={setRebook}
+              label={t("calendar.cancelRebook")}
+              options={[
+                { value: true, label: t("calendar.cancelRebookYes") },
+                { value: false, label: t("calendar.cancelRebookNo") },
+              ]}
+            />
             <div className={pageStyles.formActions}>
               <Button onClick={() => setCancelling(false)}>{t("common.cancel")}</Button>
-              <Button variant="destructive" busy={busy === "cancelled"} onClick={() => setStatus("cancelled", { cancelReason: reason })}>
-                {t("calendar.cancel")}
+              <Button variant="destructive" busy={busy === "cancelled"} onClick={cancel}>
+                {rebook ? t("calendar.cancelAndRebook") : started ? t("calendar.markCancelled") : t("calendar.cancel")}
               </Button>
             </div>
           </div>
         ) : (
           <Button variant="destructive" block onClick={() => setCancelling(true)}>
-            {t("calendar.cancel")}
+            {started ? t("calendar.markCancelled") : t("calendar.cancel")}
           </Button>
         ))}
 

@@ -40,6 +40,19 @@ export default function StatsOverview({ data, range, showEmployee, callsLink, mo
     <div className={styles.stack}>
       <div className={styles.tiles}>
         <StatTile label={t("dashboard.totalCalls")} value={fmt.number(s.totalCalls)} sub={versus} to={link()} />
+        {/* Which way: the calls that came in (answered or not) and the ones we made. */}
+        <StatTile
+          label={t("dashboard.incoming")}
+          value={fmt.number(s.incomingCalls ?? 0)}
+          sub={t("dashboard.incomingSub", { missed: fmt.number(s.missedCalls) })}
+          to={link({ type: "incoming" })}
+        />
+        <StatTile
+          label={t("dashboard.outgoing")}
+          value={fmt.number(s.outgoingCalls ?? 0)}
+          sub={t("dashboard.outgoingSub", { n: fmt.number(s.outgoingConnected ?? 0) })}
+          to={link({ type: "outgoing" })}
+        />
         <StatTile
           label={t("dashboard.answered")}
           dot="var(--series-answered)"

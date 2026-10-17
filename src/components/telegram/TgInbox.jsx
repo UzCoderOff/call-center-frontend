@@ -240,9 +240,10 @@ export function TgThread({ chatId, embedded = false, onChanged }) {
             <ClientSheet
               prefill={{ name: chat.name.startsWith("@") ? "" : chat.name, phone: chat.phone || "", source: "telegram" }}
               onClose={() => setSheet(null)}
-              onSaved={(client) => {
+              onSaved={async (client, { bookUrl }) => {
                 setSheet(null);
-                update({ clientId: client.id });
+                await update({ clientId: client.id });
+                if (bookUrl) navigate(bookUrl);
               }}
             />
           )}

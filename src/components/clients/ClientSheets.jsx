@@ -13,6 +13,7 @@ import { todayIso } from "../../lib/format";
 import Segmented from "../ui/Segmented";
 import CashWith, { cashWithDefault, cashWithOf } from "../finance/CashWith";
 import { useAuth } from "../../hooks/useAuth";
+import { canBookAppointments, isManager } from "../../lib/access";
 import { useI18n } from "../../i18n";
 
 
@@ -75,9 +76,23 @@ function ErrorLine({ text }) {
 // ------------------------------------------------------------ client
 // New client (with their first case) or editing one. A phone number that
 // already belongs to someone stops the save and offers that client instead.
+// Booking a client into the calendar: the form opens with them filled in.
+export const bookUrlFor = (id, name, phone) => `/calendar?${new URLSearchParams({ clientId: id, name, ...(phone ? { phone } : {}) })}`;
+
+// A new client, or the details of one. Adding one asks two things
+// (2026-10-17): is it a new client — the first time they came to the firm,
+// counted as a new client — or one the firm already had, only now written
+// in (not counted); and whether to book them a consultation now. onSaved
+// gets (client, { bookUrl }) — bookUrl only when they said yes.
 export function ClientSheet({ client, prefill, onClose, onSaved }) {
   const { t } = useI18n();
+  const { user } = useAuth();
   const editing = Boolean(client);
+  const mayBook = !editing && canBookAppointments(user);
+  // A manager can correct it later.
+  const askNew = !editing || isManager(user);
+  const [isNew, setIsNew] = useState(editing ? client.isNew !== false : null);
+  const [book, setBook] = useState(null);
   const [name, setName] = useState(client?.name || prefill?.name || "");
   const [phones, setPhones] = useState(client ? client.phones.map((p) => p.phone) : [prefill?.phone || ""]);
   const [city, setCity] = useState(client?.city || "");
@@ -95,6 +110,8 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
 
   async function save(force = false) {
     if (!name.trim()) return setError(t("clients.nameRequired"));
+    if (askNew && isNew === null) return setError(t("clients.isNewNeeded"));
+    if (mayBook && book === null) return setError(t("clients.bookNeeded"));
     setBusy(true);
     setError("");
     const payload = {
@@ -105,11 +122,12 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
       email,
       notes,
       force,
+      ...(askNew && (!editing || isNew !== (client.isNew !== false)) ? { isNew } : {}),
       ...(editing ? {} : { case: { matter, lawyer: lawyer.lawyer, lawyerId: lawyer.lawyerId, status } }),
     };
     try {
       const saved = editing ? await api.updateClient(client.id, payload) : await api.createClient(payload);
-      onSaved(saved);
+      onSaved(saved, { bookUrl: mayBook && book ? bookUrlFor(saved.id, saved.name, payload.phones[0]) : null });
     } catch (err) {
       if (err.code === "phone_exists") setDuplicate(err.body.client);
       else setError(t("clients.saveFailed", { reason: err.code || "?" }));
@@ -121,6 +139,22 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
   return (
     <Sheet title={editing ? t("clients.editTitle") : t("clients.add")} onClose={onClose}>
       <div className={pageStyles.formStack}>
+        {askNew && (
+          <div>
+            <span className={pageStyles.note}>{t("clients.isNewQuestion")}</span>
+            <Segmented
+              full
+              value={isNew}
+              onChange={setIsNew}
+              label={t("clients.isNewQuestion")}
+              options={[
+                { value: true, label: t("clients.isNewYes") },
+                { value: false, label: t("clients.isNewNo") },
+              ]}
+            />
+            <span className={pageStyles.note}>{isNew === false ? t("clients.isNewNoHint") : isNew ? t("clients.isNewYesHint") : t("clients.isNewHint")}</span>
+          </div>
+        )}
         <TextField label={t("clients.name")} placeholder={t("clients.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} required />
         {phones.map((p, i) => (
           <div key={i} className={styles.phoneEditRow}>
@@ -176,6 +210,22 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
         {editing && <TextField label={t("clients.email")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />}
         <TextAreaField label={t("clients.notes")} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
 
+        {mayBook && (
+          <div>
+            <span className={pageStyles.note}>{t("clients.askBookTitle")}</span>
+            <Segmented
+              full
+              value={book}
+              onChange={setBook}
+              label={t("clients.askBookTitle")}
+              options={[
+                { value: true, label: t("clients.askBookYes") },
+                { value: false, label: t("clients.askBookNo") },
+              ]}
+            />
+          </div>
+        )}
+
         {duplicate?.restricted && (
           <div className={styles.duplicate}>
             <span style={{ flex: "1 1 200px" }}>
@@ -198,7 +248,7 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
         <div className={pageStyles.formActions}>
           <Button onClick={onClose}>{t("common.cancel")}</Button>
           <Button variant="primary" busy={busy} onClick={() => save(false)}>
-            {t("clients.save")}
+            {mayBook && book ? t("clients.saveAndBook") : t("clients.save")}
           </Button>
         </div>
       </div>
