@@ -164,7 +164,7 @@ export function useEventText() {
         return d.count ? t("caseWork.events.schedule", { count: d.count }) : t("caseWork.events.scheduleCleared");
       case "task":
         if (d.action === "checklist") return t("caseTasks.events.checklist", { name: d.title || "—", count: d.count || 0, who: d.assignee || "—" });
-        return t(`caseTasks.events.${d.action === "done" ? "done" : "add"}`, { title: d.title || "—", who: d.assignee || "—" });
+        return t(`caseTasks.events.${d.action === "done" ? "done" : "add"}`, { title: d.title || "—", who: d.assignee || "—" }) + (d.answer ? ` — «${d.answer}»` : "");
       case "consult_summary": {
         const parts = [t(`summary.prospects.${d.prospect || "potential"}`), d.next ? t(`summary.next.${d.next.kind}`) : null, d.next?.dueAt ? fmt.dateTime(new Date(d.next.dueAt).getTime()) : null, d.lostReason ? t(`clientWork.lost.${d.lostReason}`) : null];
         return `${t("summary.event", { what: parts.filter(Boolean).join(" · ") })}: ${e.text}`;

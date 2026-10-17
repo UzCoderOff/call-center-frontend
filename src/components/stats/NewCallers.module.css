@@ -1,0 +1,134 @@
+/* New callers who didn't book: one tap for why (2026-10-17). */
+.count {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--warning-soft, var(--fill));
+  color: var(--warning-text, var(--text));
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--separator);
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.phone svg {
+  color: var(--accent);
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.done {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--good-text);
+  font-weight: 600;
+}
+
+.change {
+  margin-left: 6px;
+  background: none;
+  border: 0;
+  padding: 4px 2px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.other {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.other input {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.allDone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px 14px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.allDone svg {
+  flex-shrink: 0;
+  color: var(--good-text);
+}
+
+.more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-top: 1px solid var(--separator);
+  background: none;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.more:hover {
+  background: var(--fill-hover);
+}
+
+.note {
+  margin: 0;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--separator);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}

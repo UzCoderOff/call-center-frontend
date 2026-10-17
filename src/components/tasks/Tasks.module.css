@@ -42,3 +42,29 @@
   line-height: 1.5;
   white-space: pre-wrap;
 }
+
+/* The person's written answer (2026-10-17). */
+.answer {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft, var(--fill));
+  border-left: 3px solid var(--accent);
+}
+
+.answerHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.answerText {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

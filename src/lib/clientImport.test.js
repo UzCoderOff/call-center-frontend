@@ -131,6 +131,8 @@ test("stage words become a status and a legal stage", () => {
   assert.deepEqual(parseStage("Shartnoma · Birinchi instansiya"), { status: "contract", legalStage: "first_instance" });
   assert.deepEqual(parseStage("Апелляция"), { status: "contract", legalStage: "appeal" });
   assert.deepEqual(parseStage("Qayta qoʻngʻiroq"), { status: "call_again" });
+  // Ledger's own export (2026-10-17) reads back.
+  assert.deepEqual(parseStage("Murojaat"), { status: "consultation" });
   assert.deepEqual(parseStage(""), {});
 });
 

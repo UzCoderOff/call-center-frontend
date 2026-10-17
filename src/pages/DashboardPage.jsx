@@ -7,6 +7,8 @@ import RangePicker from "../components/stats/RangePicker";
 import JobToggles, { useCallJobs } from "../components/calls/JobToggles";
 import { AsyncBoundary, Banner, EmptyState, PageHeader } from "../components/ui/Misc";
 import StatsOverview from "../components/stats/StatsOverview";
+import NewCallersCard from "../components/stats/NewCallers";
+import { FunnelByEmployeeCard } from "../components/stats/Funnel";
 import EmployeeStatsTable from "../components/stats/EmployeeStatsTable";
 import { ReportStatusBadge } from "../components/reports/ReportAnswers";
 import { ReportHistory } from "./ReportsPage";
@@ -141,6 +143,8 @@ function ManagerHome() {
                     </Banner>
                   )}
                   <StatsOverview data={data} range={range} showEmployee money />
+                  <FunnelByEmployeeCard rangeKey={range} />
+                  <NewCallersCard showEmployee />
                   {data.strikeRules && <TeamStrikesCard employees={data.employees} rules={data.strikeRules} />}
                   <Card flush title={t("dashboard.byEmployee")}>
                     {data.employees.length === 0 ? (
@@ -379,6 +383,7 @@ function CallsHome() {
         <ToReadCard />
         {user.employee?.hasReport && <TodayReportStatus />}
         {canBookAppointments(user) && <MyAppointmentsCard />}
+        <NewCallersCard />
         <CallsSection title={t("dashboard.myCallsSection")} range={range} onRange={setRange}>
           <AsyncBoundary state={state}>
             {(data) => (

@@ -341,8 +341,7 @@ function AutoSummary({ auto }) {
           [t("autoReport.talk"), s.calls.talkSeconds > 0 ? fmt.duration(s.calls.talkSeconds) : "—"],
         ]
       : []),
-    [t("autoReport.booked"), fmt.number(s.booked)],
-    [t("autoReport.consultations"), fmt.number(s.consultations)],
+    [t("autoReport.consultations"), s.came > 0 ? t("autoReport.consultationsCame", { n: fmt.number(s.consultations), came: s.came }) : fmt.number(s.consultations)],
     [t("autoReport.contracts"), fmt.number(s.contracts)],
   ];
   return (

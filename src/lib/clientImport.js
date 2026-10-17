@@ -279,6 +279,8 @@ const STAGE_RULES = [
   ["rad etdi", { status: "declined" }],
   ["davom etmadi", { status: "declined" }],
   ["konsul", { status: "consultation" }],
+  // Ledger's own export calls that stage «Murojaat» (2026-10-17).
+  ["murojaat", { status: "consultation" }],
   ["maslaxat", { status: "consultation" }],
   ["yozildi", { status: "consultation" }],
 ].map(([word, result]) => [searchable(word), result]);

@@ -836,3 +836,8 @@ button.slotChip:active {
   display: grid;
   gap: 10px;
 }
+
+/* Today: write down a client who came without booking (2026-10-17). */
+.walkIn {
+  margin: 4px 0 12px;
+}

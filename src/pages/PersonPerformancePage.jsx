@@ -159,18 +159,18 @@ function monthDates(month) {
   return Array.from({ length: last }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
 }
 
-// Client work, in plain words: booked, came, signed.
+// Client work, in plain words: consultations (what they booked — one and
+// the same thing), what happened to them, signed.
 function ClientWork({ p }) {
   const { t } = useI18n();
-  const b = p.bookings;
+  const k = p.consultations;
   const c = p.conversion;
   const dates = monthDates(p.month);
   return (
     <Card title={t("perf.clientTitle")} subtitle={t("perf.clientSubtitle")}>
       <div className={styles.facts}>
-        <Fact label={t("perf.cw.booked")} value={b.made} note={t("perf.cw.bookedNote", { added: p.clientsAdded })} />
-        <Fact label={t("perf.cw.came")} value={`${b.attended} / ${b.total}`} note={t("perf.cw.cameNote", { noShow: b.noShow, unmarked: b.unmarked, upcoming: b.upcoming })} />
-        <Fact label={t("perf.measure.consultations")} value={p.consultations.count} note={t("perf.measureHint.consultations")} />
+        <Fact label={t("perf.measure.consultations")} value={k.count} note={t("perf.cw.consultationsNote", { upcoming: k.upcoming, cancelled: k.cancelled, added: p.clientsAdded })} />
+        <Fact label={t("perf.cw.came")} value={`${k.came} / ${k.count}`} note={t("perf.cw.cameNote", { noShow: k.noShow, unmarked: k.unmarked + k.today })} />
         <Fact label={t("perf.measure.contracts")} value={p.contracts.count} note={t("perf.measureHint.contracts")} />
         <Fact
           label={t("perf.cw.signedShare")}
@@ -464,7 +464,6 @@ function DaysTable({ p, fmt }) {
           <th>{t("perf.col.date")}</th>
           {p.calls && <th>{t("perf.col.answered")}</th>}
           {p.calls && <th>{t("perf.col.missed")}</th>}
-          {(p.work.client || p.work.clientActivity) && <th>{t("perf.col.booked")}</th>}
           {(p.work.client || p.work.clientActivity) && <th>{t("perf.col.consultations")}</th>}
           {(p.work.client || p.work.clientActivity) && <th>{t("perf.col.contracts")}</th>}
           {office.map((m) => (
@@ -478,7 +477,6 @@ function DaysTable({ p, fmt }) {
             <td>{fmt.isoDateLong(d.date)}</td>
             {p.calls && <td>{d.answered}</td>}
             {p.calls && <td>{d.missed}</td>}
-            {(p.work.client || p.work.clientActivity) && <td>{d.booked}</td>}
             {(p.work.client || p.work.clientActivity) && <td>{d.consultations}</td>}
             {(p.work.client || p.work.clientActivity) && <td>{d.contracts}</td>}
             {office.map((m) => (

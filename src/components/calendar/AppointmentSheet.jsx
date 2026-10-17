@@ -55,13 +55,17 @@ export default function AppointmentSheet({ appointment, canManage, today, onClos
   const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
   const upcoming = a.date > today || (a.date === today && a.start > nowMinutes);
   const started = !upcoming;
+  // Their own walk-in (written down after the client came): theirs to fix or
+  // take back the same day, until the summary is written (the server checks
+  // the same).
+  const ownWalkIn = a.walkIn && a.status === "attended" && a.bookedBy?.id === user.id && a.date === today && !a.summaryAt;
   const mayCancel =
-    a.status === "booked" && upcoming && (canManage || a.bookedBy?.id === user.id || isManagerRole(user.role));
+    (a.status === "booked" && upcoming && (canManage || a.bookedBy?.id === user.id || isManagerRole(user.role))) || ownWalkIn;
   const booker = a.bookedBy?.employee?.name || a.bookedBy?.username;
   const tel = telHref(a.clientPhone);
   // Office <-> online: the lawyer, or whoever booked it while it's booked
   // (the server checks the same).
-  const mayEditDetails = canManage || (a.bookedBy?.id === user.id && a.status === "booked");
+  const mayEditDetails = canManage || (a.bookedBy?.id === user.id && a.status === "booked") || ownWalkIn;
   const otherFormat = a.format === "online" ? "office" : "online";
 
   async function setFormat(format) {

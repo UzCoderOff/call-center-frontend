@@ -7,11 +7,13 @@ import { api } from "../../lib/api";
 import { useI18n } from "../../i18n";
 
 // Automatic daily reports (call-center staff): the day's numbers, worked out
-// by the server from their calls, bookings and clients — nobody fills them in.
+// by the server from their calls, consultations and clients — nobody fills
+// them in. A consultation is one they booked, on its own day (a booking and a
+// consultation are one thing).
 
 // Nothing happened that day (a Sunday, a day off).
 export const isEmptyDay = (day) =>
-  (day.calls?.total || 0) + day.booked + day.newClients + day.consultations + day.contracts + (day.payments?.count || 0) === 0;
+  (day.calls?.total || 0) + day.newClients + day.consultations + day.contracts + (day.payments?.count || 0) === 0;
 
 export function AutoBadge() {
   const { t } = useI18n();
@@ -22,14 +24,14 @@ export function AutoBadge() {
   );
 }
 
-// "23 calls · 2 missed · 3 booked" — one line for lists.
+// "23 calls · 2 missed · 3 consultations" — one line for lists.
 export function autoLine(day, t) {
   const parts = [];
   if (day.calls) {
     parts.push(t("autoReport.lineCalls", { n: day.calls.total }));
     if (day.calls.needsCallback > 0) parts.push(t("autoReport.lineNeeds", { n: day.calls.needsCallback }));
   }
-  if (day.booked > 0) parts.push(t("autoReport.lineBooked", { n: day.booked }));
+  if (day.consultations > 0) parts.push(t("autoReport.lineConsultations", { n: day.consultations }));
   if (day.contracts > 0) parts.push(t("autoReport.lineContracts", { n: day.contracts }));
   return parts.join(" · ") || t("autoReport.lineNothing");
 }
@@ -60,9 +62,8 @@ export default function AutoReportNumbers({ day }) {
   groups.push({
     title: t("autoReport.clientsTitle"),
     rows: [
-      [t("autoReport.booked"), fmt.number(day.booked)],
+      [t("autoReport.consultations"), day.came > 0 ? t("autoReport.consultationsCame", { n: fmt.number(day.consultations), came: day.came }) : fmt.number(day.consultations)],
       [t("autoReport.newClients"), fmt.number(day.newClients)],
-      [t("autoReport.consultations"), fmt.number(day.consultations)],
       [t("autoReport.contracts"), fmt.number(day.contracts)],
       ...(day.followUpsDone != null ? [[t("autoReport.followUpsDone"), fmt.number(day.followUpsDone)]] : []),
       // Only for people who see client money — the server leaves it out

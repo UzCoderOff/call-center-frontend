@@ -6,7 +6,8 @@ import Card from "../ui/Card";
 import Sheet from "../ui/Sheet";
 import Button from "../ui/Button";
 import Icon from "../ui/Icon";
-import { SelectField, TextField } from "../ui/Field";
+import { SelectField, Switch, TextField } from "../ui/Field";
+import { AnswerSheet, TaskAnswer, waitsForMyAnswer } from "../tasks/TaskParts";
 import { AsyncBoundary } from "../ui/Misc";
 import { useAuth } from "../../hooks/useAuth";
 import { useAsync } from "../../hooks/useAsync";
@@ -43,8 +44,11 @@ export default function CaseTasks({ item, tasks, onChanged, compact = false }) {
   const [checklist, setChecklist] = useState(false);
   const [showDone, setShowDone] = useState(false);
   const [busy, setBusy] = useState(null);
+  const [answering, setAnswering] = useState(null);
 
   async function tick(task) {
+    // Their task asks for an answer: the answer box first.
+    if (waitsForMyAnswer(task, user)) return setAnswering(task);
     setBusy(task.id);
     try {
       await api.updateTask(task.id, { done: !task.doneAt });
@@ -117,11 +121,13 @@ export default function CaseTasks({ item, tasks, onChanged, compact = false }) {
                         </span>
                       ) : null,
                       task.createdBy && task.createdBy.id !== task.assignee?.id ? t("caseTasks.givenBy", { name: task.createdBy.name }) : null,
+                      task.needsAnswer && !task.answer && !task.doneAt ? t("tasks.answerWanted") : null,
                     ]
                       .filter(Boolean)
                       .reduce((acc, part, i) => (i ? [...acc, " · ", part] : [part]), [])}
                   </span>
                   {task.notes && !compact && <span className={styles.rowText}>{task.notes}</span>}
+                  {!compact && <TaskAnswer task={task} />}
                 </span>
                 {mayRemove && (
                   <button type="button" className={clientStyles.iconButton} onClick={() => remove(task)} aria-label={t("caseTasks.remove")}>
@@ -148,6 +154,7 @@ export default function CaseTasks({ item, tasks, onChanged, compact = false }) {
         }}
       </AsyncBoundary>
       {adding && <TaskSheet item={item} onClose={() => setAdding(false)} onSaved={() => (setAdding(false), onChanged())} />}
+      {answering && <AnswerSheet task={answering} onClose={() => setAnswering(null)} onChanged={() => (setAnswering(null), onChanged())} />}
       {checklist && <ChecklistSheet item={item} onClose={() => setChecklist(false)} onSaved={() => (setChecklist(false), onChanged())} />}
     </Card>
   );
@@ -177,6 +184,7 @@ function TaskSheet({ item, onClose, onSaved }) {
   const [date, setDate] = useState(tomorrow());
   const [time, setTime] = useState("18:00");
   const [notes, setNotes] = useState("");
+  const [needsAnswer, setNeedsAnswer] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -186,7 +194,7 @@ function TaskSheet({ item, onClose, onSaved }) {
     setBusy(true);
     setError("");
     try {
-      await api.createTask({ caseId: item.id, title: title.trim(), assigneeId: Number(assigneeId), dueAt: at(date, time), notes: notes.trim() || null });
+      await api.createTask({ caseId: item.id, title: title.trim(), assigneeId: Number(assigneeId), dueAt: at(date, time), notes: notes.trim() || null, needsAnswer });
       onSaved();
     } catch (err) {
       setError(t("clients.saveFailed", { reason: err.code || "?" }));
@@ -204,6 +212,7 @@ function TaskSheet({ item, onClose, onSaved }) {
           <TextField label={t("caseTasks.byTime")} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
         </div>
         <TextField label={t("caseTasks.notes")} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Switch label={t("tasks.needsAnswer")} hint={t("tasks.needsAnswerHint")} checked={needsAnswer} onChange={setNeedsAnswer} />
         {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
         <div className={pageStyles.formActions}>
           <Button onClick={onClose}>{t("common.cancel")}</Button>

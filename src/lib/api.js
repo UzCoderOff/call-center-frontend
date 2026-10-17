@@ -242,6 +242,10 @@ export const api = {
 
   // --- tasks (the boss gives someone work with a due time) ---
   tasks: (params) => request(`/tasks${qs(params)}`),
+  // New callers who didn't book, and why (one tap each).
+  newCallers: ({ employeeId } = {}) => request(`/call-outcomes${qs({ employeeId })}`),
+  setCallOutcome: (phoneKey, payload) => request(`/call-outcomes/${encodeURIComponent(phoneKey)}`, { method: "PUT", body: payload }),
+  funnelByEmployee: ({ from, to } = {}) => request(`/dashboard/funnel-by-employee${qs({ from, to })}`),
   // caseId: the people on that case (its tasks).
   taskPeople: (caseId) => request(`/tasks/people${qs({ caseId })}`),
   checklists: () => request("/tasks/checklists"),

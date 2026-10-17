@@ -17,6 +17,8 @@ const ERRORS = {
   in_the_past: "calendar.inPast",
   not_published: "calendar.notPublishedError",
   phone_required_for_fee: "calendar.feeNeedsPhone",
+  walk_in_today: "calendar.walkInToday",
+  already_today: "calendar.walkInTwice",
 };
 
 // The firm's usual consultation fee (the server has the same default).
@@ -26,11 +28,16 @@ export const FEE_METHODS = ["cash", "card", "transfer"];
 // Booking a client into a free slot. Immediate — the lawyer already
 // approved this time by publishing the week. `prefill` comes from a call
 // ("book from this call"): the caller's number, linked to the call.
+// slot.walkIn: a client who came without booking — today, at the time the
+// consultation began (now or earlier), saved as "came" (2026-10-17: a
+// consultation counts only as a calendar entry).
 export default function BookingSheet({ calendar, slot, free, prefill, onClose, onBooked }) {
   const { t, fmt } = useI18n();
   const slotMinutes = calendar.slotMinutes;
+  const walkIn = Boolean(slot.walkIn);
+  const [startAt, setStartAt] = useState(slot.start);
   // A double-length appointment only when the next slot is free too.
-  const nextFree = free.some((s) => s.date === slot.date && s.start === slot.start + slotMinutes);
+  const nextFree = !walkIn && free.some((s) => s.date === slot.date && s.start === slot.start + slotMinutes);
   const [duration, setDuration] = useState(slotMinutes);
   const [clientName, setClientName] = useState(prefill?.name || "");
   const [clientPhone, setClientPhone] = useState(prefill?.phone || "");
@@ -63,8 +70,9 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
     try {
       const appointment = await api.bookAppointment(calendar.id, {
         date: slot.date,
-        start: slot.start,
+        start: walkIn ? startAt : slot.start,
         duration,
+        ...(walkIn ? { walkIn: true } : {}),
         clientName: clientName.trim(),
         clientPhone: clientPhone.trim() || null,
         matter: matter.trim() || null,
@@ -83,12 +91,26 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
   }
 
   return (
-    <Sheet title={t("calendar.book")} onClose={onClose}>
+    <Sheet title={walkIn ? t("calendar.walkIn") : t("calendar.book")} onClose={onClose}>
       <form onSubmit={submit} className={pageStyles.formStack}>
+        {walkIn && <p className={pageStyles.note}>{t("calendar.walkInHint")}</p>}
         <div>
-          <KeyValue label={t("calendar.when")}>
-            {fmt.isoDay(slot.date)}, {fmt.minutes(slot.start)}–{fmt.minutes(slot.start + duration)}
-          </KeyValue>
+          {walkIn ? (
+            <TextField
+              label={t("calendar.walkInTime", { day: fmt.isoDay(slot.date) })}
+              type="time"
+              value={fmt.minutes(startAt)}
+              max={fmt.minutes(slot.start)}
+              onChange={(e) => {
+                const [h, m] = e.target.value.split(":").map(Number);
+                if (Number.isInteger(h) && Number.isInteger(m)) setStartAt(Math.min(slot.start, h * 60 + m));
+              }}
+            />
+          ) : (
+            <KeyValue label={t("calendar.when")}>
+              {fmt.isoDay(slot.date)}, {fmt.minutes(slot.start)}–{fmt.minutes(slot.start + duration)}
+            </KeyValue>
+          )}
           <KeyValue label={calendar.name ? t("calendar.title") : ""}>{calendar.name}</KeyValue>
         </div>
         {nextFree && (
@@ -152,7 +174,7 @@ export default function BookingSheet({ calendar, slot, free, prefill, onClose, o
         <div className={pageStyles.formActions}>
           <Button onClick={onClose}>{t("common.cancel")}</Button>
           <Button type="submit" variant="primary" busy={busy} disabled={!clientName.trim()}>
-            {t("calendar.confirmBook")}
+            {walkIn ? t("calendar.walkInSave") : t("calendar.confirmBook")}
           </Button>
         </div>
       </form>

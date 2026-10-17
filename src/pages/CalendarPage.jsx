@@ -397,6 +397,19 @@ function CalendarView({ calendars, initialId, canDelete, onCalendarChanged }) {
                   </div>
                 )}
 
+                {/* A client who came without booking: written down now, as came —
+                    on any day the lawyer takes consultations, published or not. */}
+                {week.canWalkIn && day === week.today && (
+                  <Button
+                    className={styles.walkIn}
+                    icon="plus"
+                    block
+                    // The firm's clock (the server's), not this device's.
+                    onClick={() => setBooking({ date: day, start: Math.floor(week.nowMinutes / 5) * 5, walkIn: true })}
+                  >
+                    {t("calendar.walkInButton")}
+                  </Button>
+                )}
                 {!week.canManage && week.status !== "published" ? (
                   <EmptyState icon="calendar" text={t("calendar.notPublished")} />
                 ) : (

@@ -7,7 +7,7 @@ import Button from "../ui/Button";
 import Card from "../ui/Card";
 import Icon from "../ui/Icon";
 import Sheet from "../ui/Sheet";
-import { SelectField, TextAreaField, TextField } from "../ui/Field";
+import { SelectField, Switch, TextAreaField, TextField } from "../ui/Field";
 import { List, ListRow } from "../ui/List";
 import { KeyValue } from "../ui/Misc";
 import { useAuth, isManagerRole } from "../../hooks/useAuth";
@@ -64,11 +64,19 @@ export function DueBadge({ task }) {
   );
 }
 
+// Their own task that asks for an answer they haven't written yet: ticking
+// it opens the answer box instead.
+export function waitsForMyAnswer(task, user) {
+  return !task.doneAt && task.needsAnswer && !task.answer && task.assignee?.id === user?.id;
+}
+
 // The round "done" button at the end of a task row.
-function DoneButton({ task, onChanged }) {
+function DoneButton({ task, onChanged, onOpen }) {
   const { t } = useI18n();
+  const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   async function toggle() {
+    if (waitsForMyAnswer(task, user)) return onOpen(task);
     setBusy(true);
     try {
       onChanged(await api.updateTask(task.id, { done: !task.doneAt }));
@@ -95,7 +103,13 @@ function DoneButton({ task, onChanged }) {
 // One task in a list. `showAssignee`: the boss's lists (who it's for).
 export function TaskRow({ task, showAssignee, canTick, onOpen, onChanged }) {
   const { t } = useI18n();
-  const sub = [showAssignee ? task.assignee?.name : task.createdBy ? t("tasks.fromName", { name: task.createdBy.name }) : null, task.client?.name].filter(Boolean).join(" · ");
+  const sub = [
+    showAssignee ? task.assignee?.name : task.createdBy ? t("tasks.fromName", { name: task.createdBy.name }) : null,
+    task.client?.name,
+    task.answer ? t("tasks.answered") : task.needsAnswer && !task.doneAt ? t("tasks.answerWanted") : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <ListRow
       onClick={() => onOpen(task)}
@@ -103,8 +117,73 @@ export function TaskRow({ task, showAssignee, canTick, onOpen, onChanged }) {
       subtitle={sub || undefined}
       footer={<DueBadge task={task} />}
       chevron={false}
-      actions={canTick ? <DoneButton task={task} onChanged={onChanged} /> : undefined}
+      actions={canTick ? <DoneButton task={task} onChanged={onChanged} onOpen={onOpen} /> : undefined}
     />
+  );
+}
+
+// What the person wrote back, as everyone who sees the task reads it.
+export function TaskAnswer({ task, className }) {
+  const { t, fmt } = useI18n();
+  if (!task.answer) return null;
+  return (
+    <div className={`${styles.answer} ${className || ""}`}>
+      <span className={styles.answerHead}>
+        <Icon name="message" size={15} />
+        {t("tasks.answerBy", { name: task.assignee?.name || "", when: task.answeredAt ? fmt.dateTime(new Date(task.answeredAt).getTime()) : "" })}
+      </span>
+      <p className={styles.answerText}>{task.answer}</p>
+    </div>
+  );
+}
+
+// The person writes their answer and ticks it done in one go (a task that
+// asks for an answer can't be done without one).
+export function AnswerForm({ task, onChanged }) {
+  const { t } = useI18n();
+  const [text, setText] = useState(task.answer || "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function done() {
+    if (task.needsAnswer && !text.trim()) return setError(t("tasks.answerNeeded"));
+    setBusy(true);
+    setError("");
+    try {
+      onChanged(await api.updateTask(task.id, { answer: text.trim() || null, done: true }));
+    } catch (err) {
+      if (err.code === "answer_required") setError(t("tasks.answerNeeded"));
+      else saveFailed(err, t);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className={pageStyles.formStack}>
+      <TextAreaField
+        label={task.needsAnswer ? t("tasks.answerLabelNeeded") : t("tasks.answerLabel")}
+        placeholder={t("tasks.answerPh")}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={5}
+        maxLength={4000}
+      />
+      {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
+      <Button variant="primary" size="large" block icon="check" busy={busy} onClick={done}>
+        {t("tasks.markDone")}
+      </Button>
+    </div>
+  );
+}
+
+// Just the answer box, for lists with their own rows (a case's tasks).
+export function AnswerSheet({ task, onClose, onChanged }) {
+  return (
+    <Sheet title={task.title} onClose={onClose}>
+      {task.notes && <p className={styles.notes}>{task.notes}</p>}
+      <div style={{ marginTop: 12 }}>
+        <AnswerForm task={task} onChanged={onChanged} />
+      </div>
+    </Sheet>
   );
 }
 
@@ -117,6 +196,7 @@ export function TaskSheet({ task, client, onClose, onSaved }) {
   const [notes, setNotes] = useState(task?.notes || "");
   const [assigneeId, setAssigneeId] = useState(task?.assignee?.id ? String(task.assignee.id) : "");
   const [due, setDue] = useState(task ? toLocalInput(new Date(task.dueAt)) : defaultDue());
+  const [needsAnswer, setNeedsAnswer] = useState(Boolean(task?.needsAnswer));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const clientRef = task?.client || client || null;
@@ -129,7 +209,7 @@ export function TaskSheet({ task, client, onClose, onSaved }) {
     if (Number.isNaN(dueAt.getTime())) return setError(t("tasks.errDue"));
     setBusy(true);
     setError("");
-    const payload = { title: title.trim(), notes: notes.trim() || null, assigneeId: Number(assigneeId), dueAt: dueAt.toISOString() };
+    const payload = { title: title.trim(), notes: notes.trim() || null, assigneeId: Number(assigneeId), dueAt: dueAt.toISOString(), needsAnswer };
     try {
       onSaved(editing ? await api.updateTask(task.id, payload) : await api.createTask({ ...payload, clientId: clientRef?.id ?? null }));
     } catch {
@@ -165,6 +245,7 @@ export function TaskSheet({ task, client, onClose, onSaved }) {
         </SelectField>
         <TextField label={t("tasks.due")} type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} required />
         <TextAreaField label={t("tasks.notes")} value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+        <Switch label={t("tasks.needsAnswer")} hint={t("tasks.needsAnswerHint")} checked={needsAnswer} onChange={setNeedsAnswer} />
         <p className={pageStyles.note}>{t("tasks.telegramNote")}</p>
         {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
         <div className={pageStyles.formActions}>
@@ -222,10 +303,14 @@ export function TaskDetailSheet({ task, onClose, onChanged, onEdit, onDeleted })
             {t("tasks.doneBy", { when: fmt.dateTime(new Date(task.doneAt).getTime()), name: task.doneBy?.name || "" })}
           </KeyValue>
         )}
+        {task.needsAnswer && !task.answer && !mine && <KeyValue label={t("tasks.answerTitle")}>{t("tasks.answerWanted")}</KeyValue>}
       </div>
       {task.notes && <p className={styles.notes}>{task.notes}</p>}
+      <TaskAnswer task={task} />
       <div className={pageStyles.formStack} style={{ marginTop: 12 }}>
-        {(mine || manager) && (
+        {/* Their own open task: the answer box and "done" together. */}
+        {mine && !task.doneAt && <AnswerForm task={task} onChanged={onChanged} />}
+        {((mine && task.doneAt) || (!mine && manager)) && (
           <Button
             variant={task.doneAt ? "secondary" : "primary"}
             size="large"
