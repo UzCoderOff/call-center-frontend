@@ -172,6 +172,8 @@ const en = {
   },
   calls: {
     viaLine: "Ledger line",
+    transferredTo: "Passed to {name}",
+    transferMissed: "{name} didn't answer",
     viewAnswered: "Answered",
     period: "Period",
     anyTime: "All time",

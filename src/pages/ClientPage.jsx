@@ -27,6 +27,7 @@ import ScheduleSheet from "../components/clients/ScheduleSheet";
 import { CALL_ICON, TimelineList, entryFile, entryIcon, entryParts, entryTime, useEventText } from "../components/clients/Timeline";
 import { canBookAppointments } from "../lib/access";
 import { TelegramCard } from "../components/telegram/TgInbox";
+import { transferText } from "../lib/transfers";
 
 // One client: who they are, the people on their cases, each case's way
 // (milestones, stage history with dates, key dates, money), connected
@@ -676,7 +677,7 @@ function Activity({ client, userId, onChanged, onEntry = null, openCase = null }
         at: Number(c.callTimestampMs),
         icon: c.missed ? "phoneMissed" : CALL_ICON[c.callType] || "phone",
         title,
-        sub: [c.employee?.name, c.employee?.job ? t(`work.jobs.${c.employee.job}`) : null, fmt.dateTime(Number(c.callTimestampMs)), c.hasRecording ? t("clients.withRecording") : null].filter(Boolean).join(" · "),
+        sub: [c.employee?.name, c.employee?.job ? t(`work.jobs.${c.employee.job}`) : null, transferText(c, t), fmt.dateTime(Number(c.callTimestampMs)), c.hasRecording ? t("clients.withRecording") : null].filter(Boolean).join(" · "),
         to: `/calls/${c.id}`,
       });
     }

@@ -4,6 +4,7 @@ import { ListRow } from "../ui/List";
 import { FollowUpBadge } from "../ui/Badge";
 import { telHref } from "../../lib/format";
 import { useI18n } from "../../i18n";
+import { transferText } from "../../lib/transfers";
 
 const TYPE_ICON = {
   incoming: "phoneIncoming",
@@ -40,9 +41,10 @@ export default function CallRow({ call, showEmployee = false, showCallButton = f
   const title = compact ? typeLabel : client?.name || fmt.phone(call.phoneNumber);
   // Through Ledger's phone line (not synced from someone's phone).
   const line = call.source === "pbx" && t("calls.viaLine");
+  const transfer = transferText(call, t);
   const parts = client
-    ? [fmt.phone(call.phoneNumber), showEmployee && call.employee?.name, line, when].filter(Boolean)
-    : [showEmployee && call.employee?.name, !compact && typeLabel, line, when].filter(Boolean);
+    ? [fmt.phone(call.phoneNumber), showEmployee && call.employee?.name, line, transfer, when].filter(Boolean)
+    : [showEmployee && call.employee?.name, !compact && typeLabel, line, transfer, when].filter(Boolean);
   const needsCallback = call.followUp === "pending" || call.followUp === "attempted";
   const tel = showCallButton && needsCallback ? telHref(call.phoneNumber) : null;
 

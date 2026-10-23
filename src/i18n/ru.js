@@ -174,6 +174,8 @@ const ru = {
   },
   calls: {
     viaLine: "линия Ledger",
+    transferredTo: "Переведён: {name}",
+    transferMissed: "{name} не ответил(а)",
     viewAnswered: "Отвеченные",
     period: "Период",
     anyTime: "За всё время",

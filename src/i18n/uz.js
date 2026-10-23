@@ -175,6 +175,9 @@ const uz = {
   },
   calls: {
     viaLine: "Ledger liniyasi",
+    // A client's call passed on to a colleague ("Ulash" in the app).
+    transferredTo: "Ulandi: {name}",
+    transferMissed: "{name} javob bermadi",
     viewAnswered: "Javob berilgan",
     period: "Davr",
     anyTime: "Barcha vaqt",
