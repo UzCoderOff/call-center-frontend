@@ -10,6 +10,7 @@ import { clearNoticeUnread } from "../hooks/useNoticeUnread";
 import { useAsync } from "../hooks/useAsync";
 import { useLive } from "../hooks/useLive";
 import { api } from "../lib/api";
+import { saveFailed } from "../lib/saveFailed";
 import { useI18n } from "../i18n";
 
 // Bildirishnomalar: everything Ledger told me — on Telegram, in the app,
@@ -42,6 +43,8 @@ export default function NotificationsPage() {
       const page = await api.notices({ before: items[items.length - 1].id });
       setOlder((rows) => [...rows, ...page.items]);
       setMore(page.more);
+    } catch (err) {
+      saveFailed(err, t);
     } finally {
       setLoadingMore(false);
     }

@@ -71,6 +71,14 @@ export default function SettingsPage() {
 }
 
 // ------------------------------------------------------------ change log
+// The words for a change, or — for one Ledger has no words for yet —
+// «Oʻzgartirdi: {name}» rather than the raw key.
+function auditText(t, action, vars) {
+  const key = `settings.auditActions.${action}`;
+  const text = t(key, vars);
+  return typeof text === "string" && text !== key ? text : t("settings.auditActions.other", vars);
+}
+
 // The latest changes that removed or reshaped data — archived, restored or
 // merged clients, deleted cases and payments, imports — with who and when.
 const AUDIT_ICON = {
@@ -116,7 +124,7 @@ function AuditLog() {
                   key={r.id}
                   to={r.clientId ? `/clients/${r.clientId}` : undefined}
                   leading={<IconTile icon={AUDIT_ICON[r.action] || "clipboard"} />}
-                  title={t(`settings.auditActions.${r.action}`, {
+                  title={auditText(t, r.action, {
                     ...r.summary,
                     name: r.clientName || "—",
                     merged: r.summary.merged || "—",

@@ -753,12 +753,15 @@ const en = {
     audit: "Change log",
     auditEmpty: "No changes yet.",
     auditActions: {
+      other: "Changed: {name}",
       client: {
+        autoArchive: "Archived automatically: {name}",
         archive: "Archived: {name}",
         restore: "Restored: {name}",
         merge: "Merged: {merged} → {name}",
       },
       case: {
+        amount: "Changed the contract amount: {name}",
         delete: "Deleted a case: {name} (with {payments} payments)",
       },
       payment: {
@@ -767,9 +770,35 @@ const en = {
         cashHolder: "Changed who has the cash: {name}, {amount}",
       },
       clients: {
-    sourceNeeded: "Choose where the client came from.",
         bulk: "Many clients: {what} ({clients} clients, {cases} cases)",
         import: "Imported: {created} new, {updated} existing, {skipped} skipped",
+      },
+      note: {
+        edit: "Edited a note: {name}",
+        delete: "Deleted a note: {name}",
+      },
+      contact: {
+        delete: "Removed a relative: {name}",
+      },
+      file: {
+        delete: "Deleted a file: {name}",
+      },
+      stage: {
+        edit: "Edited a stage: {name}",
+        delete: "Deleted a stage: {name}",
+      },
+      date: {
+        edit: "Edited a date: {name}",
+        delete: "Deleted a date: {name}",
+      },
+      strike: {
+        cancel: "Cancelled a strike",
+        restore: "Restored a strike",
+      },
+      rules: {
+        callCenter: "Changed the call-center rules",
+        clientArchive: "Changed the automatic archive rule",
+        strikes: "Changed the strike rules",
       },
       material: {
         archive: "Archived material: {title}",
@@ -1706,6 +1735,7 @@ const en = {
     saveAndBook: "Save and pick a time",
     bookNeeded: "Book a consultation? Choose “Yes” or “Not now”.",
     isNewNeeded: "Choose whether this is a new client or already ours.",
+    sourceNeeded: "Choose where the client came from.",
     isNewNoHint: "The firm worked with them before; only now added to Ledger — doesn't count as a new client.",
     isNewYesHint: "Coming to the firm for the first time — counts as a new client.",
     isNewHint: "New — coming to the firm for the first time. Already ours — the firm worked with them before; they're only now being added to Ledger.",
@@ -2344,6 +2374,8 @@ const en = {
       deploys: "Server releases",
     },
     kindHints: {
+      summaries: "When a consultation's summary isn't written yet",
+      aiReports: "Weekly report on Mondays and the monthly analysis",
       callReviews: "When your call is turned into text and reviewed by AI; a weekly tip on Mondays",
       hearings: "The evening before, the morning of, and when no outcome is written",
       calendar: "When someone (e.g. the boss) adds or moves something in your calendar",
