@@ -767,6 +767,7 @@ const en = {
         cashHolder: "Changed who has the cash: {name}, {amount}",
       },
       clients: {
+    sourceNeeded: "Choose where the client came from.",
         bulk: "Many clients: {what} ({clients} clients, {cases} cases)",
         import: "Imported: {created} new, {updated} existing, {skipped} skipped",
       },
@@ -1795,6 +1796,7 @@ const en = {
     city: "City / region",
     source: "Came from",
     sources: {
+      line: "Ledger line",
       call: "Phone call",
       telegram: "Telegram",
       instagram: "Instagram",

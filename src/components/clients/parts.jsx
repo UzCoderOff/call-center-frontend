@@ -13,7 +13,7 @@ export const LEGAL_STAGES = [
   "review",
   "supreme_review",
 ];
-export const SOURCES = ["call", "telegram", "instagram", "referral", "walk_in", "other"];
+export const SOURCES = ["line", "call", "telegram", "instagram", "referral", "walk_in", "other"];
 
 const STATUS_STYLE = {
   consultation: { tone: "accent", icon: "calendar" },

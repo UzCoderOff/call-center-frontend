@@ -111,6 +111,7 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
   async function save(force = false) {
     if (!name.trim()) return setError(t("clients.nameRequired"));
     if (askNew && isNew === null) return setError(t("clients.isNewNeeded"));
+    if (!editing && !source) return setError(t("clients.sourceNeeded"));
     if (mayBook && book === null) return setError(t("clients.bookNeeded"));
     setBusy(true);
     setError("");

@@ -771,6 +771,7 @@ const uz = {
         cashHolder: "Naqd pul kimdaligini oʻzgartirdi: {name}, {amount}",
       },
       clients: {
+    sourceNeeded: "Mijoz qayerdan keldi — tanlang.",
         bulk: "Koʻp mijozga: {what} ({clients} ta mijoz, {cases} ta ish)",
         import: "Import qildi: {created} ta yangi, {updated} ta bor, {skipped} ta oʻtkazildi",
       },
@@ -1799,6 +1800,7 @@ const uz = {
     city: "Shahar / viloyat",
     source: "Qayerdan keldi",
     sources: {
+      line: "Ledger liniyasi",
       call: "Qoʻngʻiroq",
       telegram: "Telegram",
       instagram: "Instagram",

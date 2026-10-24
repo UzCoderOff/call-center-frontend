@@ -769,6 +769,7 @@ const ru = {
         cashHolder: "Изменил, у кого наличные: {name}, {amount}",
       },
       clients: {
+    sourceNeeded: "Выберите, откуда пришёл клиент.",
         bulk: "Массовое изменение: {what} (клиентов: {clients}, дел: {cases})",
         import: "Импорт: новых — {created}, существующих — {updated}, пропущено — {skipped}",
       },
@@ -1797,6 +1798,7 @@ const ru = {
     city: "Город / область",
     source: "Откуда пришёл",
     sources: {
+      line: "Линия Ledger",
       call: "Звонок",
       telegram: "Telegram",
       instagram: "Instagram",
