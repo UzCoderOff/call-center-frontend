@@ -398,6 +398,8 @@ export const api = {
   // Calls going on right now, and listening to one live (live.js).
   liveCalls: () => request("/pbx/live"),
   listenCall: (id) => request(`/pbx/live/${encodeURIComponent(id)}/listen`, { method: "POST" }),
+  // A manager's check of a call's AI review (callReview.js).
+  callReviewFeedback: (id, payload) => request(`/calls/${id}/review-feedback`, { method: "PUT", body: payload }),
   savePbxSettings: (payload) => request("/pbx/settings", { method: "PUT", body: payload }),
   pbxSoftphone: (employeeId) => request(`/pbx/extensions/${employeeId}/softphone`, { method: "POST" }),
 

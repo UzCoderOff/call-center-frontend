@@ -10,6 +10,7 @@ import { FollowUpBadge } from "../components/ui/Badge";
 import { AsyncBoundary, EmptyState, KeyValue, PageHeader } from "../components/ui/Misc";
 import CallRow, { CallTypeIcon } from "../components/calls/CallRow";
 import AudioPlayer from "../components/calls/AudioPlayer";
+import { CallReviewCard, TranscriptCard } from "../components/calls/CallReview";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { CallerAppointmentsCard } from "../components/calendar/CalendarCards";
 import { canBookAppointments, canSeeCalendar, canSeeClients } from "../lib/access";
@@ -66,7 +67,8 @@ export default function CallDetailPage() {
                     )}
                   </Card>
                 )}
-                <AiCards call={call} />
+                <CallReviewCard call={call} canCheck={isManagerRole(user.role)} onChange={state.setData} />
+                <TranscriptCard call={call} />
               </div>
 
               <div className={pageStyles.stack}>
@@ -237,45 +239,6 @@ function ResolvesCard({ call }) {
 
 // Rendered only once the AI pipeline starts filling Transcript/CallAnalysis
 // — no empty placeholders for a feature that isn't live yet.
-function AiCards({ call }) {
-  const { t } = useI18n();
-  const a = call.analysis;
-  const hasAnalysis = a && (a.summary || a.whatWentWrong || a.improvementAreas || a.score != null);
-  return (
-    <>
-      {hasAnalysis && (
-        <Card title={t("callDetail.analysis")} action={a.score != null && <span className={styles.score}>{t("callDetail.score", { score: a.score })}</span>}>
-          <div className={styles.analysis}>
-            {a.summary && (
-              <section>
-                <h3>{t("callDetail.summary")}</h3>
-                <p>{a.summary}</p>
-              </section>
-            )}
-            {a.whatWentWrong && (
-              <section>
-                <h3>{t("callDetail.whatWentWrong")}</h3>
-                <p>{a.whatWentWrong}</p>
-              </section>
-            )}
-            {a.improvementAreas && (
-              <section>
-                <h3>{t("callDetail.improvementAreas")}</h3>
-                <p>{a.improvementAreas}</p>
-              </section>
-            )}
-          </div>
-        </Card>
-      )}
-      {call.transcript?.text && (
-        <Card title={t("callDetail.transcript")}>
-          <p className={styles.transcript}>{call.transcript.text}</p>
-        </Card>
-      )}
-    </>
-  );
-}
-
 function HistoryCard({ call }) {
   const { user } = useAuth();
   const { t } = useI18n();

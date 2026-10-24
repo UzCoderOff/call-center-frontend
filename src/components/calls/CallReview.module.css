@@ -1,0 +1,197 @@
+.head {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score {
+  font-weight: 800;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.good {
+  color: var(--good-text);
+  background-color: var(--good);
+}
+
+.mid {
+  color: var(--warning-text);
+  background-color: var(--warning);
+}
+
+.low {
+  color: var(--critical-text);
+  background-color: var(--critical);
+}
+
+/* Numbers take the colour as text only. */
+.score.good,
+.score.mid,
+.score.low,
+.points.good,
+.points.mid,
+.points.low {
+  background: none;
+}
+
+.about {
+  margin: 0 0 10px;
+  font-weight: 500;
+}
+
+.note,
+.betaNote {
+  margin: 0 0 8px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.betaNote {
+  margin-top: 12px;
+}
+
+.criteria {
+  display: grid;
+  gap: 10px;
+  margin: 6px 0 12px;
+}
+
+.criterionHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.points {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  height: 6px;
+  margin-top: 4px;
+  border-radius: 3px;
+  background: var(--fill);
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+
+.criterionNote {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.gross {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--critical-soft);
+  color: var(--critical-text);
+}
+
+.gross ul,
+.section ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.section {
+  margin-top: 12px;
+}
+
+.section h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.better {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--fill);
+  font-size: 14px;
+}
+
+.better p {
+  margin: 0;
+}
+
+.better span {
+  font-weight: 600;
+}
+
+.said {
+  color: var(--text-2);
+}
+
+.betterLine {
+  margin-top: 4px !important;
+  color: var(--good-text);
+}
+
+.feedback {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--separator, var(--fill));
+}
+
+.feedbackNote {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--separator, var(--fill));
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.feedbackButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.lines {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.line {
+  display: grid;
+  gap: 2px;
+  max-width: 88%;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.staff {
+  justify-self: end;
+  background: var(--accent-soft);
+}
+
+.client,
+.mix {
+  justify-self: start;
+  background: var(--fill);
+}
+
+.who {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.plain {
+  white-space: pre-wrap;
+  margin: 0;
+}
