@@ -120,6 +120,12 @@ const en = {
     },
   },
   tv: {
+    kicker: "Call center · Today",
+    bookedToday: "Booked today",
+    consultsTodayShort: "Consultations today",
+    callsShort: "calls",
+    bookedShort: "booked",
+    live: "LIVE",
     morning: "Good morning! ☀️ It's going to be a great day",
     afternoon: "Good afternoon! 💪 Keep it going",
     evening: "Good evening! 🌙 Almost there",

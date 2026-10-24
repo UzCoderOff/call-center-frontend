@@ -123,6 +123,12 @@ const uz = {
     },
   },
   tv: {
+    kicker: "Call-markaz · Bugun",
+    bookedToday: "Bugun yozildi",
+    consultsTodayShort: "Bugungi konsultatsiyalar",
+    callsShort: "qoʻngʻiroq",
+    bookedShort: "yozuv",
+    live: "JONLI",
     morning: "Xayrli tong! ☀️ Bugun ajoyib kun boʻladi",
     afternoon: "Xayrli kun! 💪 Davom etamiz",
     evening: "Xayrli kech! 🌙 Kun yakuniga oz qoldi",
