@@ -6,6 +6,7 @@ import Card from "../components/ui/Card";
 import { AsyncBoundary, PageHeader } from "../components/ui/Misc";
 import { MeasureRow } from "../components/performance/Measures";
 import HowCounted from "../components/performance/HowCounted";
+import { RatingLine } from "../components/performance/CallRating";
 import { shiftMonth, useMonthLabel } from "../components/finance/parts";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -112,6 +113,7 @@ function PersonCard({ row: r, to }) {
           {!r.employee.active && <span className={styles.muted}> · {t("perf.left")}</span>}
         </span>
         <span className={styles.personSub}>{[r.employee.position, r.employee.office].filter(Boolean).join(" · ")}</span>
+        {r.callRating && <RatingLine rating={r.callRating} />}
       </div>
       {shown.length > 0 ? (
         <div className={styles.measures}>

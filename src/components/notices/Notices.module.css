@@ -1,0 +1,89 @@
+.bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--separator);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.bell:hover {
+  background: var(--fill);
+}
+
+.bellBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--critical);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--text-2);
+}
+
+.new .icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.new .title {
+  font-weight: 700;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.body {
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}

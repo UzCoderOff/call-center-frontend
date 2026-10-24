@@ -181,6 +181,7 @@ export const api = {
   setInstallments: (caseId, items) => request(`/client-cases/${caseId}/installments`, { method: "PUT", body: { items } }),
   employeePerformance: (id, month) => request(`/performance/${id}${qs({ month })}`),
   employeeCosts: (id) => request(`/performance/${id}/costs`),
+  callRating: (id) => request(`/performance/${id}/call-rating`),
   employeeTargets: (id, month) => request(`/performance/${id}/targets${qs({ month })}`),
   setTarget: (id, payload) => request(`/performance/${id}/targets`, { method: "PUT", body: payload }),
   setTargets: (id, payload) => request(`/performance/${id}/targets/many`, { method: "PUT", body: payload }),
@@ -270,6 +271,9 @@ export const api = {
   // --- staff chat ---
   chats: () => request("/chat"),
   chatUnread: () => request("/chat/unread"),
+  notices: ({ before } = {}) => request(`/notices${before ? `?before=${before}` : ""}`),
+  noticesUnread: () => request("/notices/unread"),
+  noticesSeen: (body) => request("/notices/seen", { method: "POST", body }),
   chatPeople: () => request("/chat/people"),
   chat: (id) => request(`/chat/${id}`),
   clientChat: (clientId) => request(`/chat/client/${clientId}`),

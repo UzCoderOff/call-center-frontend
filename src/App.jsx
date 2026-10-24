@@ -19,6 +19,7 @@ import TemplateEditorPage from "./pages/TemplateEditorPage";
 import ProfilePage from "./pages/ProfilePage";
 import CalendarPage, { PlannerRedirect } from "./pages/CalendarPage";
 import MorePage from "./pages/MorePage";
+import NotificationsPage from "./pages/NotificationsPage";
 import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeePerformance, canSeeReports, canSeeTeam, canSeeTgInbox } from "./lib/access";
 import ClientsPage from "./pages/ClientsPage";
 import ClientPage from "./pages/ClientPage";
@@ -161,6 +162,7 @@ function Routed() {
         <Route path="materials/:id/edit" element={guarded(canManageMaterials, <MaterialEditorPage />)} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="more" element={<MorePage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

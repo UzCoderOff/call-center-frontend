@@ -1,0 +1,147 @@
+.stars {
+  display: inline-flex;
+  gap: 1px;
+  vertical-align: middle;
+  --star: #f5a623;
+  --star-off: var(--fill-strong);
+}
+
+.line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.lineMuted {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.big {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.headLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.level {
+  font-weight: 700;
+}
+
+.basis {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.excellent,
+.good {
+  color: var(--good-text);
+  font-weight: 600;
+}
+
+.fair {
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
+.low,
+.veryLow {
+  color: var(--critical-text);
+  font-weight: 600;
+}
+
+.up {
+  color: var(--good-text);
+  font-weight: 600;
+}
+
+.down {
+  color: var(--critical-text);
+  font-weight: 600;
+}
+
+.parts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.part {
+  display: grid;
+  grid-template-columns: minmax(110px, 160px) 1fr 44px;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.partLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.partValue {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+.bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--fill);
+  overflow: hidden;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.barGood {
+  background: var(--good);
+}
+
+.barMid {
+  background: var(--warning);
+}
+
+.barBad {
+  background: var(--critical);
+}
+
+.notes p {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.few,
+.howNote {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}

@@ -13,6 +13,7 @@ import { BurnUpChart, MeasureMonthsChart } from "../components/performance/chart
 import { MeasureRow, TargetSheet, useMeasureText, useMeasureValue } from "../components/performance/Measures";
 import HowCounted from "../components/performance/HowCounted";
 import { StrikesCard } from "../components/performance/Strikes";
+import { CallRatingCard } from "../components/performance/CallRating";
 import { TgReviewsCard } from "../components/telegram/TgReview";
 import { shiftMonth, useMonthLabel } from "../components/finance/parts";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
@@ -70,6 +71,7 @@ export default function PersonPerformancePage() {
             {p.coordinator && <CoordinatorWork p={p} />}
             {(p.work.client || p.work.clientActivity) && <ClientWork p={p} />}
             {p.work.office && p.office.length > 0 && <OfficeWork p={p} />}
+            {p.callRating && <CallRatingCard rating={p.callRating} />}
             {p.calls && <Calls p={p} />}
             <TgReviewsCard employeeId={p.employee.id} month={p.month} />
             {p.strikes && <StrikesCard employeeId={p.employee.id} month={p.month} summary={p.strikes} manager={manager} onChanged={state.reload} />}

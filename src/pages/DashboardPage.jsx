@@ -27,6 +27,7 @@ import { canSeeFinance } from "../lib/access";
 import { MyTasksCard } from "../components/tasks/TaskParts";
 import { MyRemindersCard } from "../components/reminders/ReminderParts";
 import WebPushBanner from "../components/WebPushBanner";
+import NoticeBell from "../components/notices/NoticeBell";
 import { SummariesDueCard } from "../components/consultations/Summaries";
 import { AiSuggestionsCard } from "../components/ai/AiParts";
 import { CoversCard, DebtsCard, OutcomesDueCard } from "../components/cases/HomeCards";
@@ -101,7 +102,7 @@ function ManagerHome() {
 
   return (
     <div>
-      <PageHeader title={t("dashboard.titleCompany")} subtitle={fmt.isoDay(todayIso())} />
+      <PageHeader title={t("dashboard.titleCompany")} subtitle={fmt.isoDay(todayIso())} actions={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       {user.role === "DEVELOPER" && <HolidayReviewBanner />}
@@ -368,7 +369,7 @@ function CallsHome() {
 
   return (
     <div>
-      <PageHeader title={t("dashboard.titleSelf")} subtitle={fmt.isoDay(todayIso())} />
+      <PageHeader title={t("dashboard.titleSelf")} subtitle={fmt.isoDay(todayIso())} actions={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       {isRecordingProblem(state.data?.sync?.recordings) && <MyRecordingBanner recordings={state.data.sync.recordings} />}
@@ -411,7 +412,7 @@ function LawyerHome() {
   const cases = useAsync(() => api.cases("mine"), []);
   return (
     <div>
-      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} />
+      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} actions={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
@@ -443,7 +444,7 @@ function CoordinatorHome() {
   const cases = useAsync(() => api.cases("mine"), []);
   return (
     <div>
-      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={`${fmt.date(today)} · ${t("coord.role")}`} />
+      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={`${fmt.date(today)} · ${t("coord.role")}`} actions={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
@@ -481,7 +482,7 @@ function StaffHome() {
 
   return (
     <div>
-      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} />
+      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} actions={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>

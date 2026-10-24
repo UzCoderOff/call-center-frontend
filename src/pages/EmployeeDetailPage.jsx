@@ -9,6 +9,7 @@ import Icon from "../components/ui/Icon";
 import Sheet from "../components/ui/Sheet";
 import { TextField } from "../components/ui/Field";
 import { AsyncBoundary, Avatar, CopyButton, KeyValue, PageHeader } from "../components/ui/Misc";
+import { CallRatingFor } from "../components/performance/CallRating";
 import CredentialsView from "../components/team/CredentialsView";
 import WorkSettingsFields, { jobsOf, useOrgOptions, workPayload } from "../components/team/WorkSettingsFields";
 import { takesCalls } from "../lib/access";
@@ -61,6 +62,7 @@ export default function EmployeeDetailPage() {
           />
 
           <div className={pageStyles.stack}>
+            <CallRatingFor employeeId={e.id} />
             {takesCalls(e) && <CallsSection employee={e} />}
             {!takesCalls(e) && (
               <div className={styles.linkRow}>

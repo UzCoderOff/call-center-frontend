@@ -7,6 +7,7 @@ import { useAuth, isManagerRole } from "../../hooks/useAuth";
 import { canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeeFinance, canSeePerformance, canSeeReports, canSeeTgInbox } from "../../lib/access";
 import { useI18n } from "../../i18n";
 import { useChatUnread } from "../../hooks/useChatUnread";
+import { useNoticeUnread } from "../../hooks/useNoticeUnread";
 
 // Navigation is one list, rendered twice: a sidebar on wide screens and an
 // iOS-style tab bar on phones. New modules are added here once and appear in
@@ -15,6 +16,8 @@ export function navItems(user) {
   const manager = isManagerRole(user.role);
   return [
     { to: "/", end: true, icon: "home", label: "nav.home" },
+    // On phones the bell at the top of the home page does this.
+    { to: "/notifications", icon: "bell", label: "nav.notifications", badge: "notices", sidebarOnly: true },
     { to: "/chat", icon: "message", label: "nav.chat", badge: "chat" },
     ...(canSeeCalls(user) ? [{ to: "/calls", icon: "phone", label: "nav.calls" }] : []),
     ...(canSeeClients(user) ? [{ to: "/clients", icon: "contact", label: "nav.clients" }] : []),
@@ -77,7 +80,12 @@ export default function AppShell() {
   const displayName = user.employee?.name || user.username;
   const inOverflow = overflow.some((i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`));
   const unread = useChatUnread();
-  const badgeFor = (item) => (item.badge === "chat" ? unread : item.to === "/more" && overflow.some((i) => i.badge === "chat") ? unread : 0);
+  const notices = useNoticeUnread();
+  const badgeFor = (item) => {
+    if (item.badge === "chat") return unread;
+    if (item.badge === "notices") return notices;
+    return item.to === "/more" && overflow.some((i) => i.badge === "chat") ? unread : 0;
+  };
 
   return (
     <div className={styles.shell}>
