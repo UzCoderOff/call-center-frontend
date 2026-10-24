@@ -102,7 +102,7 @@ function ManagerHome() {
 
   return (
     <div>
-      <PageHeader title={t("dashboard.titleCompany")} subtitle={fmt.isoDay(todayIso())} actions={<NoticeBell />} />
+      <PageHeader title={t("dashboard.titleCompany")} subtitle={fmt.isoDay(todayIso())} corner={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       {user.role === "DEVELOPER" && <HolidayReviewBanner />}
@@ -369,7 +369,7 @@ function CallsHome() {
 
   return (
     <div>
-      <PageHeader title={t("dashboard.titleSelf")} subtitle={fmt.isoDay(todayIso())} actions={<NoticeBell />} />
+      <PageHeader title={t("dashboard.titleSelf")} subtitle={fmt.isoDay(todayIso())} corner={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       {isRecordingProblem(state.data?.sync?.recordings) && <MyRecordingBanner recordings={state.data.sync.recordings} />}
@@ -412,7 +412,7 @@ function LawyerHome() {
   const cases = useAsync(() => api.cases("mine"), []);
   return (
     <div>
-      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} actions={<NoticeBell />} />
+      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} corner={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
@@ -444,7 +444,7 @@ function CoordinatorHome() {
   const cases = useAsync(() => api.cases("mine"), []);
   return (
     <div>
-      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={`${fmt.date(today)} · ${t("coord.role")}`} actions={<NoticeBell />} />
+      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={`${fmt.date(today)} · ${t("coord.role")}`} corner={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>
@@ -482,7 +482,7 @@ function StaffHome() {
 
   return (
     <div>
-      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} actions={<NoticeBell />} />
+      <PageHeader title={t("home.greeting", { name: firstName })} subtitle={fmt.date(today)} corner={<NoticeBell />} />
       <TempPasswordBanner />
       <WebPushBanner className={styles.bannerSpace} />
       <div className={styles.stack}>

@@ -3,6 +3,17 @@
   margin-bottom: 22px;
 }
 
+.withCorner {
+  position: relative;
+  padding-right: 56px;
+}
+
+.corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
 .back {
   margin: 0 0 6px -10px;
   font-size: 15px;

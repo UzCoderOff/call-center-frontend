@@ -6,9 +6,12 @@ import Button from "./Button";
 import Spinner from "./Spinner";
 import { useI18n } from "../../i18n";
 
-export function PageHeader({ title, subtitle, back, actions }) {
+// `corner`: one small thing pinned to the top right, level with the title
+// on every screen size (the bell on the home page).
+export function PageHeader({ title, subtitle, back, actions, corner }) {
   return (
-    <div className={styles.pageHeader}>
+    <div className={`${styles.pageHeader} ${corner ? styles.withCorner : ""}`}>
+      {corner && <div className={styles.corner}>{corner}</div>}
       {back && (
         <Button
           variant="plain"
