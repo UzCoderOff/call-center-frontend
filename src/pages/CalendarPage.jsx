@@ -23,7 +23,7 @@ import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
 import { isLawyer, isManager } from "../lib/access";
 import { STEP, blocksOn, dayMode, isWholeDay, replaceDay, usualDay } from "../lib/calendarDays";
-import { shiftIso, todayIso, weekStartOf } from "../lib/format";
+import { shiftIso, todayIso, weekStartOf, uzE164 } from "../lib/format";
 import { useI18n } from "../i18n";
 import { saveFailed } from "../lib/saveFailed";
 
@@ -180,7 +180,7 @@ function CalendarView({ calendars, initialId, canDelete, onCalendarChanged }) {
   const day = asked && weekStartOf(asked) === weekStart && params.get("day") ? asked : weekStart === weekStartOf(today) ? today : weekStart;
   const prefill = params.get("phone") || params.get("name") || params.get("clientId")
     ? {
-        phone: params.get("phone") || "",
+        phone: params.get("phone") ? uzE164(params.get("phone")) : "",
         name: params.get("name") || "",
         callId: Number(params.get("callId")) || null,
         // Booking from the client's page: that client's consultation.

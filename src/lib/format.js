@@ -114,16 +114,25 @@ export function formatRelative(ms, time, t) {
   return t("time.daysAgo", { n: Math.floor(hours / 24) });
 }
 
-// "+998901234567" -> "+998 90 123 45 67"; "901234567" -> "90 123 45 67";
-// anything else is shown as the phone logged it.
+// An Uzbek number with its +998, however it was logged: "+998901234567",
+// "998901234567", "901234567" (the phone line and many phones log 9 digits),
+// "8 90 123 45 67" -> "+998901234567"; anything else as it was, digits only.
+export function uzE164(raw) {
+  const digits = String(raw || "").replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("998")) return `+${digits}`;
+  if (digits.length === 9) return `+998${digits}`;
+  if (digits.length === 10 && digits.startsWith("8")) return `+998${digits.slice(1)}`;
+  return String(raw || "").replace(/[^\d+]/g, "");
+}
+
+// "+998901234567" or "901234567" -> "+998 90 123 45 67" (the firm's numbers
+// are Uzbek: always shown with +998); anything else as the phone logged it.
 export function formatPhone(raw) {
   if (!raw) return "—";
-  const digits = String(raw).replace(/\D/g, "");
-  if (digits.length === 12 && digits.startsWith("998")) {
-    return `+998 ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8, 10)} ${digits.slice(10)}`;
-  }
-  if (digits.length === 9) {
-    return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 7)} ${digits.slice(7)}`;
+  const e164 = uzE164(raw);
+  if (/^\+998\d{9}$/.test(e164)) {
+    const d = e164.slice(4);
+    return `+998 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7)}`;
   }
   return String(raw);
 }
@@ -131,8 +140,8 @@ export function formatPhone(raw) {
 // A tel: link that works from a phone browser — the whole point of showing
 // "needs a callback" on the phone employees already hold.
 export function telHref(raw) {
-  const digits = String(raw || "").replace(/[^\d+]/g, "");
-  return digits.replace(/\D/g, "").length >= 5 ? `tel:${digits}` : null;
+  const number = uzE164(raw);
+  return number.replace(/\D/g, "").length >= 5 ? `tel:${number}` : null;
 }
 
 // Minutes from midnight -> "09:30" (calendar times).

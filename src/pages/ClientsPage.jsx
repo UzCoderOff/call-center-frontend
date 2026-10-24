@@ -15,7 +15,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
 import { canManageClients, canSeeFinance, isCallCenter, isCoordinator, isLawyer, countsCalls } from "../lib/access";
 import { api } from "../lib/api";
-import { shiftIso, todayIso } from "../lib/format";
+import { shiftIso, todayIso, uzE164 } from "../lib/format";
 import { useI18n } from "../i18n";
 
 // Sections, so the cases that are going on aren't buried under one-off
@@ -421,7 +421,7 @@ export default function ClientsPage() {
 
       {creating && (
         <ClientSheet
-          prefill={{ phone: params.get("phone") || "", name: params.get("name") || "" }}
+          prefill={{ phone: params.get("phone") ? uzE164(params.get("phone")) : "", name: params.get("name") || "" }}
           onClose={() => {
             setCreating(false);
             update({ new: null, phone: null, name: null });
