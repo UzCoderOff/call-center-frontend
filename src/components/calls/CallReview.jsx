@@ -42,7 +42,7 @@ export function CallReviewCard({ call, canCheck, onChange }) {
       action={
         <span className={styles.head}>
           <BetaBadge />
-          <span className={`${styles.score} ${tone(a.score, 100)}`}>{a.score}/100</span>
+          {a.score != null ? <span className={`${styles.score} ${tone(a.score, 100)}`}>{a.score}/100</span> : <span className={styles.note}>{t("callReview.unscored")}</span>}
         </span>
       }
     >

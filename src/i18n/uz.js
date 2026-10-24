@@ -321,13 +321,14 @@ const uz = {
   },
   // A call's AI review (components/calls/CallReview.jsx, beta).
   callReview: {
+    unscored: "Baholanmadi",
     title: "AI tahlili",
     waitingText: "Qoʻngʻiroq matnga aylantirilmoqda — server boʻsh boʻlganda, odatda bir necha daqiqada.",
     waitingReview: "Matn tayyor — AI tahlili tayyorlanmoqda.",
     failed: "Tahlil qilib boʻlmadi.",
     kind: {
       existing: "Firma bilan ishlayotgan mijoz — savdo boʻyicha baholanmadi.",
-      not_relevant: "Firma ishiga aloqasi yoʻq qoʻngʻiroq — faqat odob baholandi.",
+      not_relevant: "Mijoz qoʻngʻirogʻi emas (hamkasb, sinov, notoʻgʻri raqam) yoki matn tushunarsiz — baholanmadi, yulduzlarga kirmaydi.",
     },
     criteria: {
       greeting: "Salomlashish",
@@ -2323,6 +2324,7 @@ const uz = {
     running: "Bot {bot} ishlayapti. {connected} / {total} kishi Telegramini ulagan.",
     nobody: "Hali hech kim yoʻq.",
     kinds: {
+      callReviews: "Qoʻngʻiroq tahlili (Beta)",
       hearings: "Sud va tergov sanalari",
       tasks: "Vazifalar",
       appointments: "Konsultatsiyalar",
@@ -2344,6 +2346,7 @@ const uz = {
       deploys: "Server yangilanishi",
     },
     kindHints: {
+      callReviews: "Qoʻngʻiroqingiz matnga aylantirilib, AI baholaganda; dushanba kuni haftalik maslahat",
       hearings: "Bir kun oldin kechqurun, oʻsha kuni ertalab va natija yozilmaganda",
       calendar: "Kimdir (masalan, rahbar) kalendaringizga yozuv qoʻshganda yoki koʻchirganda",
       news: "Ledger yangilanganda — faqat sizning ishingizga tegishli oʻzgarishlar",

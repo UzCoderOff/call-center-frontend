@@ -318,13 +318,14 @@ const en = {
   },
   // A call's AI review (components/calls/CallReview.jsx, beta).
   callReview: {
+    unscored: "Not scored",
     title: "AI review",
     waitingText: "Turning the call into text — when the server is free, usually within a few minutes.",
     waitingReview: "The text is ready — the AI review is on its way.",
     failed: "Couldn't review this call.",
     kind: {
       existing: "A client the firm already works with — not judged on selling.",
-      not_relevant: "Not about the firm's work — only manners judged.",
+      not_relevant: "Not a client call (a colleague, a test, a wrong number) or text too unclear — not scored and not in the stars.",
     },
     criteria: {
       greeting: "Greeting",
@@ -2319,6 +2320,7 @@ const en = {
     running: "Bot {bot} is running. {connected} of {total} people have connected.",
     nobody: "Nobody yet.",
     kinds: {
+      callReviews: "Call reviews (beta)",
       hearings: "Court and investigation dates",
       tasks: "Tasks",
       appointments: "Consultations",
@@ -2340,6 +2342,7 @@ const en = {
       deploys: "Server releases",
     },
     kindHints: {
+      callReviews: "When your call is turned into text and reviewed by AI; a weekly tip on Mondays",
       hearings: "The evening before, the morning of, and when no outcome is written",
       calendar: "When someone (e.g. the boss) adds or moves something in your calendar",
       news: "When Ledger is updated — only the changes that touch your work",
