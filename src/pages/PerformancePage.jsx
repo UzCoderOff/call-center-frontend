@@ -7,6 +7,7 @@ import { AsyncBoundary, PageHeader } from "../components/ui/Misc";
 import { MeasureRow } from "../components/performance/Measures";
 import HowCounted from "../components/performance/HowCounted";
 import { RatingLine } from "../components/performance/CallRating";
+import { retriesLine } from "../components/performance/Retries";
 import { shiftMonth, useMonthLabel } from "../components/finance/parts";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/api";
@@ -129,6 +130,7 @@ function PersonCard({ row: r, to }) {
         {away > 0 && <span>{t("perf.card.away", { n: away })}</span>}
         <span>{r.reports.due ? t("perf.card.reports", { sent: r.reports.sent, due: r.reports.due }) : r.reports.mode === "auto" ? t("perf.card.reportsAuto") : t("perf.card.noReports")}</span>
         {r.tasks.total > 0 && <span>{t("perf.card.tasks", { onTime: r.tasks.onTime, total: r.tasks.total })}</span>}
+        {retriesLine(r.retries, t) && <span>{retriesLine(r.retries, t)}</span>}
       </div>
     </Link>
   );

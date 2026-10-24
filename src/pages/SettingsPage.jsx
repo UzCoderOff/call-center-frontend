@@ -19,6 +19,7 @@ import { ClientArchiveSection } from "../components/settings/ClientArchive";
 import { ChecklistsSection, DeadlineDaysSection } from "../components/settings/CaseSettings";
 import { AiSection } from "../components/settings/AiSettings";
 import { ClaudeSection } from "../components/settings/ClaudeSettings";
+import { TvScreenSection } from "../components/settings/TvScreen";
 import { SummaryRuleSection } from "../components/consultations/Summaries";
 import { JobField, ReportModeFields, WorkPatternFields, positionJobs, reportModeOf } from "../components/team/WorkSettingsFields";
 
@@ -55,6 +56,7 @@ export default function SettingsPage() {
         <StrikeRulesSection canEdit={canEdit} />
         <SummaryRuleSection />
         <PhoneLineSection canEdit={canEdit} />
+        <TvScreenSection />
         {canEdit && <AiSection />}
         {canEdit && <ClaudeSection />}
         <ClientArchiveSection />

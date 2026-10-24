@@ -837,3 +837,29 @@
 .strikeActions {
   flex: none;
 }
+
+/* Natijalar → person: thinking / lost / second chances (Retries.jsx). */
+.retries {
+  display: flex;
+  flex-direction: column;
+}
+
+.retryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--separator);
+  font-size: 15px;
+}
+
+.retryRow:first-child {
+  border-top: 0;
+}
+
+.retryHint {
+  display: block;
+  font-size: 13px;
+  color: var(--text-2);
+}

@@ -20,6 +20,7 @@ import ProfilePage from "./pages/ProfilePage";
 import CalendarPage, { PlannerRedirect } from "./pages/CalendarPage";
 import MorePage from "./pages/MorePage";
 import NotificationsPage from "./pages/NotificationsPage";
+import WallboardPage from "./pages/WallboardPage";
 import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeePerformance, canSeeReports, canSeeTeam, canSeeTgInbox } from "./lib/access";
 import ClientsPage from "./pages/ClientsPage";
 import ClientPage from "./pages/ClientPage";
@@ -116,6 +117,8 @@ function Routed() {
   return (
     <Routes>
       <Route path="/login" element={status === "authed" ? <Navigate to="/" replace /> : <LoginPage />} />
+      {/* The office TV: its own secret link, no login (Settings → TV ekran). */}
+      <Route path="/tv/:token" element={<WallboardPage />} />
       <Route
         path="/"
         element={

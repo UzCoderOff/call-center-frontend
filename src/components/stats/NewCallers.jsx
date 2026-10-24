@@ -141,11 +141,12 @@ export default function NewCallersCard({ employeeId, showEmployee = false }) {
                   </div>
                 ) : (
                   <div className={styles.groups}>
-                    {GROUP_ORDER.filter((g) => data.groups?.[g]).map((g) => (
+                    {/* An older server without groups: one plain row. */}
+                    {(data.groups ? GROUP_ORDER.filter((g) => data.groups[g]).map((g) => [g, data.groups[g]]) : [["all", data.outcomes]]).map(([g, outcomes]) => (
                       <div key={g} className={styles.group}>
-                        <span className={styles.groupLabel}>{t(`newCallers.groups.${g}`)}</span>
+                        {g !== "all" && <span className={styles.groupLabel}>{t(`newCallers.groups.${g}`)}</span>}
                         <div className={fieldStyles.chips}>
-                          {data.groups[g].map((o) => (
+                          {outcomes.map((o) => (
                             <button
                               key={o}
                               type="button"

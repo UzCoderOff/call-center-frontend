@@ -1,0 +1,238 @@
+/* The office TV: always dark, sized to the screen (vw), readable from the
+   back of the room. */
+.screen {
+  --tv-bg: #0d1117;
+  --tv-panel: #161b24;
+  --tv-line: rgba(255, 255, 255, 0.08);
+  --tv-text: #f2f4f8;
+  --tv-dim: #8b93a3;
+  --tv-accent: #5b8cff;
+  --tv-good: #3fcf7a;
+  --tv-warn: #f5b83d;
+  --tv-bad: #ff6b6b;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 2vw 2.5vw;
+  background: var(--tv-bg);
+  color: var(--tv-text);
+  font-size: 1.25vw;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vw;
+  overflow: hidden;
+}
+
+.center {
+  margin: auto;
+  font-size: 2.2vw;
+  color: var(--tv-dim);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  font-size: 2.2vw;
+  font-weight: 700;
+}
+
+.when {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: var(--tv-dim);
+  font-size: 1.3vw;
+}
+
+.clock {
+  font-size: 3.4vw;
+  font-weight: 800;
+  color: var(--tv-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14vw, 1fr));
+  gap: 1.2vw;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3vw;
+  padding: 1.3vw 1.5vw;
+  border-radius: 1vw;
+  background: var(--tv-panel);
+  border-top: 0.35vw solid var(--tv-line);
+}
+
+.tileLabel {
+  font-size: 1.2vw;
+  color: var(--tv-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tileValue {
+  font-size: 4.6vw;
+  font-weight: 800;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.tileSub {
+  font-size: 1.15vw;
+  color: var(--tv-dim);
+}
+
+.accent {
+  border-top-color: var(--tv-accent);
+}
+
+.good {
+  border-top-color: var(--tv-good);
+}
+
+.good .tileValue {
+  color: var(--tv-good);
+}
+
+.warn {
+  border-top-color: var(--tv-warn);
+}
+
+.warn .tileValue {
+  color: var(--tv-warn);
+}
+
+.bad {
+  border-top-color: var(--tv-bad);
+}
+
+.bad .tileSub {
+  color: var(--tv-bad);
+  font-weight: 700;
+}
+
+.people {
+  display: flex;
+  flex-direction: column;
+  background: var(--tv-panel);
+  border-radius: 1vw;
+  padding: 0.6vw 1.5vw;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2.4fr 2fr 0.8fr 0.8fr 1fr 1fr 1.6fr;
+  align-items: center;
+  gap: 1vw;
+  padding: 1vw 0;
+  border-top: 1px solid var(--tv-line);
+  font-size: 1.6vw;
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.head {
+  font-size: 1.05vw;
+  color: var(--tv-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6vw 0;
+}
+
+.name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crown {
+  margin-right: 0.5vw;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bookedNum {
+  color: var(--tv-good);
+  font-weight: 800;
+}
+
+.badText {
+  color: var(--tv-bad);
+}
+
+.status {
+  font-size: 1.3vw;
+  font-weight: 600;
+}
+
+.status::before {
+  content: "";
+  display: inline-block;
+  width: 0.8vw;
+  height: 0.8vw;
+  margin-right: 0.6vw;
+  border-radius: 50%;
+  background: var(--tv-dim);
+  vertical-align: 0.1vw;
+}
+
+.talking {
+  color: var(--tv-accent);
+}
+
+.talking::before {
+  background: var(--tv-accent);
+}
+
+.ringing {
+  color: var(--tv-warn);
+}
+
+.ringing::before {
+  background: var(--tv-warn);
+}
+
+.free::before {
+  background: var(--tv-good);
+}
+
+.away {
+  color: var(--tv-dim);
+}
+
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6vw;
+  font-weight: 700;
+  --star-off-color: rgba(255, 255, 255, 0.15);
+}
+
+.dim {
+  color: var(--tv-dim);
+}
+
+.stale {
+  position: fixed;
+  bottom: 1vw;
+  right: 1.5vw;
+  font-size: 1vw;
+  color: var(--tv-warn);
+}

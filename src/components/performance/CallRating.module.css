@@ -3,7 +3,7 @@
   gap: 1px;
   vertical-align: middle;
   --star: #f5a623;
-  --star-off: var(--fill-strong);
+  --star-off: var(--star-off-color, var(--fill-strong));
 }
 
 .line {
