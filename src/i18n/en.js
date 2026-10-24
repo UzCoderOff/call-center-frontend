@@ -7,7 +7,7 @@ const en = {
       other: "Other…",
       not_our_field: "Not our kind of matter",
       wrong_number: "Wrong number / unrelated",
-      call_again: "Will get back to us",
+      call_again: "Thinking it over",
       other_firm: "Went elsewhere",
       question: "Only had a question",
       price: "Too expensive",
@@ -19,6 +19,18 @@ const en = {
     allDone: "All marked — thank you!",
     subtitle: "You talked, but they didn't book a consultation — tap one reason for each.",
     title: "New numbers: what happened?",
+    groups: {
+      thinking: "Thinking it over — stays yours",
+      lost: "Lost — another operator tries again in a few days",
+      notOurs: "Not a client",
+    },
+    whenTitle: "When do we talk again?",
+    when: {
+      1: "Tomorrow",
+      2: "In 2 days",
+      7: "In a week",
+    },
+    whenNote: "You get a reminder that day. Until then (and 2 more days) this number's calls ring you first.",
   },
   app: {
     name: "Ledger",

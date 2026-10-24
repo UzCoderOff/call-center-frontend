@@ -132,3 +132,46 @@
   line-height: 1.45;
   color: var(--text-2);
 }
+
+/* The answers in three groups: thinking it over, lost, not a client. */
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.groupLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.when {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.date {
+  width: auto;
+  min-width: 150px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.whenNote {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.whenActions {
+  display: flex;
+  gap: 8px;
+}

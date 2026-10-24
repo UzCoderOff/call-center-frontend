@@ -10,7 +10,7 @@ const uz = {
       other: "Boshqa…",
       not_our_field: "Bizning yoʻnalish emas",
       wrong_number: "Notoʻgʻri raqam / aloqasi yoʻq",
-      call_again: "Keyin bogʻlanadi",
+      call_again: "Oʻylab koʻradi",
       other_firm: "Boshqa joyga ketdi",
       question: "Faqat savol berdi",
       price: "Narx qimmat",
@@ -22,6 +22,18 @@ const uz = {
     allDone: "Hammasi belgilangan — rahmat!",
     subtitle: "Gaplashdingiz, lekin konsultatsiyaga yozilmadi — har biriga bitta sabab belgilang.",
     title: "Yangi raqamlar: nima boʻldi?",
+    groups: {
+      thinking: "Oʻylab koʻradi — sizda qoladi",
+      lost: "Yoʻqotildi — bir necha kundan keyin boshqa operator yana urinib koʻradi",
+      notOurs: "Mijoz emas",
+    },
+    whenTitle: "Qachon yana gaplashamiz?",
+    when: {
+      1: "Ertaga",
+      2: "2 kundan keyin",
+      7: "Bir haftadan keyin",
+    },
+    whenNote: "Oʻsha kuni sizga eslatma keladi. Shu kungacha (va yana 2 kun) bu raqam qoʻngʻiroq qilsa, avval sizga ulanadi.",
   },
   app: {
     name: "Ledger",
