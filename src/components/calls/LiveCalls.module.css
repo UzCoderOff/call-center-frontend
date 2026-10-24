@@ -1,0 +1,69 @@
+.card {
+  margin-bottom: 16px;
+}
+
+/* Green while they talk, amber while it rings or waits in line. */
+.dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  margin: 0 6px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+
+.talking {
+  background: var(--good);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 60%, transparent);
+  animation: live 1.6s ease-out infinite;
+}
+
+.ringing,
+.waiting {
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+@keyframes live {
+  to {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .talking,
+  .ringing,
+  .waiting {
+    animation: none;
+  }
+}
+
+.player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 4px 16px 14px;
+}
+
+.audio {
+  width: 100%;
+  max-width: 420px;
+  height: 40px;
+}
+
+.note,
+.error {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.error {
+  padding: 0 16px;
+  color: var(--critical-text);
+}

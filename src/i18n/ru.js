@@ -172,6 +172,23 @@ const ru = {
     rejected: "Отклонённый",
     unknown: "Неизвестно",
   },
+  // Calls going on right now on Ledger's line, and listening live (components/calls/LiveCalls.jsx).
+  live: {
+    title: "Сейчас на линии",
+    none: "Сейчас никто не разговаривает.",
+    in: "Входящий",
+    out: "Исходящий",
+    talking: "Разговаривает: {people}",
+    ringing: "Звонит: {people}",
+    waiting: "Ждёт в очереди",
+    listen: "Слушать",
+    stop: "Остановить",
+    listenNote: "Слышите только вы — участники звонка не знают.",
+    listenFailed: "Не удалось подключиться — возможно, звонок уже закончился.",
+    switch: "Слушает звонки в реальном времени",
+    switchHint: "Видит текущие звонки клиентов и может слушать их в реальном времени (на странице Звонки). Разработчик видит всегда.",
+    confirmOn: "«{name}» будет видеть текущие звонки и сможет слушать их в реальном времени. Продолжить?",
+  },
   calls: {
     viaLine: "линия Ledger",
     transferredTo: "Переведён: {name}",

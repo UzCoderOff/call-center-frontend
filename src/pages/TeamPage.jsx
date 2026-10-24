@@ -380,6 +380,12 @@ function BossSheet({ account, onClose, onUpdated, onRemoved }) {
     run("role", async () => onUpdated(await api.updateBossAccount(account.id, { role: on ? "BOSS" : "LAWYER" })));
   }
 
+  // Seeing calls as they happen and listening to them live. Asked first.
+  function setHearsCalls(on) {
+    if (on && !confirm(t("live.confirmOn", { name: label }))) return;
+    run("hears", async () => onUpdated(await api.updateBossAccount(account.id, { hearsCalls: on })));
+  }
+
   // Money from clients — contract amounts, payments, debts. Asked first.
   function setSeesFinance(on) {
     if (on && !confirm(t("finance.confirmOn", { name: label }))) return;
@@ -437,6 +443,8 @@ function BossSheet({ account, onClose, onUpdated, onRemoved }) {
         disabled={busy === "finance"}
         onChange={setSeesFinance}
       />
+
+      <Switch label={t("live.switch")} hint={t("live.switchHint")} checked={Boolean(account.hearsCalls)} disabled={busy === "hears"} onChange={setHearsCalls} />
 
       <Switch
         label={t("team.hasCalendar")}

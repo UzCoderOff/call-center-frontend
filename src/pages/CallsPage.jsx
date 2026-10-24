@@ -7,6 +7,7 @@ import Segmented from "../components/ui/Segmented";
 import { SearchField, SelectField } from "../components/ui/Field";
 import { AsyncBoundary, EmptyState, PageHeader } from "../components/ui/Misc";
 import { CallList } from "../components/calls/CallRow";
+import LiveCalls from "../components/calls/LiveCalls";
 import JobToggles, { useCallJobs } from "../components/calls/JobToggles";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { takesCalls } from "../lib/access";
@@ -105,6 +106,9 @@ export default function CallsPage() {
   return (
     <div>
       <PageHeader title={t("calls.title")} subtitle={isManager ? t("calls.subtitleCompany") : t("calls.subtitleSelf")} />
+
+      {/* Calls going on right now, to listen in: the developer and people switched on. */}
+      {user?.hearsCalls && <LiveCalls />}
 
       {/* Calling through Ledger's line (the app): the keypad, like a phone's dialer. */}
       {canCallInApp() && (

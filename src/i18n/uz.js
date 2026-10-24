@@ -173,6 +173,23 @@ const uz = {
     rejected: "Rad etilgan",
     unknown: "Nomaʼlum",
   },
+  // Calls going on right now on Ledger's line, and listening live (components/calls/LiveCalls.jsx).
+  live: {
+    title: "Hozir telefonda",
+    none: "Hozir hech kim gaplashmayapti.",
+    in: "Kiruvchi",
+    out: "Chiquvchi",
+    talking: "Gaplashmoqda: {people}",
+    ringing: "Jiringlamoqda: {people}",
+    waiting: "Navbatda kutmoqda",
+    listen: "Tinglash",
+    stop: "Toʻxtatish",
+    listenNote: "Faqat siz eshitasiz — qoʻngʻiroqdagilar bilmaydi.",
+    listenFailed: "Tinglab boʻlmadi — qoʻngʻiroq tugagan boʻlishi mumkin.",
+    switch: "Qoʻngʻiroqlarni jonli tinglaydi",
+    switchHint: "Hozir ketayotgan mijoz qoʻngʻiroqlarini koʻradi va jonli tinglay oladi (Qoʻngʻiroqlar sahifasida). Dasturchi har doim koʻradi.",
+    confirmOn: "«{name}» hozir ketayotgan qoʻngʻiroqlarni koʻradi va jonli tinglay oladi. Davom etasizmi?",
+  },
   calls: {
     viaLine: "Ledger liniyasi",
     // A client's call passed on to a colleague ("Ulash" in the app).

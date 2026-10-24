@@ -170,6 +170,23 @@ const en = {
     rejected: "Rejected",
     unknown: "Unknown",
   },
+  // Calls going on right now on Ledger's line, and listening live (components/calls/LiveCalls.jsx).
+  live: {
+    title: "On the phone now",
+    none: "Nobody is on a call right now.",
+    in: "Incoming",
+    out: "Outgoing",
+    talking: "Talking: {people}",
+    ringing: "Ringing: {people}",
+    waiting: "Waiting in line",
+    listen: "Listen",
+    stop: "Stop",
+    listenNote: "Only you hear it — the people on the call don't know.",
+    listenFailed: "Couldn't listen — the call may have ended.",
+    switch: "Listens to calls live",
+    switchHint: "Sees the client calls going on right now and can listen to them live (on the Calls page). The developer always can.",
+    confirmOn: "“{name}” will see the calls going on right now and can listen to them live. Continue?",
+  },
   calls: {
     viaLine: "Ledger line",
     transferredTo: "Passed to {name}",

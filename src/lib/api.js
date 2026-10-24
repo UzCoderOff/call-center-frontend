@@ -395,6 +395,9 @@ export const api = {
 
   // --- Ledger's own phone line ---
   pbxStatus: () => request("/pbx/status"),
+  // Calls going on right now, and listening to one live (live.js).
+  liveCalls: () => request("/pbx/live"),
+  listenCall: (id) => request(`/pbx/live/${encodeURIComponent(id)}/listen`, { method: "POST" }),
   savePbxSettings: (payload) => request("/pbx/settings", { method: "PUT", body: payload }),
   pbxSoftphone: (employeeId) => request(`/pbx/extensions/${employeeId}/softphone`, { method: "POST" }),
 
