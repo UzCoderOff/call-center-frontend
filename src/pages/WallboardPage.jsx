@@ -156,6 +156,7 @@ export default function WallboardPage() {
             <CountUp value={d.booked} />
           </div>
           <div className={styles.heroNote}>{t("tv.consultsToday", { n: d.consultationsToday })}</div>
+          <NextConsultation next={data.nextConsultation} more={data.moreConsultationsToday} t={t} fmt={fmt} />
           <div className={styles.rule} />
           <Line label={t("tv.calls")} value={d.calls} note={t("tv.inOut", { inc: d.incoming, out: d.outgoing })} />
           {data.line.on && <Line label={t("tv.talkingNow")} value={talkingNow} live={talkingNow > 0} />}
@@ -186,6 +187,39 @@ export default function WallboardPage() {
 
       {party && <Celebration names={party.names} t={t} key={party.at} />}
       {error && <div className={styles.stale}>{t("tv.stale")}</div>}
+    </div>
+  );
+}
+
+const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+
+// The consultation going on now or coming next: when, how soon, with which
+// lawyer, office or video, who booked it — never the client.
+function NextConsultation({ next, more, t, fmt }) {
+  if (!next) {
+    return (
+      <div className={styles.next}>
+        <div className={styles.label}>{t("tv.nextTitle")}</div>
+        <div className={styles.nextNone}>{t("tv.nextNone")}</div>
+      </div>
+    );
+  }
+  const when = next.now ? t("tv.nextNow") : next.today ? (next.inMinutes < 60 ? t("tv.nextIn", { n: next.inMinutes }) : t("tv.nextLater")) : fmt.isoDay(next.date);
+  return (
+    <div className={`${styles.next} ${next.now ? styles.nextLive : ""}`}>
+      <div className={styles.label}>{next.now ? t("tv.nextNowTitle") : t("tv.nextTitle")}</div>
+      <div className={styles.nextRow}>
+        <span className={styles.nextTime}>{hhmm(next.start)}</span>
+        <span className={styles.nextWhen}>{when}</span>
+      </div>
+      <div className={styles.nextWho}>
+        {[next.lawyer, next.online ? t("tv.online") : t("tv.office")].filter(Boolean).join(" · ")}
+      </div>
+      {(next.bookedBy || more > 0) && (
+        <div className={styles.nextMore}>
+          {[next.bookedBy ? t("tv.nextBookedBy", { name: shortName(next.bookedBy) }) : null, more > 0 ? t("tv.nextMore", { n: more }) : null].filter(Boolean).join(" · ")}
+        </div>
+      )}
     </div>
   );
 }

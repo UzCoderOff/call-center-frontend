@@ -564,3 +564,59 @@
     animation: none;
   }
 }
+
+/* ---------- the next consultation ---------- */
+.next {
+  margin-top: 1.3vw;
+  padding: 1vw 1.1vw;
+  border-radius: 0.9vw;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nextLive {
+  border-color: rgba(74, 222, 128, 0.45);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.nextRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8vw;
+  margin-top: 0.35vw;
+}
+
+.nextTime {
+  font-size: 2.4vw;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.nextWhen {
+  font-size: 0.85vw;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.nextLive .nextWhen {
+  color: var(--good);
+}
+
+.nextWho {
+  margin-top: 0.45vw;
+  font-size: 0.9vw;
+  font-weight: 500;
+}
+
+.nextMore {
+  margin-top: 0.2vw;
+  font-size: 0.75vw;
+  color: var(--faint);
+}
+
+.nextNone {
+  margin-top: 0.35vw;
+  font-size: 0.9vw;
+  color: var(--muted);
+}
