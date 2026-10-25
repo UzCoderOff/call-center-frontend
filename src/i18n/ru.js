@@ -320,6 +320,8 @@ const ru = {
   },
   // A call's AI review (components/calls/CallReview.jsx, beta).
   callReview: {
+    details: "Подробно: 9 частей, советы",
+    short: "Короткий звонок — только краткое содержание, без оценки.",
     unscored: "Без оценки",
     title: "Анализ ИИ",
     waitingText: "Звонок переводится в текст — когда сервер свободен, обычно за несколько минут.",

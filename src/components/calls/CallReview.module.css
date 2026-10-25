@@ -195,3 +195,19 @@
   white-space: pre-wrap;
   margin: 0;
 }
+
+/* The nine parts and the advice, folded away under «Batafsil». */
+.more {
+  margin-top: 12px;
+}
+
+.more > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 6px 0;
+}
+
+.more[open] > summary {
+  margin-bottom: 10px;
+}

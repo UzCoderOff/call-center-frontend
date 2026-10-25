@@ -318,6 +318,8 @@ const en = {
   },
   // A call's AI review (components/calls/CallReview.jsx, beta).
   callReview: {
+    details: "Details: the 9 parts, advice",
+    short: "A short call — summary only, not scored.",
     unscored: "Not scored",
     title: "AI review",
     waitingText: "Turning the call into text — when the server is free, usually within a few minutes.",

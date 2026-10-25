@@ -321,6 +321,8 @@ const uz = {
   },
   // A call's AI review (components/calls/CallReview.jsx, beta).
   callReview: {
+    details: "Batafsil: 9 qism, maslahatlar",
+    short: "Qisqa qoʻngʻiroq — faqat qisqacha mazmuni, baho qoʻyilmaydi.",
     unscored: "Baholanmadi",
     title: "AI tahlili",
     waitingText: "Qoʻngʻiroq matnga aylantirilmoqda — server boʻsh boʻlganda, odatda bir necha daqiqada.",
