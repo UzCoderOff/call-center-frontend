@@ -72,6 +72,9 @@ export function CallReviewCard({ call, canCheck, onChange }) {
         </span>
       }
     >
+      {d.lost && (d.lostCause === "late_callback" || d.lostCause === "operator") && a.score != null && (
+        <p className={styles.lost}>{d.lostCause === "late_callback" ? t("callReview.lostLate", { minutes: d.lateMinutes ?? "?" }) : t("callReview.lostHere")}</p>
+      )}
       {a.summary && <p className={styles.about}>{a.summary}</p>}
       {d.short ? (
         <p className={styles.note}>{t("callReview.short")}</p>

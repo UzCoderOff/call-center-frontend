@@ -211,3 +211,13 @@
 .more[open] > summary {
   margin-bottom: 10px;
 }
+
+/* A client lost through us: said first, in red. */
+.lost {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--critical-soft);
+  color: var(--critical-text);
+  font-weight: 600;
+}

@@ -320,6 +320,8 @@ const ru = {
   },
   // A call's AI review (components/calls/CallReview.jsx, beta).
   callReview: {
+    lostLate: "Клиент потерян — перезвонили на {minutes} мин позже",
+    lostHere: "Клиент потерян в этом звонке",
     details: "Подробно: 9 частей, советы",
     short: "Короткий звонок — только краткое содержание, без оценки.",
     unscored: "Без оценки",

@@ -321,6 +321,8 @@ const uz = {
   },
   // A call's AI review (components/calls/CallReview.jsx, beta).
   callReview: {
+    lostLate: "Mijoz yoʻqotildi — qayta qoʻngʻiroq {minutes} daqiqa kech qilindi",
+    lostHere: "Mijoz shu qoʻngʻiroqda yoʻqotildi",
     details: "Batafsil: 9 qism, maslahatlar",
     short: "Qisqa qoʻngʻiroq — faqat qisqacha mazmuni, baho qoʻyilmaydi.",
     unscored: "Baholanmadi",

@@ -318,6 +318,8 @@ const en = {
   },
   // A call's AI review (components/calls/CallReview.jsx, beta).
   callReview: {
+    lostLate: "Client lost — called back {minutes} minutes late",
+    lostHere: "Client lost in this call",
     details: "Details: the 9 parts, advice",
     short: "A short call — summary only, not scored.",
     unscored: "Not scored",
