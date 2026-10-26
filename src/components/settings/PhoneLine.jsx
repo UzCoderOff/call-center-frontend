@@ -13,9 +13,21 @@ import { api } from "../../lib/api";
 import { useI18n } from "../../i18n";
 
 // Settings → Ledger's own phone line (backend: routes/pbx.js, pbx/README.md):
-// whether it runs, the company number, everyone on it and whether their
-// phone is connected now. The developer can make a one-time test sign-in
-// for a softphone (MicroSIP, Zoiper) on someone's phone ID.
+// whether it runs, the company number, the night hours and the firm's voice
+// messages, everyone on it and whether their phone is connected now. The
+// developer can make a one-time test sign-in for a softphone (MicroSIP,
+// Zoiper) on someone's phone ID.
+
+// The firm's voice messages on the line, in the order a caller hears them
+// (backend services/pbx/sounds.js).
+const SOUND_KEYS = ["greeting", "waiting", "busy", "night", "thanks"];
+
+function nightText(data, t) {
+  const night = data.settings.night;
+  if (!night?.on) return t("pbx.nightOff");
+  if (!data.sounds?.night) return t("pbx.nightNoMessage");
+  return t("pbx.nightOn", { from: night.from, to: night.to });
+}
 export function PhoneLineSection({ canEdit }) {
   const { t, fmt } = useI18n();
   const state = useAsync(() => api.pbxStatus(), []);
@@ -59,6 +71,23 @@ export function PhoneLineSection({ canEdit }) {
                 title={data.connected ? t("pbx.running") : t("pbx.notConnected")}
                 subtitle={[data.settings.companyNumber ? fmt.phone(data.settings.companyNumber) : t("pbx.noNumber"), data.settings.trunkEnabled ? t("pbx.trunkOn") : t("pbx.trunkOff")].join(" · ")}
               />
+              <ListRow
+                onClick={canEdit ? () => setEditing(true) : undefined}
+                chevron={canEdit}
+                leading={<span className={styles.tile}><Icon name="clock" size={18} /></span>}
+                title={t("pbx.night")}
+                subtitle={nightText(data, t)}
+                trailing={data.settings.night?.on && !data.sounds?.night ? <Badge tone="warning">{t("pbx.nightNotYet")}</Badge> : null}
+              />
+              <ListRow
+                leading={<span className={styles.tile}><Icon name="waveform" size={18} /></span>}
+                title={t("pbx.sounds")}
+                subtitle={
+                  SOUND_KEYS.some((k) => data.sounds?.[k])
+                    ? SOUND_KEYS.map((k) => `${t(`pbx.sound.${k}`)} ${data.sounds?.[k] ? "✓" : "—"}`).join(" · ")
+                    : t("pbx.soundsNone")
+                }
+              />
               {data.people.map((p) => (
                 <ListRow
                   key={p.ext}
@@ -97,12 +126,14 @@ export function PhoneLineSection({ canEdit }) {
   );
 }
 
-// The company number and whether the outside line is connected (only then
-// can staff call clients).
+// The company number, whether the outside line is connected (only then can
+// staff call clients), and the night hours: from `from` to `to` nobody is
+// rung — the caller hears the night message and leaves their own.
 function PhoneLineSettings({ settings, onClose, onSaved }) {
   const { t } = useI18n();
   const [companyNumber, setCompanyNumber] = useState(settings.companyNumber || "");
   const [trunkEnabled, setTrunkEnabled] = useState(Boolean(settings.trunkEnabled));
+  const [night, setNight] = useState({ on: false, from: "22:00", to: "08:00", ...settings.night });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -110,8 +141,13 @@ function PhoneLineSettings({ settings, onClose, onSaved }) {
     e.preventDefault();
     setBusy(true);
     setError("");
+    if (night.from === night.to) {
+      setError(t("pbx.nightSameTime"));
+      setBusy(false);
+      return;
+    }
     try {
-      await api.savePbxSettings({ companyNumber, trunkEnabled });
+      await api.savePbxSettings({ companyNumber, trunkEnabled, night });
       onSaved();
     } catch (err) {
       setError(t("clients.saveFailed", { reason: err.code || err.message || "?" }));
@@ -124,6 +160,13 @@ function PhoneLineSettings({ settings, onClose, onSaved }) {
       <form className={pageStyles.formStack} onSubmit={save}>
         <TextField label={t("pbx.companyNumber")} hint={t("pbx.companyNumberHint")} inputMode="tel" value={companyNumber} onChange={(e) => setCompanyNumber(e.target.value)} placeholder="+998 78 113 00 00" />
         <Switch label={t("pbx.trunk")} hint={t("pbx.trunkHint")} checked={trunkEnabled} onChange={setTrunkEnabled} />
+        <Switch label={t("pbx.nightSwitch")} hint={t("pbx.nightHint")} checked={night.on} onChange={(on) => setNight({ ...night, on })} />
+        {night.on && (
+          <div className={styles.twoCol}>
+            <TextField label={t("pbx.nightFrom")} type="time" required value={night.from} onChange={(e) => setNight({ ...night, from: e.target.value })} />
+            <TextField label={t("pbx.nightTo")} type="time" required value={night.to} onChange={(e) => setNight({ ...night, to: e.target.value })} />
+          </div>
+        )}
         {error && <p className={`${pageStyles.message} ${pageStyles.messageError}`}>{error}</p>}
         <div className={pageStyles.formActions}>
           <Button onClick={onClose}>{t("common.cancel")}</Button>

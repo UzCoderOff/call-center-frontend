@@ -364,6 +364,8 @@ const uz = {
   },
   calls: {
     viaLine: "Ledger liniyasi",
+    night: "ish vaqtidan tashqari",
+    leftMessage: "xabar qoldirdi",
     // A client's call passed on to a colleague ("Ulash" in the app).
     transferredTo: "Ulandi: {name}",
     transferMissed: "{name} javob bermadi",
@@ -409,6 +411,9 @@ const uz = {
     notFound: "Qoʻngʻiroq topilmadi.",
     recording: "Yozuv",
     noRecording: "Bu qoʻngʻiroqqa yozuv biriktirilmagan.",
+    message: "Mijozning xabari",
+    messageNight: "Ish vaqtidan tashqari qoldirilgan",
+    messageBusy: "Hech kim boʻsh boʻlmaganda qoldirilgan",
     playbackError:
       "Yozuvni ijro etib boʻlmadi. Server faylni brauzer formatiga oʻgira olmagan boʻlishi mumkin — asl fayl serverda saqlangan.",
     details: "Maʼlumotlar",
@@ -1118,6 +1123,19 @@ const uz = {
     companyNumberHint: "Tashqi liniyadagi raqam — mijozlar shuni koʻradi.",
     trunk: "Tashqi liniya ulangan",
     trunkHint: "Operator (SkyLine) liniyasi sozlangach yoqing: shundan keyin mijozlarga qoʻngʻiroq qilish mumkin.",
+    night: "Ish vaqtidan tashqari",
+    nightOff: "Oʻchiq — kechasi ham operatorlar chaqiriladi",
+    nightOn: "{from} dan {to} gacha hech kim chaqirilmaydi: mijoz tungi xabarni eshitib, oʻz xabarini qoldiradi",
+    nightNoMessage: "Yoqilgan, lekin tungi ovozli xabar hali qoʻyilmagan — liniya kunduzgidek ishlaydi",
+    nightNotYet: "Ovoz yoʻq",
+    nightSwitch: "Ish vaqtidan tashqari xabar qoldirish",
+    nightHint: "Shu soatlarda hech kim chaqirilmaydi: mijoz «ismingiz va masalangizni ayting» xabarini eshitadi va signaldan keyin gapiradi. Ertalab qayta qoʻngʻiroq roʻyxatida turadi.",
+    nightFrom: "Boshlanishi",
+    nightTo: "Tugashi",
+    nightSameTime: "Boshlanishi va tugashi har xil boʻlsin.",
+    sounds: "Ovozli xabarlar",
+    soundsNone: "Hali yozilmagan — mijoz faqat musiqa eshitadi",
+    sound: { greeting: "Salomlashish", waiting: "Kutish", busy: "Band", night: "Tungi", thanks: "Rahmat" },
   },
   work: {
     workDays: "Ish kunlari",

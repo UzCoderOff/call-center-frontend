@@ -57,6 +57,12 @@ export default function CallDetailPage() {
             <div className={pageStyles.split}>
               <div className={pageStyles.stack}>
                 {call.missed && <FollowUpCard call={call} onChange={state.setData} />}
+                {/* A message the caller left on the line (at night, or when nobody was free). */}
+                {call.missed && call.recordingPath && (
+                  <Card title={t("callDetail.message")} subtitle={call.pbxDetail?.reason === "night" ? t("callDetail.messageNight") : t("callDetail.messageBusy")}>
+                    <AudioPlayer src={api.recordingUrl(call.id)} />
+                  </Card>
+                )}
                 {call.resolvesMissed?.length > 0 && <ResolvesCard call={call} />}
                 {!call.missed && (
                   <Card title={t("callDetail.recording")}>
@@ -67,7 +73,8 @@ export default function CallDetailPage() {
                     )}
                   </Card>
                 )}
-                <CallReviewCard call={call} canCheck={isManagerRole(user.role)} onChange={state.setData} />
+                {/* A missed call's message is only turned into text, never reviewed. */}
+                {!call.missed && <CallReviewCard call={call} canCheck={isManagerRole(user.role)} onChange={state.setData} />}
                 <TranscriptCard call={call} />
               </div>
 
