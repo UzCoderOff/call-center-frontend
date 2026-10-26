@@ -42,9 +42,12 @@ export default function CallRow({ call, showEmployee = false, showCallButton = f
   // Through Ledger's phone line (not synced from someone's phone).
   const line = call.source === "pbx" && t("calls.viaLine");
   const transfer = transferText(call, t);
+  // Missed on the line: outside working hours, and whether they left a message.
+  const night = call.missed && call.pbxDetail?.reason === "night" && t("calls.night");
+  const message = call.missed && call.pbxDetail?.voicemail && t("calls.leftMessage");
   const parts = client
-    ? [fmt.phone(call.phoneNumber), showEmployee && call.employee?.name, line, transfer, when].filter(Boolean)
-    : [showEmployee && call.employee?.name, !compact && typeLabel, line, transfer, when].filter(Boolean);
+    ? [fmt.phone(call.phoneNumber), showEmployee && call.employee?.name, line, night, message, transfer, when].filter(Boolean)
+    : [showEmployee && call.employee?.name, !compact && typeLabel, line, night, message, transfer, when].filter(Boolean);
   const needsCallback = call.followUp === "pending" || call.followUp === "attempted";
   const tel = showCallButton && needsCallback ? telHref(call.phoneNumber) : null;
 
