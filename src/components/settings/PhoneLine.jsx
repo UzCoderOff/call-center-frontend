@@ -20,7 +20,7 @@ import { useI18n } from "../../i18n";
 
 // The firm's voice messages on the line, in the order a caller hears them
 // (backend services/pbx/sounds.js).
-const SOUND_KEYS = ["greeting", "waiting", "busy", "night", "thanks"];
+const SOUND_KEYS = ["greeting", "coordinator", "coordinatorBusy", "waiting", "busy", "night", "thanks"];
 
 function nightText(data, t) {
   const night = data.settings.night;

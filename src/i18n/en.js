@@ -1131,7 +1131,7 @@ const en = {
     nightSameTime: "Start and end must be different times.",
     sounds: "Voice messages",
     soundsNone: "Not recorded yet — callers only hear music",
-    sound: { greeting: "Greeting", waiting: "Waiting", busy: "Busy", night: "Night", thanks: "Thanks" },
+    sound: { greeting: "Greeting", coordinator: "To coordinator", coordinatorBusy: "Coordinator busy", waiting: "Waiting", busy: "Busy", night: "Night", thanks: "Thanks" },
   },
   work: {
     workDays: "Working days",
