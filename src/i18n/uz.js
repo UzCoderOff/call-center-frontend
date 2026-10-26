@@ -1133,7 +1133,7 @@ const uz = {
     nightFrom: "Boshlanishi",
     nightTo: "Tugashi",
     nightSameTime: "Boshlanishi va tugashi har xil boʻlsin.",
-    sounds: "Ovozli xabarlar",
+     sounds: "Ovozli xabarlar",
     soundsNone: "Hali yozilmagan — mijoz faqat musiqa eshitadi",
     sound: { greeting: "Salomlashish", coordinator: "Koordinatorga", coordinatorBusy: "Koordinator band", waiting: "Kutish", busy: "Band", night: "Tungi", thanks: "Rahmat" },
   },

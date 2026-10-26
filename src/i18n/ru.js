@@ -1131,7 +1131,7 @@ const ru = {
     nightFrom: "С",
     nightTo: "До",
     nightSameTime: "Начало и конец должны отличаться.",
-    sounds: "Голосовые сообщения",
+     sounds: "Голосовые сообщения",
     soundsNone: "Ещё не записаны — клиент слышит только музыку",
     sound: { greeting: "Приветствие", coordinator: "К координатору", coordinatorBusy: "Координатор занят", waiting: "Ожидание", busy: "Занято", night: "Ночное", thanks: "Спасибо" },
   },

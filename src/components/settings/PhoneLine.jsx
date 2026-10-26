@@ -134,6 +134,8 @@ function PhoneLineSettings({ settings, onClose, onSaved }) {
   const [companyNumber, setCompanyNumber] = useState(settings.companyNumber || "");
   const [trunkEnabled, setTrunkEnabled] = useState(Boolean(settings.trunkEnabled));
   const [night, setNight] = useState({ on: false, from: "22:00", to: "08:00", ...settings.night });
+  // The firm's own phones for trying the voice messages (one per line or comma).
+  const [testNumbers, setTestNumbers] = useState((settings.testNumbers || []).join(", "));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -147,7 +149,7 @@ function PhoneLineSettings({ settings, onClose, onSaved }) {
       return;
     }
     try {
-      await api.savePbxSettings({ companyNumber, trunkEnabled, night });
+      await api.savePbxSettings({ companyNumber, trunkEnabled, night, testNumbers });
       onSaved();
     } catch (err) {
       setError(t("clients.saveFailed", { reason: err.code || err.message || "?" }));
@@ -161,6 +163,7 @@ function PhoneLineSettings({ settings, onClose, onSaved }) {
         <TextField label={t("pbx.companyNumber")} hint={t("pbx.companyNumberHint")} inputMode="tel" value={companyNumber} onChange={(e) => setCompanyNumber(e.target.value)} placeholder="+998 78 113 00 00" />
         <Switch label={t("pbx.trunk")} hint={t("pbx.trunkHint")} checked={trunkEnabled} onChange={setTrunkEnabled} />
         <Switch label={t("pbx.nightSwitch")} hint={t("pbx.nightHint")} checked={night.on} onChange={(on) => setNight({ ...night, on })} />
+        <TextField label={t("pbx.testNumbers")} hint={t("pbx.testNumbersHint")} inputMode="tel" value={testNumbers} onChange={(e) => setTestNumbers(e.target.value)} placeholder="+998 90 123 45 67" />
         {night.on && (
           <div className={styles.twoCol}>
             <TextField label={t("pbx.nightFrom")} type="time" required value={night.from} onChange={(e) => setNight({ ...night, from: e.target.value })} />
