@@ -1,0 +1,175 @@
+/* Practice with a made-up client (PracticePage.jsx). */
+
+.rowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.level {
+  font-weight: 700;
+}
+
+.level1 {
+  color: var(--good-text);
+}
+
+.level2 {
+  color: var(--warning-text);
+}
+
+.level3 {
+  color: var(--critical-text);
+}
+
+.result {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.result strong {
+  min-width: 2ch;
+  text-align: right;
+}
+
+.empty {
+  padding: 14px 16px;
+  color: var(--text-2);
+}
+
+/* The talk: the client on the left, you on the right. */
+.talk {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.line.mine {
+  align-items: flex-end;
+}
+
+.bubble {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: var(--neutral-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mine .bubble {
+  background: var(--accent);
+  color: #fff;
+}
+
+.who {
+  margin: 2px 6px 0;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.typing {
+  color: var(--text-2);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--separator-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.pasteNote {
+  margin: 0;
+  color: var(--warning-text);
+  font-size: 13px;
+}
+
+.endLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.cardLine {
+  margin: 0 0 8px;
+}
+
+.cardList {
+  display: grid;
+  gap: 6px;
+}
+
+.cardItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* A client to pick: the whole title and brief, the start button on the right. */
+.scenario {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--separator);
+}
+
+.scenario:last-child {
+  border-bottom: none;
+}
+
+.scenarioIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-2);
+}
+
+.scenarioBody {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scenarioTitle {
+  font-weight: 600;
+}
+
+.scenarioBrief {
+  color: var(--text-2);
+  font-size: 14px;
+}

@@ -16,6 +16,7 @@ import { StrikesCard } from "../components/performance/Strikes";
 import { CallRatingCard } from "../components/performance/CallRating";
 import { RetriesCard } from "../components/performance/Retries";
 import { TgReviewsCard } from "../components/telegram/TgReview";
+import { PracticeCard } from "./PracticePage";
 import { shiftMonth, useMonthLabel } from "../components/finance/parts";
 import { useAuth, isManagerRole } from "../hooks/useAuth";
 import { useAsync } from "../hooks/useAsync";
@@ -76,6 +77,7 @@ export default function PersonPerformancePage() {
             <RetriesCard retries={p.retries} />
             {p.calls && <Calls p={p} />}
             <TgReviewsCard employeeId={p.employee.id} month={p.month} />
+            <PracticeCard employeeId={p.employee.id} month={p.month} />
             {p.strikes && <StrikesCard employeeId={p.employee.id} month={p.month} summary={p.strikes} manager={manager} onChanged={state.reload} />}
             <div className={styles.columns}>
               <Money p={p} onChanged={state.reload} />

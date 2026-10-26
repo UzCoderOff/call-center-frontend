@@ -33,7 +33,9 @@ function tone(points, max) {
   return r >= 0.8 ? styles.good : r >= 0.5 ? styles.mid : styles.low;
 }
 
-export function CallReviewCard({ call, canCheck, onChange }) {
+// `open`: the points and advice shown, not folded; `betaNote`: another
+// word under it (practice results are typed, not heard).
+export function CallReviewCard({ call, canCheck, onChange, open = false, betaNote }) {
   const { t } = useI18n();
   const a = call.analysis;
   const pending =
@@ -96,7 +98,7 @@ export function CallReviewCard({ call, canCheck, onChange }) {
       )}
 
       {a.score != null && (
-        <details className={styles.more}>
+        <details className={styles.more} open={open}>
           <summary>{t("callReview.details")}</summary>
           <div className={styles.criteria}>
             {CRITERIA.map((key) => {
@@ -163,7 +165,7 @@ export function CallReviewCard({ call, canCheck, onChange }) {
           )}
         </details>
       )}
-      <p className={styles.betaNote}>{t("callReview.betaNote")}</p>
+      <p className={styles.betaNote}>{betaNote ?? t("callReview.betaNote")}</p>
       {canCheck && <Feedback call={call} onChange={onChange} />}
     </Card>
   );

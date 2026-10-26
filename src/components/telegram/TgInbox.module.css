@@ -404,3 +404,191 @@
 .checkBy {
   color: var(--text-2);
 }
+
+/* Instagram chats: the same mark, Instagram's colour. */
+.igMark {
+  background: #d62976;
+}
+
+/* Above the list: all, one app, or the ones the AI passed on. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 12px 2px;
+}
+
+.filter {
+  padding: 4px 11px;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.filterOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.filterGood {
+  color: var(--good-text);
+}
+
+.filterWarn {
+  color: var(--warning-text);
+}
+
+/* In a row of the list: what the AI did there. */
+.aiBadge {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-soft);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.aiBadgeGood {
+  background: var(--good-soft);
+  color: var(--good-text);
+}
+
+.aiBadgeWarn {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+/* On a chat: the AI's card. */
+.aiPanel {
+  display: grid;
+  gap: 6px;
+  margin: 8px 14px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.aiGood {
+  border-color: transparent;
+  background: var(--good-soft);
+}
+
+.aiGood .aiHead svg {
+  color: var(--good-text);
+}
+
+.aiWarn {
+  border-color: transparent;
+  background: var(--warning-soft);
+}
+
+.aiWarn .aiHead svg {
+  color: var(--warning-text);
+}
+
+.aiHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aiHead svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.aiAction {
+  margin-left: auto;
+}
+
+.aiHint {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.aiRows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 12px;
+  margin: 0;
+}
+
+.aiRows dt {
+  color: var(--text-2);
+}
+
+.aiRows dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.aiDraft {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+
+.aiDraftHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.aiDraftNote {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* The chat review's flags: what a manager should look at, with the operator's words. */
+.flags {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flag {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--critical-soft);
+  color: var(--critical-text);
+  font-size: 13px;
+}
+
+.flag svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.flagQuote {
+  color: var(--text-2);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.flaggedBox {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-md);
+}

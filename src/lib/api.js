@@ -454,6 +454,18 @@ export const api = {
   tgReview: (id) => request(`/tg-inbox/${id}/review`, { method: "POST" }),
   // A manager checks the AI's review: { verdict: "right"|"wrong"|null, kind?, note? }.
   tgReviewFeedback: (reviewId, payload) => request(`/tg-inbox/reviews/${reviewId}/feedback`, { method: "PUT", body: payload }),
+  // The AI that answers new people (Telegram, Instagram): settings (managers),
+  // and stopping it in one chat or giving it back.
+  tgAi: () => request("/tg-inbox/ai"),
+  tgAiSave: (payload) => request("/tg-inbox/ai", { method: "PUT", body: payload }),
+  tgChatAi: (id, on) => request(`/tg-inbox/${id}/ai`, { method: "POST", body: { on } }),
+  // Practice with a made-up client the AI plays (pages/PracticePage.jsx).
+  practice: (params) => request(`/practice${qs(params)}`),
+  practiceStart: (scenario) => request("/practice", { method: "POST", body: { scenario } }),
+  practiceSession: (id) => request(`/practice/${id}`),
+  practiceSay: (id, text) => request(`/practice/${id}/say`, { method: "POST", body: { text } }),
+  practiceFinish: (id) => request(`/practice/${id}/finish`, { method: "POST" }),
+  practicePerson: (employeeId, month) => request(`/practice/person/${employeeId}${qs({ month })}`),
   tgPhoneOwner: (id, phone) => request(`/tg-inbox/${id}/phone-owner${qs({ phone })}`),
   tgReviews: (employeeId, month) => request(`/tg-inbox/reviews${qs({ employeeId, month })}`),
 

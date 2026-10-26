@@ -35,6 +35,29 @@ export function Stars({ score }) {
   );
 }
 
+// What a manager should look at in the operator's messages (2026-10-26): a
+// legal answer, a wrong price, text that looks pasted from an AI chatbot (a
+// hint only) — each with the operator's words.
+const FLAGS = ["legal_answer", "wrong_price", "pasted_text"];
+
+export function ReviewFlags({ flags }) {
+  const { t } = useI18n();
+  if (!flags?.length) return null;
+  return (
+    <ul className={tg.flags}>
+      {flags.map((f, i) => (
+        <li key={i} className={tg.flag}>
+          <Icon name="alertTriangle" size={15} />
+          <span>
+            <strong>{t(`tgReview.flags.${f.kind}`)}</strong>
+            {f.quote ? <span className={tg.flagQuote}> «{f.quote}»</span> : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // One review: the verdict line, the summary, and the advice folded.
 export function ReviewBody({ review, open: startOpen = false }) {
   const { t } = useI18n();
@@ -56,6 +79,7 @@ export function ReviewBody({ review, open: startOpen = false }) {
       </div>
       {/* Corrected by a manager: their verdict counts, the AI's stays readable. */}
       {review.feedback?.verdict === "wrong" && review.aiKind === "lead" && review.kind !== "lead" && <p className={tg.betaNote}>{t("tgReview.aiSaidLead")}</p>}
+      <ReviewFlags flags={review.flags} />
       {review.summary && <p className={tg.reviewText}>{review.summary}</p>}
       {review.lossReason && (
         <p className={tg.reviewText}>
@@ -211,8 +235,9 @@ export function TgReviewsCard({ employeeId, month }) {
   const { t } = useI18n();
   const state = useAsync(() => api.tgReviews(employeeId, month), [employeeId, month]);
   const data = state.data;
-  if (!data || data.reviews.length === 0) return null;
+  if (!data || (data.reviews.length === 0 && !data.flagged?.length)) return null;
   const order = ["booked", "lost_by_us", "lost_not_serious", "lost_other", "open"];
+  const flagCounts = FLAGS.filter((k) => data.flags?.[k]);
   return (
     <Card
       title={
@@ -236,6 +261,27 @@ export function TgReviewsCard({ employeeId, month }) {
           </span>
         )}
       </div>
+      {flagCounts.length > 0 && (
+        <div className={tg.flaggedBox}>
+          <div className={tg.reviewCounts}>
+            <strong>{t("tgReview.flaggedTitle")}</strong>
+            {flagCounts.map((k) => (
+              <span key={k} className={tg.reviewCount}>
+                <Badge tone={k === "pasted_text" ? "warning" : "critical"}>{t(`tgReview.flags.${k}`)}</Badge> {data.flags[k]}
+              </span>
+            ))}
+          </div>
+          {data.flagged.map((r) => (
+            <div key={r.id} className={tg.reviewItem}>
+              <Link to={r.chat.clientId ? `/clients/${r.chat.clientId}` : `/telegram/${r.chat.id}`} className={tg.reviewWho}>
+                {r.chat.name}
+              </Link>
+              <ReviewFlags flags={r.flags} />
+            </div>
+          ))}
+          <p className={tg.betaNote}>{t("tgReview.flaggedNote")}</p>
+        </div>
+      )}
       <div className={tg.reviewList}>
         {data.reviews.map((r) => (
           <div key={r.id} className={tg.reviewItem}>

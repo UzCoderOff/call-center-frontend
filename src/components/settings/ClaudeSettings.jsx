@@ -19,7 +19,7 @@ import { useI18n } from "../../i18n";
 // the Ledger AI chat, the model, what Claude does (each off until switched
 // on), the reports' script, a monthly cap, and what it cost this month.
 
-const FEATURES = ["weeklyReport", "lostAnalysis", "suggestions", "fileReader", "summaryDraft", "tgReview"];
+const FEATURES = ["weeklyReport", "lostAnalysis", "suggestions", "fileReader", "summaryDraft", "tgReview", "practice"];
 const JOBS = ["weeklyReport", "lostAnalysis", "suggestions"];
 const usd = (n) => `$${(n || 0).toFixed(2)}`;
 

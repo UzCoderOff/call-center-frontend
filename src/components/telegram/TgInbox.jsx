@@ -21,9 +21,11 @@ import { isManager } from "../../lib/access";
 import { ChatReview } from "./TgReview";
 
 // Clients writing to the firm's Telegram account (Telegram Business — the
-// server's services/tgInbox.js): the list (Chat → Telegram), one chat, and the
-// same chat on the client's page. Read-only for now: the operator answers in
-// the Telegram app, Ledger shows both sides.
+// server's services/tgInbox.js) and, since 2026-10-26, to its Instagram
+// (services/igInbox.js): the list («Mijozlar xabarlari»), one chat, and the
+// same chat on the client's page. Staff answer in the Telegram / Instagram
+// app; the AI may answer new people (services/aiReply) — its card on the chat
+// shows what it is doing, who agreed to a consultation, and lets staff stop it.
 
 const KIND_ICON = { photo: "image", voice: "waveform", video: "video", video_note: "video", audio: "music", document: "file", contact: "contact", location: "externalLink" };
 
@@ -54,19 +56,41 @@ export function TgList({ activeId }) {
   const [query, setQuery] = useState("");
   // Managers: the chats taken out of the list (by a person, or by the AI).
   const [hidden, setHidden] = useState(false);
+  // "" | "telegram" | "instagram" | "agreed" | "handoff"
+  const [show, setShow] = useState("");
   useEffect(() => {
     const timer = setTimeout(() => setQuery(q.trim()), 250);
     return () => clearTimeout(timer);
   }, [q]);
-  const params = { q: query, ...(hidden ? { hidden: 1 } : {}) };
-  const state = useAsync(() => api.tgChats(params), [query, hidden]);
+  const params = {
+    q: query,
+    ...(hidden ? { hidden: 1 } : {}),
+    ...(["telegram", "instagram"].includes(show) ? { platform: show } : {}),
+    ...(["agreed", "handoff"].includes(show) ? { ai: show } : {}),
+  };
+  const state = useAsync(() => api.tgChats(params), [query, hidden, show]);
   const { setData } = state;
   useLive(() => api.tgChats(params).then(setData).catch(() => {}));
+  const counts = state.data?.ai || {};
+  const filters = [
+    ["", t("tg.showAll")],
+    ["telegram", "Telegram"],
+    ["instagram", "Instagram"],
+    ...(counts.agreed || show === "agreed" ? [["agreed", t("tgAi.filterAgreed", { count: counts.agreed || 0 })]] : []),
+    ...(counts.handoff || show === "handoff" ? [["handoff", t("tgAi.filterHandoff", { count: counts.handoff || 0 })]] : []),
+  ];
 
   return (
     <>
       <div className={tg.search}>
         <TextField aria-label={t("tg.search")} placeholder={t("tg.search")} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+      </div>
+      <div className={tg.filters} role="group" aria-label={t("tg.showAll")}>
+        {filters.map(([key, label]) => (
+          <button key={key || "all"} type="button" className={`${tg.filter} ${show === key ? tg.filterOn : ""} ${key === "agreed" ? tg.filterGood : key === "handoff" ? tg.filterWarn : ""}`} aria-pressed={show === key} onClick={() => setShow(key)}>
+            {label}
+          </button>
+        ))}
       </div>
       {manager && (
         <div className={tg.listOptions}>
@@ -78,7 +102,7 @@ export function TgList({ activeId }) {
       <AsyncBoundary state={state}>
         {({ chats, waiting }) => (
           <>
-            {waiting > 0 && !query && !hidden && <div className={tg.waitingLine}>{t("tg.waitingCount", { count: waiting })}</div>}
+            {waiting > 0 && !query && !hidden && !show && <div className={tg.waitingLine}>{t("tg.waitingCount", { count: waiting })}</div>}
             {chats.length === 0 ? (
               <div className={styles.placeholder}>{query ? t("tg.nothingFound") : t("tg.empty")}</div>
             ) : (
@@ -95,9 +119,10 @@ export function TgList({ activeId }) {
                       </span>
                       <span className={styles.convBottom}>
                         <span className={styles.convPreview}>
-                          {last?.out ? `${t("tg.firm")}: ` : ""}
+                          {last?.out ? `${last.ai ? t("tgAi.author") : t("tg.firm")}: ` : ""}
                           {previewOf(last, t)}
                         </span>
+                        <AiBadge state={c.ai} />
                         {c.aiHidden ? <span className={tg.waitBadge}>{t("tg.aiHid")}</span> : c.waitingSince && !c.hidden && <span className={tg.waitBadge}>{waited(c.waitingSince, t)}</span>}
                       </span>
                     </span>
@@ -112,14 +137,128 @@ export function TgList({ activeId }) {
   );
 }
 
+// What the AI did in a chat, in the list: they agreed, a person is needed, or it is talking.
+function AiBadge({ state }) {
+  const { t } = useI18n();
+  if (state === "agreed") return <span className={`${tg.aiBadge} ${tg.aiBadgeGood}`}>{t("tgAi.badgeAgreed")}</span>;
+  if (state === "handoff") return <span className={`${tg.aiBadge} ${tg.aiBadgeWarn}`}>{t("tgAi.badgeHandoff")}</span>;
+  if (state === "on") return <span className={tg.aiBadge}>AI</span>;
+  return null;
+}
+
+const isInstagram = (chat) => chat.platform === "instagram";
+
 function TgAvatar({ chat, size = 48 }) {
   return (
     <span className={tg.avatarWrap}>
       <PersonAvatar name={chat.client?.name || chat.name} size={size} />
-      <span className={tg.tgMark} aria-hidden="true">
-        <Icon name="send" size={Math.round(size * 0.24)} />
+      <span className={`${tg.tgMark} ${isInstagram(chat) ? tg.igMark : ""}`} aria-hidden="true">
+        <Icon name={isInstagram(chat) ? "instagram" : "send"} size={Math.round(size * 0.24)} />
       </span>
     </span>
+  );
+}
+
+// Their profile in the app they wrote from.
+const profileUrl = (chat) => (chat.username ? (isInstagram(chat) ? `https://instagram.com/${chat.username}` : `https://t.me/${chat.username}`) : null);
+
+// ------------------------------------------------------------ the AI in a chat
+// What the AI is doing here: talking, they agreed (call them to confirm the
+// time and the payment), it handed over, stopped — its suggested reply in
+// "only suggest" mode; and stopping it ("I'll answer") or giving it back.
+function AiPanel({ chat, ai, onChanged }) {
+  const { t, fmt } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  if (!ai || (!ai.state && !ai.draft)) return null;
+  const lead = ai.lead || {};
+  const paused = ai.pausedUntil && new Date(ai.pausedUntil).getTime() > Date.now();
+  const format = lead.format === "office" ? t("tgAi.office") : lead.format === "online" ? t("tgAi.online") : "";
+  const rows = [
+    [t("tgAi.name"), lead.name],
+    [t("tgAi.phone"), lead.phone ? fmt.phone(lead.phone) : chat.phone ? fmt.phone(chat.phone) : ""],
+    [t("tgAi.matter"), lead.problem],
+    [t("tgAi.consultation"), [format, lead.time].filter(Boolean).join(", ")],
+  ].filter(([, v]) => v);
+  const tone = ai.state === "agreed" ? tg.aiGood : ai.state === "handoff" ? tg.aiWarn : "";
+  const title =
+    ai.state === "agreed"
+      ? t("tgAi.agreedTitle")
+      : ai.state === "handoff"
+        ? t("tgAi.handoffTitle")
+        : ai.state === "off"
+          ? t("tgAi.offTitle")
+          : ai.state === "done"
+            ? t("tgAi.doneTitle")
+            : ai.state === "on"
+              ? paused
+                ? t("tgAi.pausedTitle", { time: fmt.time(new Date(ai.pausedUntil).getTime()) })
+                : t("tgAi.onTitle")
+              : t("tgAi.draftTitle");
+
+  async function setOn(on) {
+    setBusy(true);
+    try {
+      await api.tgChatAi(chat.id, on);
+      onChanged();
+    } catch (err) {
+      saveFailed(err, t);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(ai.draft);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <div className={`${tg.aiPanel} ${tone}`}>
+      <div className={tg.aiHead}>
+        <Icon name={ai.state === "agreed" ? "checkCircle" : ai.state === "handoff" ? "alertTriangle" : "sparkles"} size={18} />
+        <strong>{title}</strong>
+        {["on", "agreed"].includes(ai.state) && (
+          <Button size="small" variant="plain" busy={busy} className={tg.aiAction} onClick={() => setOn(false)}>
+            {t("tgAi.stop")}
+          </Button>
+        )}
+        {["off", "handoff", "done"].includes(ai.state) && (
+          <Button size="small" variant="plain" busy={busy} className={tg.aiAction} onClick={() => setOn(true)}>
+            {t("tgAi.giveBack")}
+          </Button>
+        )}
+      </div>
+      {ai.state === "agreed" && <p className={tg.aiHint}>{t("tgAi.agreedHint")}</p>}
+      {ai.state === "handoff" && ai.note && <p className={tg.aiHint}>{ai.note}</p>}
+      {rows.length > 0 && (
+        <dl className={tg.aiRows}>
+          {rows.map(([label, value]) => (
+            <Fragment key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      )}
+      {ai.draft && (
+        <div className={tg.aiDraft}>
+          <div className={tg.aiDraftHead}>
+            <span>{t("tgAi.draft")}</span>
+            <Button size="small" icon={copied ? "check" : "copy"} onClick={copy}>
+              {copied ? t("tgAi.copied") : t("tgAi.copy")}
+            </Button>
+          </div>
+          <div className={tg.text}>{ai.draft}</div>
+          <div className={tg.aiDraftNote}>{t(isInstagram(chat) ? "tgAi.draftNoteIg" : "tgAi.draftNoteTg")}</div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -168,7 +307,7 @@ export function TgThread({ chatId, embedded = false, onChanged }) {
 
   return (
     <AsyncBoundary state={state}>
-      {({ chat, messages, hasOlder, review }) => (
+      {({ chat, messages, hasOlder, review, ai }) => (
         <div className={`${styles.thread} ${embedded ? tg.embedded : ""}`}>
           <header className={styles.threadHead}>
             {!embedded && (
@@ -181,8 +320,15 @@ export function TgThread({ chatId, embedded = false, onChanged }) {
               <div className={styles.threadName}>{chat.name}</div>
               <div className={styles.threadSub}>{[chat.username && `@${chat.username}`, chat.phone && fmt.phone(chat.phone)].filter(Boolean).join(" · ") || t("tg.noContact")}</div>
             </div>
-            {chat.username && (
-              <a href={`https://t.me/${chat.username}`} target="_blank" rel="noreferrer" className={styles.headButton} title={t("tg.openInTelegram")} aria-label={t("tg.openInTelegram")}>
+            {profileUrl(chat) && (
+              <a
+                href={profileUrl(chat)}
+                target="_blank"
+                rel="noreferrer"
+                className={styles.headButton}
+                title={t(isInstagram(chat) ? "tg.openInInstagram" : "tg.openInTelegram")}
+                aria-label={t(isInstagram(chat) ? "tg.openInInstagram" : "tg.openInTelegram")}
+              >
                 <Icon name="externalLink" size={20} />
               </a>
             )}
@@ -218,13 +364,14 @@ export function TgThread({ chatId, embedded = false, onChanged }) {
           )}
 
           {chat.aiHidden && <div className={tg.aiHiddenNote}>{t("tg.aiHiddenNote")}</div>}
+          {chat.canManage && <AiPanel chat={chat} ai={ai} onChanged={() => api.tgChat(chatId).then(setData).catch(() => {})} />}
           {chat.canManage && (
             <ChatReview review={review} canReview={chat.canReview} onReview={reviewNow} busy={reviewing} onChecked={(r) => setData((d) => ({ ...d, review: r }))} />
           )}
 
           <Messages chatId={chat.id} messages={messages} hasOlder={hasOlder} />
 
-          <div className={styles.readOnly}>{t("tg.replyInTelegram")}</div>
+          <div className={styles.readOnly}>{t(isInstagram(chat) ? "tg.replyInInstagram" : "tg.replyInTelegram")}</div>
 
           {sheet === "link" && (
             <TgLinkSheet
@@ -308,7 +455,8 @@ function Messages({ chatId, messages: first, hasOlder: firstHasOlder }) {
               <div className={`${styles.row} ${m.out ? styles.rowMine : ""} ${sameAsPrev ? "" : styles.rowFirst}`}>
                 <div className={`${styles.bubble} ${m.out ? styles.mine : ""} ${sameAsNext ? "" : styles.bubbleLast}`}>
                   {m.out && m.auto && <div className={styles.author}>{t("tg.autoMessage")}</div>}
-                  {m.out && !m.auto && !sameAsPrev && m.answeredBy && <div className={styles.author}>{m.answeredBy}</div>}
+                  {m.out && m.ai && !sameAsPrev && <div className={styles.author}>{t("tgAi.author")}</div>}
+                  {m.out && !m.auto && !m.ai && !sameAsPrev && m.answeredBy && <div className={styles.author}>{m.answeredBy}</div>}
                   {m.deleted ? (
                     <span className={styles.deleted}>{t("tg.deleted")}</span>
                   ) : (
@@ -397,8 +545,9 @@ export function TelegramCard({ client }) {
           <div className={tg.cardWho}>
             <strong>{c.name}</strong>
             <span className={tg.cardSub}>
+              <span>{isInstagram(c) ? "Instagram" : "Telegram"}</span>
               {c.username && (
-                <a href={`https://t.me/${c.username}`} target="_blank" rel="noreferrer">
+                <a href={profileUrl(c)} target="_blank" rel="noreferrer">
                   @{c.username}
                 </a>
               )}

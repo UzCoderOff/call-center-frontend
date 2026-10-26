@@ -71,6 +71,12 @@ export function canSeeTgInbox(user) {
   return isManager(user) || Boolean(user.tgInbox);
 }
 
+// Practice with a made-up client (pages/PracticePage.jsx): managers always;
+// staff once a manager has switched it on (the server sends `practice`).
+export function canPractise(user) {
+  return isManager(user) || (Boolean(user.employee) && Boolean(user.practice));
+}
+
 // Natijalar (performance): managers see everyone; a staff member their own.
 export function canSeePerformance(user) {
   return isManager(user) || Boolean(user.employee);

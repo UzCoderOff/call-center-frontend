@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import CallsPage from "./pages/CallsPage";
 import CallDetailPage from "./pages/CallDetailPage";
+import PracticePage from "./pages/PracticePage";
 import ReportsPage from "./pages/ReportsPage";
 import ReportDetailPage from "./pages/ReportDetailPage";
 import AutoReportPage from "./pages/AutoReportPage";
@@ -21,7 +22,7 @@ import CalendarPage, { PlannerRedirect } from "./pages/CalendarPage";
 import MorePage from "./pages/MorePage";
 import NotificationsPage from "./pages/NotificationsPage";
 import WallboardPage from "./pages/WallboardPage";
-import { canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeePerformance, canSeeReports, canSeeTeam, canSeeTgInbox } from "./lib/access";
+import { canPractise, canManageClients, canManageMaterials, canSeeFinance, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeePerformance, canSeeReports, canSeeTeam, canSeeTgInbox } from "./lib/access";
 import ClientsPage from "./pages/ClientsPage";
 import ClientPage from "./pages/ClientPage";
 import CasePage from "./pages/CasePage";
@@ -159,6 +160,8 @@ function Routed() {
         <Route path="performance" element={guarded(canSeePerformance, <PerformancePage />)} />
         <Route path="performance/:id" element={guarded(canSeePerformance, <PersonPerformancePage />)} />
         <Route path="days-off" element={guarded(canSeeDaysOff, <DaysOffPage />)} />
+        <Route path="practice" element={guarded(canPractise, <PracticePage />)} />
+        <Route path="practice/:id" element={guarded(canPractise, <PracticePage />)} />
         <Route path="materials" element={<MaterialsPage />} />
         <Route path="materials/new" element={guarded(canManageMaterials, <MaterialEditorPage />)} />
         <Route path="materials/:id" element={<MaterialPage />} />

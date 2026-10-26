@@ -4,7 +4,7 @@ import styles from "./AppShell.module.css";
 import Icon from "../ui/Icon";
 import { Avatar } from "../ui/Misc";
 import { useAuth, isManagerRole } from "../../hooks/useAuth";
-import { canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeeFinance, canSeePerformance, canSeeReports, canSeeTgInbox } from "../../lib/access";
+import { canPractise, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff, canSeeDebts, canSeeFinance, canSeePerformance, canSeeReports, canSeeTgInbox } from "../../lib/access";
 import { useI18n } from "../../i18n";
 import { useChatUnread } from "../../hooks/useChatUnread";
 import { useNoticeUnread } from "../../hooks/useNoticeUnread";
@@ -32,6 +32,7 @@ export function navItems(user) {
     ...(canSeeDaysOff(user) ? [{ to: "/days-off", icon: "coffee", label: "nav.daysOff" }] : []),
     ...(manager ? [{ to: "/team", icon: "users", label: "nav.team" }] : []),
     ...(manager ? [{ to: "/settings", icon: "settings", label: "nav.settings", sidebarOnly: true }] : []),
+    ...(canPractise(user) ? [{ to: "/practice", icon: "target", label: "nav.practice" }] : []),
     { to: "/materials", icon: "book", label: "nav.materials" },
     { to: "/profile", icon: "user", label: "nav.profile" },
   ];
