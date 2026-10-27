@@ -176,7 +176,7 @@ function FollowUpCard({ call, onChange }) {
   const needsCallback = call.followUp === "pending" || call.followUp === "attempted";
 
   return (
-    <Card title={t("callDetail.followUp")} action={<FollowUpBadge status={call.followUp} />}>
+    <Card title={t("callDetail.followUp")} action={<FollowUpBadge status={call.followUp} by={linked?.employee?.name} />}>
       <p className={styles.followText}>{text}</p>
 
       {linked && (

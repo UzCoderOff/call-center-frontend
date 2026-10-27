@@ -3,6 +3,11 @@
 // t() has no plural forms, so every count is phrased plural-neutrally
 // ("Звонков: {count}", "{n} дн.", "{count} шт.") — never "{count} <noun>".
 const ru = {
+  afterCall: {
+    title: "Итог звонка",
+    text: "Вы поговорили с новым номером. Прежде чем продолжить, отметьте, чем закончилось — или запишите на консультацию.",
+    book: "Записать на консультацию",
+  },
   newCallers: {
     subtitleTeam: "Новые номера, с которыми поговорили операторы, но которые не записались, — причину отмечают операторы.",
     outcomes: {
@@ -288,12 +293,17 @@ const ru = {
     reachedPct: "{pct}% — связались повторно",
   },
   status: {
-    pending: "Нужно перезвонить",
+    pending: "Ещё никто не связался",
     attempted: "Нет ответа",
     called_back: "Перезвонили",
     client_called_again: "Клиент перезвонил сам",
     handled: "Связались (отмечено)",
     no_number: "Скрытый номер",
+    byName: {
+      called_back: "{name} перезвонил(а)",
+      client_called_again: "{name} ответил(а)",
+      attempted: "{name} звонил(а) — нет ответа",
+    },
   },
   callType: {
     incoming: "Входящий",

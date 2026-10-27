@@ -53,7 +53,7 @@ export default function CallRow({ call, showEmployee = false, showCallButton = f
 
   // Missed calls: the follow-up badge goes on its own line so the phone
   // number keeps its full width next to the call button on a phone.
-  const footer = call.missed ? <FollowUpBadge status={call.followUp} /> : null;
+  const footer = call.missed ? <FollowUpBadge status={call.followUp} by={call.followUpCall?.employee?.name} /> : null;
   const trailing = call.missed ? null : (
     <span className={styles.meta}>
       {call.recordingPath && <Icon name="waveform" size={15} title={t("callDetail.recording")} />}

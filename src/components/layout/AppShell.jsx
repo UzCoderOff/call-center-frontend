@@ -8,6 +8,7 @@ import { canPractise, canSeeCalendar, canSeeCalls, canSeeClients, canSeeDaysOff,
 import { useI18n } from "../../i18n";
 import { useChatUnread } from "../../hooks/useChatUnread";
 import { useNoticeUnread } from "../../hooks/useNoticeUnread";
+import AfterCallGate from "../stats/AfterCallGate";
 
 // Navigation is one list, rendered twice: a sidebar on wide screens and an
 // iOS-style tab bar on phones. New modules are added here once and appear in
@@ -133,6 +134,8 @@ export default function AppShell() {
           <Outlet />
         </div>
       </main>
+
+      <AfterCallGate />
 
       <nav className={styles.tabBar} aria-label="Primary">
         {tabs.map((item) => (

@@ -23,13 +23,18 @@ export const FOLLOW_UP_STYLE = {
   no_number: { tone: "neutral", icon: "minusCircle" },
 };
 
-export function FollowUpBadge({ status }) {
+// `by`: who reached the caller (answered their next call, or called them
+// back) — so whoever's phone it rang on sees at a glance that someone else
+// already talked to them, or that nobody has yet.
+const BY_NAME = new Set(["called_back", "client_called_again", "attempted"]);
+
+export function FollowUpBadge({ status, by }) {
   const { t } = useI18n();
   const style = FOLLOW_UP_STYLE[status];
   if (!style) return null;
   return (
     <Badge tone={style.tone} icon={style.icon}>
-      {t(`status.${status}`)}
+      {by && BY_NAME.has(status) ? t(`status.byName.${status}`, { name: by }) : t(`status.${status}`)}
     </Badge>
   );
 }

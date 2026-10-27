@@ -4,6 +4,11 @@
 // the official Latin alphabet. {name}-style placeholders are filled in by t().
 // Keys missing here fall back to en.js.
 const uz = {
+  afterCall: {
+    title: "Qoʻngʻiroq natijasi",
+    text: "Yangi raqam bilan gaplashdingiz. Davom etishdan oldin belgilang: nima boʻldi? Konsultatsiyaga yozsangiz ham boʻladi.",
+    book: "Konsultatsiyaga yozish",
+  },
   newCallers: {
     subtitleTeam: "Operatorlar gaplashgan, lekin konsultatsiyaga yozilmagan yangi raqamlar — sababini ular belgilaydi.",
     outcomes: {
@@ -289,12 +294,17 @@ const uz = {
     reachedPct: "{pct}% qayta bogʻlanildi",
   },
   status: {
-    pending: "Qayta qoʻngʻiroq kerak",
+    pending: "Hali hech kim gaplashmadi",
     attempted: "Javob bermadi",
     called_back: "Qayta qoʻngʻiroq qilindi",
     client_called_again: "Mijoz oʻzi qoʻngʻiroq qildi",
     handled: "Bogʻlanildi (belgilangan)",
     no_number: "Yashirin raqam",
+    byName: {
+      called_back: "{name} qayta qoʻngʻiroq qildi",
+      client_called_again: "{name} javob berdi",
+      attempted: "{name} qoʻngʻiroq qildi — javob yoʻq",
+    },
   },
   callType: {
     incoming: "Kiruvchi",

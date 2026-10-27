@@ -1,6 +1,11 @@
 // English — available from Profile, and the fallback for any key missing
 // from uz.js.
 const en = {
+  afterCall: {
+    title: "How did the call go?",
+    text: "You talked to a new number. Before going on, mark what came of it — or book them a consultation.",
+    book: "Book a consultation",
+  },
   newCallers: {
     subtitleTeam: "New numbers the operators talked to who didn't book — the operators tap why.",
     outcomes: {
@@ -286,12 +291,17 @@ const en = {
     reachedPct: "{pct}% reached back",
   },
   status: {
-    pending: "Needs callback",
+    pending: "Nobody has talked to them yet",
     attempted: "No answer",
     called_back: "Called back",
     client_called_again: "Caller rang again",
     handled: "Reached (marked)",
     no_number: "Hidden number",
+    byName: {
+      called_back: "{name} called back",
+      client_called_again: "{name} answered",
+      attempted: "{name} called — no answer",
+    },
   },
   callType: {
     incoming: "Incoming",
