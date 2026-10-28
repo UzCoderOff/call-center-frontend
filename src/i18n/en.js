@@ -2433,6 +2433,7 @@ const en = {
       legal_answer: "Legal answer given",
       wrong_price: "Wrong price",
       pasted_text: "Looks pasted (a guess)",
+      unanswered: "Didn't answer their question",
     },
     flaggedTitle: "For a manager to look at:",
     flaggedNote: "The AI sets these flags. «Looks pasted» is only a guess: read the chat yourself and talk to the person.",

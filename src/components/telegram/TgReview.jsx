@@ -38,7 +38,7 @@ export function Stars({ score }) {
 // What a manager should look at in the operator's messages (2026-10-26): a
 // legal answer, a wrong price, text that looks pasted from an AI chatbot (a
 // hint only) — each with the operator's words.
-const FLAGS = ["legal_answer", "wrong_price", "pasted_text"];
+const FLAGS = ["legal_answer", "wrong_price", "pasted_text", "unanswered"];
 
 export function ReviewFlags({ flags }) {
   const { t } = useI18n();

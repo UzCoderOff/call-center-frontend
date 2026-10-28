@@ -2437,6 +2437,7 @@ const uz = {
       legal_answer: "Yuridik javob berilgan",
       wrong_price: "Notoʻgʻri narx",
       pasted_text: "Koʻchirilgan matnga oʻxshaydi (taxmin)",
+      unanswered: "Mijozning savoliga javob bermadi",
     },
     flaggedTitle: "Rahbar koʻrib chiqsin:",
     flaggedNote: "Belgilarni AI qoʻyadi. «Koʻchirilgan matn» — faqat taxmin: yozishmani oʻzingiz oʻqing va xodim bilan gaplashing.",
