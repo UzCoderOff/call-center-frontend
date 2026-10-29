@@ -343,6 +343,12 @@ export const api = {
   // How a hearing went: { text, result?, next?, fileId? }.
   writeOutcome: (dateId, payload) => request(`/client-dates/${dateId}/outcome`, { method: "POST", body: payload }),
   outcomesDue: () => request("/client-cases/outcomes-due"),
+  // Hearings from sud.uz: every court (the picker), "is this our client?",
+  // and reading a case's courts now.
+  courts: () => request("/courts"),
+  courtFinds: (caseId) => request(`/courts/finds${qs({ caseId })}`),
+  answerCourtFind: (id, ours) => request(`/courts/finds/${id}`, { method: "POST", body: { ours } }),
+  checkCourts: (caseId) => request(`/courts/check/${caseId}`, { method: "POST" }),
   debts: (days) => request(`/client-cases/debts${qs({ days })}`),
   deadlineDays: () => request("/client-cases/deadline-days"),
   saveDeadlineDays: (stage, days) => request("/client-cases/deadline-days", { method: "PUT", body: { stage, days } }),

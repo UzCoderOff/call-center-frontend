@@ -120,15 +120,17 @@ export function useEventText() {
         return t("clients.events.stage", { from: from ? t(`cases.stages.${from}`) : "—", to: to ? t(`cases.stages.${to}`) : "—" });
       case "stage_row":
         if (d.action === "clear") return t("caseWork.events.stageClear");
-        return t(`caseWork.events.stage_${d.action}`, { stage: d.stage ? t(`cases.stages.${d.stage}`) : "—", date: d.date ? fmt.isoDateLong(d.date) : "—" });
+        return t(`caseWork.events.stage_${d.action}`, { stage: d.stage ? t(`cases.stages.${d.stage}`) : "—", date: d.date ? fmt.isoDateLong(d.date) : "—" }) + viaSud(d, t);
       case "date_row":
-        return t(`caseWork.events.date_${d.action}`, { title: d.title || t(`caseWork.kinds.${d.kind || "other"}`), date: d.date ? fmt.isoDateLong(d.date) : "—", outcome: d.outcome || "" });
+        return t(`caseWork.events.date_${d.action}`, { title: d.title || t(`caseWork.kinds.${d.kind || "other"}`), date: d.date ? fmt.isoDateLong(d.date) : "—", outcome: d.outcome || "" }) + viaSud(d, t);
       case "assign":
         return d.to ? t("caseWork.events.assign", { role: t(`cases.${d.role}`), name: d.to }) : t("caseWork.events.unassign", { role: t(`cases.${d.role}`), name: d.from || "—" });
       case "case_edit":
-        return t("caseWork.events.edit", {
-          fields: (d.changes || []).map((c) => `${t(`caseWork.fields.${c.field}`)}: ${showValue(c.from, fmt)} → ${showValue(c.to, fmt)}`).join("; "),
-        });
+        return (
+          t("caseWork.events.edit", {
+            fields: (d.changes || []).map((c) => `${t(`caseWork.fields.${c.field}`)}: ${showValue(c.from, fmt)} → ${showValue(c.to, fmt)}`).join("; "),
+          }) + viaSud(d, t)
+        );
       case "case":
         return t("clients.events.case", { text: e.text || "—" });
       case "archive":
@@ -176,6 +178,9 @@ export function useEventText() {
 }
 
 const showValue = (v, fmt) => (v == null || v === "" ? "—" : /^\d{4}-\d{2}-\d{2}$/.test(v) ? fmt.isoDateLong(v) : v);
+
+// Changes Ledger made from sud.uz's lists (services/courts/sync.js) say so.
+const viaSud = (d, t) => (d.via === "sud" ? ` — ${t("courts.fromSud")}` : "");
 
 export function TimelineList({ items, renderExtra, editing, editor }) {
   return (

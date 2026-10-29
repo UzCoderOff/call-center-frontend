@@ -13,6 +13,7 @@ import { CaseSheet, ContractAmountSheet, PaymentSheet } from "../clients/ClientS
 import { FilesCard, LostSheet } from "../clients/ClientWork";
 import { EntrySheet, OutcomeSheet } from "./EntrySheets";
 import CaseTasks, { useCaseTasks } from "./CaseTasks";
+import { CourtFindBanner, SudLine } from "./CourtParts";
 import { colorFor } from "../chat/ChatParts";
 import { api } from "../../lib/api";
 import { todayIso } from "../../lib/format";
@@ -89,6 +90,8 @@ export default function CaseWorkspace({ client, item, reload, asideTop = null, a
           </span>
           <h2 className={styles.title}>{item.matter || t("cases.untitled")}</h2>
           <p className={styles.meta}>{[item.number && `№ ${item.number}`, item.court, since ? t("casePage.since", { date: fmt.isoDateLong(since) }) : null].filter(Boolean).join(" · ") || t("caseWork.noNumber")}</p>
+          {/* Signed cases are followed on sud.uz (services/courts/sync.js). */}
+          {item.status === "contract" && p.canDates && <SudLine item={item} onChecked={reload} />}
           <Team item={item} canAssign={p.canAssign} onAssign={() => setSheet({ type: "assign" })} />
         </div>
         <div className={styles.headActions}>
@@ -131,6 +134,10 @@ export default function CaseWorkspace({ client, item, reload, asideTop = null, a
       </div>
 
       <Road item={item} today={today} />
+
+      {(item.courtFinds || []).map((f) => (
+        <CourtFindBanner key={f.id} find={f} onAnswered={reload} />
+      ))}
 
       {waiting.map((d) => (
         <div key={d.id} className={styles.ask}>

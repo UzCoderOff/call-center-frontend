@@ -12,6 +12,7 @@ import { api } from "../../lib/api";
 import { todayIso } from "../../lib/format";
 import Segmented from "../ui/Segmented";
 import CashWith, { cashWithDefault, cashWithOf } from "../finance/CashWith";
+import { CourtPicker } from "../cases/CourtParts";
 import { useAuth } from "../../hooks/useAuth";
 import { canBookAppointments, isManager } from "../../lib/access";
 import { useI18n } from "../../i18n";
@@ -270,9 +271,9 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
 // case itself (CaseWork.jsx), not here.
 const OPERATOR_STATUSES = ["consultation", "call_again", "contract", "declined"];
 const CASE_FIELDS = {
-  manager: ["matter", "details", "number", "court", "status", "startDate", "consultationDate", "contractDate", "closedDate", "lawyer", "operatorId", "lostReason", "lostNote"],
-  lawyer: ["matter", "details", "number", "court", "status", "closedDate", "lostReason", "lostNote"],
-  coordinator: ["number", "court", "details"],
+  manager: ["matter", "details", "number", "court", "courtKey", "status", "startDate", "consultationDate", "contractDate", "closedDate", "lawyer", "operatorId", "lostReason", "lostNote"],
+  lawyer: ["matter", "details", "number", "court", "courtKey", "status", "closedDate", "lostReason", "lostNote"],
+  coordinator: ["number", "court", "courtKey", "details"],
   operator: ["matter", "details", "number", "status", "startDate", "lawyer", "lostReason", "lostNote"],
 };
 
@@ -285,6 +286,12 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
   const [details, setDetails] = useState(item?.details || "");
   const [number, setNumber] = useState(item?.number || "");
   const [court, setCourt] = useState(item?.court || "");
+  // The court on sud.uz (CourtPicker): picking one writes its name as the court too.
+  const [courtKey, setCourtKey] = useState(item?.courtKey ?? null);
+  const pickCourt = (c) => {
+    setCourtKey(c ? c.key : null);
+    if (c && (!court.trim() || court === item?.sudCourt?.name)) setCourt(c.name);
+  };
   const [lawyer, setLawyer] = useState({ lawyerId: item?.lawyerId ?? null, lawyer: item?.lawyer || "" });
   const [status, setStatus] = useState(item?.status || "consultation");
   const [startDate, setStartDate] = useState(item?.startDate || todayIso());
@@ -313,6 +320,7 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
       details,
       number,
       court,
+      courtKey,
       status,
       startDate: startDate || null,
       consultationDate: consultationDate || null,
@@ -325,6 +333,7 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
       details: item?.details || "",
       number: item?.number || "",
       court: item?.court || "",
+      courtKey: item?.courtKey ?? null,
       status: item?.status || "consultation",
       startDate: item?.startDate || null,
       consultationDate: item?.consultationDate || null,
@@ -377,7 +386,7 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
           <TextAreaField label={t("cases.details")} placeholder={t("cases.detailsPlaceholder")} value={details} onChange={(e) => setDetails(e.target.value)} rows={4} maxLength={6000} />
         )}
         <div className={styles.twoCol}>
-          {may("number") && <TextField label={t("cases.number")} value={number} onChange={(e) => setNumber(e.target.value)} />}
+          {may("number") && <TextField label={t("cases.number")} placeholder={t("courts.numberPlaceholder")} value={number} onChange={(e) => setNumber(e.target.value)} />}
           {may("status") && (
             <SelectField label={t("cases.status")} value={status} onChange={(e) => setStatus(e.target.value)}>
               {statuses.map((s) => (
@@ -402,6 +411,7 @@ export function CaseSheet({ clientId, item, canManage, finance = false, onClose,
           </>
         )}
         {may("court") && <TextField label={t("caseWork.court")} placeholder={t("caseWork.courtPlaceholder")} value={court} onChange={(e) => setCourt(e.target.value)} />}
+        {may("courtKey") && editing && <CourtPicker value={courtKey} onChange={pickCourt} />}
         {may("lawyer") && <LawyerField value={lawyer} onChange={setLawyer} />}
         {(may("startDate") || may("consultationDate") || may("contractDate") || may("closedDate")) && (
           <div className={styles.twoCol}>

@@ -338,6 +338,8 @@ export function DateList({ item, canEdit, onEdit, onOutcome }) {
           <div className={styles.historyHead}>
             <strong>{r.title || t(`caseWork.kinds.${r.kind}`)}</strong>
             {r.date === today && <Badge tone="warning">{t("caseWork.today")}</Badge>}
+            {/* Kept in step with the court's list (services/courts/sync.js). */}
+            {r.sudKey && <Badge tone="accent">sud.uz</Badge>}
           </div>
           <span className={styles.historyMeta}>
             {[fmt.isoDay(r.date), r.time != null ? clock(r.time) : null, r.title ? t(`caseWork.kinds.${r.kind}`) : null, r.place].filter(Boolean).join(" · ")}
