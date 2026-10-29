@@ -18,6 +18,7 @@ import EmployeeDetailPage from "./pages/EmployeeDetailPage";
 import SettingsPage from "./pages/SettingsPage";
 import TemplateEditorPage from "./pages/TemplateEditorPage";
 import ProfilePage from "./pages/ProfilePage";
+import SetPasswordPage from "./pages/SetPasswordPage";
 import CalendarPage, { PlannerRedirect } from "./pages/CalendarPage";
 import MorePage from "./pages/MorePage";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -73,6 +74,8 @@ function Protected({ children, allow }) {
   if (status === "checking") return <Splash />;
   if (status === "offline") return <Offline />;
   if (status === "anon") return <Navigate to="/login" replace />;
+  // A temporary password: their own first (the server refuses the rest).
+  if (user?.mustChangePassword) return <SetPasswordPage />;
   if (allow && !allow(user)) return <Navigate to="/" replace />;
   return children;
 }
