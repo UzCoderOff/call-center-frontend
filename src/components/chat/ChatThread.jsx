@@ -545,6 +545,8 @@ function ActionCard({ message, onDecide }) {
   return (
     <div className={styles.actionCard}>
       <div className={styles.actionText}>{a.summary}</div>
+      {/* The full notes it will save — the summary alone hid them. Plain text. */}
+      {a.details && <div>{a.details}</div>}
       {a.status === "pending" ? (
         <div className={styles.actionButtons}>
           <Button size="small" busy={busy === "cancel"} onClick={() => run("cancel")}>

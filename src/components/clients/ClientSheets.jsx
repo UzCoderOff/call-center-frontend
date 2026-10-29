@@ -198,7 +198,8 @@ export function ClientSheet({ client, prefill, onClose, onSaved }) {
             <TextField label={t("cases.matter")} placeholder={t("cases.matterPlaceholder")} value={matter} onChange={(e) => setMatter(e.target.value)} />
             <div className={styles.twoCol}>
               <SelectField label={t("cases.status")} value={status} onChange={(e) => setStatus(e.target.value)}>
-                {STATUSES.map((s) => (
+                {/* Whoever adds the client is its first case's operator: staff set what an operator may (the server checks the same). */}
+                {(isManager(user) ? STATUSES : OPERATOR_STATUSES).map((s) => (
                   <option key={s} value={s}>
                     {t(`cases.statuses.${s}`)}
                   </option>

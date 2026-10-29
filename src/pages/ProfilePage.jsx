@@ -142,7 +142,9 @@ function PreferencesCard() {
   );
 }
 
-function PasswordCard() {
+// Also the whole screen for someone still on a temporary password
+// (SetPasswordPage).
+export function PasswordCard() {
   const { user, refreshMe } = useAuth();
   const { t } = useI18n();
   const [current, setCurrent] = useState("");
