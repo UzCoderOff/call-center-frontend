@@ -571,6 +571,8 @@ const uz = {
     updating: "Yangilanmoqda…",
     updated: "Parol yangilandi.",
     tempNote: "Siz hali vaqtinchalik paroldan foydalanyapsiz — faqat oʻzingiz biladigan parol oʻrnating.",
+    tempForgot: "Joriy parolni bilmasangiz, rahbardan yangisini soʻrang va hozircha «Keyinroq»ni bosing.",
+    tempLater: "Keyinroq",
     normalNote: "Parolni istalgan vaqtda oʻzgartirishingiz mumkin. Buning uchun joriy parol kerak.",
     tooShort: "Yangi parol kamida 8 ta belgidan iborat boʻlishi kerak.",
     mismatch: "Parollar mos kelmadi.",

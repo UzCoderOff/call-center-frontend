@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import Button from "./components/ui/Button";
 import { EmptyState } from "./components/ui/Misc";
@@ -69,13 +69,36 @@ function Offline() {
   );
 }
 
+// "Keyinroq" on the temporary-password screen: not again in this tab (or
+// app session) — it's back next time. Never a trap for someone who doesn't
+// know their current password: the app on their phone must keep working.
+const TEMP_PASSWORD_LATER = "ledger.tempPasswordLater";
+function laterChosen() {
+  try {
+    return sessionStorage.getItem(TEMP_PASSWORD_LATER) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function Protected({ children, allow }) {
   const { user, status } = useAuth();
+  const [later, setLater] = useState(laterChosen);
   if (status === "checking") return <Splash />;
   if (status === "offline") return <Offline />;
   if (status === "anon") return <Navigate to="/login" replace />;
-  // A temporary password: their own first (the server refuses the rest).
-  if (user?.mustChangePassword) return <SetPasswordPage />;
+  // A temporary password: their own first, unless they put it off.
+  if (user?.mustChangePassword && !later) {
+    const putOff = () => {
+      try {
+        sessionStorage.setItem(TEMP_PASSWORD_LATER, "1");
+      } catch {
+        // No storage (private mode): just this page.
+      }
+      setLater(true);
+    };
+    return <SetPasswordPage onLater={putOff} />;
+  }
   if (allow && !allow(user)) return <Navigate to="/" replace />;
   return children;
 }

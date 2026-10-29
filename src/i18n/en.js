@@ -567,6 +567,8 @@ const en = {
     updating: "Updating…",
     updated: "Password updated.",
     tempNote: "You're still on a temporary password — set one only you know.",
+    tempForgot: "Don't know your current password? Ask your manager for a new one and tap «Later» for now.",
+    tempLater: "Later",
     normalNote: "You can change your password any time. You'll need your current one.",
     tooShort: "The new password needs at least 8 characters.",
     mismatch: "Those passwords don't match.",
